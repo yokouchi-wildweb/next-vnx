@@ -87,7 +87,7 @@
     {
       "name": "main_image",
       "label": "メイン画像",
-      "fieldType": "string",
+      "fieldType": "imageUploader",
       "formInput": "imageUploader",
       "required": false,
       "uploadPath": "sample/main",

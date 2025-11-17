@@ -36,6 +36,7 @@ function mapTsType(t) {
     case 'uuid':
     case 'date':
     case 'time':
+    case 'imageUploader':
       return 'string';
     case 'integer':
     case 'number':

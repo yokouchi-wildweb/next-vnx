@@ -22,14 +22,14 @@ async function askOptions() {
       name: 'value',
       message:
         options.length === 0
-          ? '選択肢の値（空で終了）:'
-          : '次の選択肢の値（空で終了）:',
+          ? '選択肢として保存する値（例: apple。空で終了）:'
+          : '次の選択肢として保存する値（例: apple。空で終了）:',
     });
     if (!value.trim()) break;
     const { label } = await prompt({
       type: 'input',
       name: 'label',
-      message: `値 ${value} の表示名:`,
+      message: `値 ${value} が画面に表示されるラベル（例: りんご）:`,
     });
     const trimmedLabel = label.trim() || value.trim();
     options.push({ value: parseOptionValue(value), label: trimmedLabel });

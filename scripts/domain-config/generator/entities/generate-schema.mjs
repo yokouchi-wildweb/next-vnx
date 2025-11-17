@@ -54,6 +54,7 @@ function mapZodType(type) {
     case 'email':
     case 'password':
     case 'uuid':
+    case 'imageUploader':
       return 'z.string()';
     case 'integer':
     case 'number':
@@ -81,11 +82,11 @@ function isTimestampField(fieldType) {
 }
 
 function isStringField(fieldType) {
-  return ['string', 'email', 'password'].includes(fieldType);
+  return ['string', 'email', 'password', 'imageUploader'].includes(fieldType);
 }
 
 function shouldTrimField(fieldType) {
-  return ['string', 'email', 'password', 'uuid', 'date', 'time'].includes(fieldType);
+  return ['string', 'email', 'password', 'uuid', 'date', 'time', 'imageUploader'].includes(fieldType);
 }
 
 function isEmailField(fieldType) {
