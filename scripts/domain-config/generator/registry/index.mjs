@@ -27,7 +27,8 @@ const configPath = path.join(rootDir, 'src', 'features', camel, 'domain.json');
 
 let label = pascal;
 let plural = toPlural(camel);
-let dbEngine = '';
+let dbEngine = "";
+let addToAdminDataMenu = false;
 // 設定ファイルがあればラベルや複数形、DBエンジンを読み込む
 if (fs.existsSync(configPath)) {
   const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -38,8 +39,11 @@ if (fs.existsSync(configPath)) {
   if (config.dbEngine) {
     dbEngine = config.dbEngine;
   }
+  addToAdminDataMenu = Boolean(config.addToAdminDataMenu);
 }
 
-updateAdminDataMenu({ rootDir, plural, label });
+if (addToAdminDataMenu) {
+  updateAdminDataMenu({ rootDir, plural, label });
+}
 updateSchemaRegistry({ rootDir, camel, dbEngine });
 updateServiceRegistry({ rootDir, camel });
