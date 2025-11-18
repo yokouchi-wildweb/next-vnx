@@ -80,11 +80,13 @@ async function askSingleField(config) {
   let uploadPath;
   let slug;
   if (normalizedInput === 'imageUploader') {
+    const domainSlug = toCamelCase(config.singular ?? '') || 'domain';
+    const uploadExample = `${domainSlug}/main`;
     while (true) {
       const up = await prompt({
         type: 'input',
         name: 'uploadPath',
-        message: '画像の保存パス（例: cards/main）:',
+        message: `画像の保存パス（例: ${uploadExample}）:`,
       });
       uploadPath = up.uploadPath.trim();
       if (uploadPath) break;

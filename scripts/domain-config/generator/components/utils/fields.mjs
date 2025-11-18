@@ -16,9 +16,13 @@ function normalizeBooleanOptions(options) {
 function generateFieldsFromConfig(config) {
   if (!config) return null;
 
-  const relations = (config.relations || []).filter(
-    (rel) => rel.relationType === "belongsTo" || rel.relationType === "belongsToMany",
-  );
+  const relations = (config.relations || []).filter((rel) => {
+    if (rel.relationType === "belongsTo") return true;
+    if (rel.relationType === "belongsToMany") {
+      return rel.includeRelationTable !== false;
+    }
+    return false;
+  });
   const fields = config.fields || [];
 
   const imports = new Set([

@@ -166,7 +166,7 @@ const lines = [];
 
 // belongsToMany relations -> arrays of ids
 (config.relations || []).forEach((rel) => {
-  if (rel.relationType !== 'belongsToMany') return;
+  if (rel.relationType !== 'belongsToMany' || rel.includeRelationTable === false) return;
   const elem = mapZodType(rel.fieldType || config.idType);
   lines.push(`  ${rel.fieldName}: z.array(${elem}).default([]),`);
 });

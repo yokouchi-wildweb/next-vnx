@@ -33,6 +33,9 @@ export default async function generate(domain) {
   const normalizedDomain = toSnakeCase(config.singular) || toSnakeCase(input) || camel;
   const normalizedPlural = toSnakeCase(config.plural || "") || "";
   const gen = config.generateFiles || {};
+  const hasEnumFields = (config.fields || []).some(
+    (field) => field.fieldType === "enum" && Array.isArray(field.options) && field.options.length > 0,
+  );
 
   if (gen.components)
     runGenerator(path.join("components", "index.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
@@ -46,6 +49,8 @@ export default async function generate(domain) {
   if (gen.entities)
     runGenerator(path.join("entities", "index.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
   if (gen.registry) runGenerator("registry/index.mjs", normalizedDomain);
+  if (hasEnumFields)
+    runGenerator(path.join("fields", "index.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

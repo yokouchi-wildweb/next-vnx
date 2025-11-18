@@ -32,7 +32,10 @@ function buildDefaultValues(config, { mode = "create", entityVar } = {}) {
       lines.push(
         mode === "create" ? `${rel.fieldName}: "",` : `${rel.fieldName}: ${entityVar}.${rel.fieldName} ?? "",`,
       );
-    } else if (rel.relationType === "belongsToMany") {
+      continue;
+    }
+
+    if (rel.relationType === "belongsToMany" && rel.includeRelationTable !== false) {
       lines.push(
         mode === "create" ? `${rel.fieldName}: [],` : `${rel.fieldName}: ${entityVar}.${rel.fieldName} ?? [],`,
       );

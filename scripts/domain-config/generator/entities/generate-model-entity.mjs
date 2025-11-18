@@ -83,7 +83,7 @@ lines.push(`  id: ${idTs};`);
 
 // belongsToMany relations
 (config.relations || []).forEach((rel) => {
-  if (rel.relationType !== 'belongsToMany') return;
+  if (rel.relationType !== 'belongsToMany' || rel.includeRelationTable === false) return;
   const t = mapTsType(rel.fieldType || config.idType);
   lines.push(`  ${rel.fieldName}?: ${t}[];`);
 });

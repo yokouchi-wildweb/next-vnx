@@ -3,10 +3,17 @@ import type { DataTableColumn } from "@/components/DataTable";
 import { formatDateJa } from "@/utils/date";
 import { truncateJapanese } from "@/utils/string";
 
+type FieldOption = {
+  value: string | number | boolean;
+  label: string;
+};
+
 type DomainFieldConfig = {
   name: string;
   label?: string;
   formInput?: string;
+  fieldType?: string;
+  options?: FieldOption[];
 };
 
 type DomainRelationConfig = {
@@ -30,14 +37,23 @@ type BuildDomainColumnsParams<T> = {
 function buildLabelMap(config: DomainJsonConfig): {
   labelMap: Record<string, string>;
   inputMap: Record<string, string>;
+  optionLabelMap: Record<string, Record<string, string>>;
 } {
   const labelMap: Record<string, string> = {};
   const inputMap: Record<string, string> = {};
+  const optionLabelMap: Record<string, Record<string, string>> = {};
 
-  (config.fields ?? []).forEach(({ name, label, formInput }) => {
+  (config.fields ?? []).forEach(({ name, label, formInput, fieldType, options }) => {
     labelMap[name] = label ?? name;
     if (formInput) {
       inputMap[name] = formInput;
+    }
+
+    if (fieldType === "enum" && Array.isArray(options) && options.length > 0) {
+      optionLabelMap[name] = options.reduce<Record<string, string>>((acc, option) => {
+        acc[String(option.value)] = option.label ?? String(option.value);
+        return acc;
+      }, {});
     }
   });
 
@@ -49,10 +65,27 @@ function buildLabelMap(config: DomainJsonConfig): {
   labelMap.createdAt = labelMap.createdAt ?? "作成日時";
   labelMap.updatedAt = labelMap.updatedAt ?? "更新日時";
 
-  return { labelMap, inputMap };
+  return { labelMap, inputMap, optionLabelMap };
 }
 
-function renderValue(value: unknown, field: string, inputType: string | undefined, truncateLength: number) {
+function renderValue({
+  value,
+  field,
+  inputType,
+  truncateLength,
+  options,
+}: {
+  value: unknown;
+  field: string;
+  inputType?: string;
+  truncateLength: number;
+  options?: Record<string, string>;
+}) {
+  if (options) {
+    if (value == null) return "";
+    return options[String(value)] ?? String(value);
+  }
+
   const isDatetimeField =
     field === "createdAt" ||
     field === "updatedAt" ||
@@ -91,7 +124,7 @@ export function buildDomainColumns<T>({
   truncateLength = 30,
 }: BuildDomainColumnsParams<T>): DataTableColumn<T>[] {
   const tableFields = Array.isArray(config.tableFields) ? (config.tableFields as string[]) : [];
-  const { labelMap, inputMap } = buildLabelMap(config);
+  const { labelMap, inputMap, optionLabelMap } = buildLabelMap(config);
 
   const columns = tableFields.map<DataTableColumn<T>>((field) => ({
     header: labelMap[field] ?? field,
@@ -99,7 +132,13 @@ export function buildDomainColumns<T>({
       const record = item as Record<string, unknown>;
       const value = record[field];
       const inputType = inputMap[field];
-      return renderValue(value, field, inputType, truncateLength);
+      return renderValue({
+        value,
+        field,
+        inputType,
+        truncateLength,
+        options: optionLabelMap[field],
+      });
     },
   }));
 

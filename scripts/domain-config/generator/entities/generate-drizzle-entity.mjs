@@ -169,8 +169,9 @@ const relationTables = [];
   const relationDomainCamel = toCamelCase(rel.domain);
   const relationDomainPascal = toPascalCase(rel.domain);
   relationImports.set(relationDomainCamel, relationDomainPascal);
-  const tableVar = `${pascal}To${relationDomainPascal}Table`;
-  const tableName = `${toSnakeCase(camel)}_to_${toSnakeCase(relationDomainCamel)}`;
+  const relationRoot = `${pascal}To${relationDomainPascal}`;
+  const tableVar = `${relationRoot}Table`;
+  const tableName = toSnakeCase(relationRoot);
   relationTables.push({
     tableVar,
     tableName,

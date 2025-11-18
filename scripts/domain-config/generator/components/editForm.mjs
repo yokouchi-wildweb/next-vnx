@@ -18,10 +18,14 @@ export default function generate(tokens) {
   // ドメイン設定ファイルがあれば読み込む
   if (fs.existsSync(configPath)) {
     domainConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    relations =
-      (domainConfig.relations || []).filter(
-        (rel) => rel.relationType === "belongsTo" || rel.relationType === "belongsToMany",
-      );
+    const relationList = domainConfig.relations || [];
+    relations = relationList.filter((rel) => {
+      if (rel.relationType === "belongsTo") return true;
+      if (rel.relationType === "belongsToMany") {
+        return rel.includeRelationTable !== false;
+      }
+      return false;
+    });
     fields = domainConfig.fields || [];
   }
 
