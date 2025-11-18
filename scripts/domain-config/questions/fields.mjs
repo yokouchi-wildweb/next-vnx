@@ -76,6 +76,7 @@ async function askSingleField(config) {
 
   const isBooleanField = fieldType === 'boolean';
   const isArrayField = fieldType === 'array';
+  const isEnumField = fieldType === 'enum';
 
   let uploadPath;
   let slug;
@@ -120,6 +121,9 @@ async function askSingleField(config) {
 
   let options;
   const needsOptions =
+    isBooleanField ||
+    isArrayField ||
+    isEnumField ||
     normalizedInput === 'radio' ||
     normalizedInput === 'select' ||
     (normalizedInput === 'checkbox' && !isBooleanField);
@@ -133,16 +137,19 @@ async function askSingleField(config) {
       ];
     } else {
       const guidance =
-        isArrayField && normalizedInput === 'checkbox'
-          ? 'チェックボックスで選択可能な値を入力してください。空欄で入力終了。値は文字列として保存されます。'
+        isArrayField
+          ? '配列フィールドで選択可能な値を入力してください。空欄で入力終了。値は文字列として保存されます。'
           : '選択肢を入力してください。空欄で入力終了。値は文字列として扱われます。';
       console.log(guidance);
       do {
         options = await askOptions();
-        if (!options.length && isArrayField && normalizedInput === 'checkbox') {
-          console.log('少なくとも1つの選択肢を登録してください。');
+        if (!options.length && isArrayField) {
+          console.log('配列フィールドには少なくとも1つの選択肢が必要です。');
         }
-      } while (!options.length && isArrayField && normalizedInput === 'checkbox');
+        if (!options.length && isEnumField) {
+          console.log('Enum フィールドには少なくとも1つの選択肢が必要です。');
+        }
+      } while (!options.length && (isArrayField || isEnumField));
     }
   }
 

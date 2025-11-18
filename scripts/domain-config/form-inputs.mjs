@@ -29,6 +29,7 @@ export const FORM_INPUTS = {
       'textarea',
       'date input',
       'number input',
+      'select',
       'none',
     ],
     integer: ['number input', 'stepper input', 'none'],
