@@ -31,9 +31,37 @@ function runGenerator(script, domain, plural, dbEngine) {
   spawnSync("node", args, { stdio: "inherit" });
 }
 
-async function resolveGenerateTargets(config, configPath) {
+async function resolveGenerateTargets(config, configPath, options = {}) {
   const currentGenerate = config.generateFiles || {};
-  const { mode } = await prompt({
+  const {
+    mode,
+    interactive = true,
+    manualGenerate,
+    saveManualSelection = false,
+  } = options;
+
+  if (mode === "config") {
+    return currentGenerate;
+  }
+
+  if (mode === "all") {
+    return ALL_GENERATE_OPTIONS;
+  }
+
+  if (mode === "manual" && manualGenerate) {
+    if (saveManualSelection) {
+      config.generateFiles = manualGenerate;
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+      console.log(`更新しました: ${configPath}`);
+    }
+    return manualGenerate;
+  }
+
+  if (!interactive) {
+    return currentGenerate;
+  }
+
+  const { mode: resolvedMode } = await prompt({
     type: "list",
     name: "mode",
     message: "生成方法を選択:",
@@ -45,17 +73,17 @@ async function resolveGenerateTargets(config, configPath) {
     default: "config",
   });
 
-  if (mode === "config") {
+  if (resolvedMode === "config") {
     return currentGenerate;
   }
 
-  if (mode === "all") {
+  if (resolvedMode === "all") {
     return ALL_GENERATE_OPTIONS;
   }
 
-  // manual selection
+  // manual selection via prompt
   const manualSelection = await askGenerateFiles();
-  const manualGenerate = manualSelection.generateFiles;
+  const manualResult = manualSelection.generateFiles;
 
   const { shouldSave } = await prompt({
     type: "confirm",
@@ -65,15 +93,15 @@ async function resolveGenerateTargets(config, configPath) {
   });
 
   if (shouldSave) {
-    config.generateFiles = manualGenerate;
+    config.generateFiles = manualResult;
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
     console.log(`更新しました: ${configPath}`);
   }
 
-  return manualGenerate;
+  return manualResult;
 }
 
-export default async function generate(domain) {
+export default async function generate(domain, options = {}) {
   const input = (domain || "").trim();
   if (!input) {
     console.error("ドメイン名を指定してください。");
@@ -88,14 +116,17 @@ export default async function generate(domain) {
   const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
   const normalizedDomain = toSnakeCase(config.singular) || toSnakeCase(input) || camel;
   const normalizedPlural = toSnakeCase(config.plural || "") || "";
-  const gen = await resolveGenerateTargets(config, configPath);
+  const gen = await resolveGenerateTargets(config, configPath, options);
 
-  const { shouldGenerate } = await prompt({
-    type: "confirm",
-    name: "shouldGenerate",
-    message: "既存の関係ファイルはすべて上書きされます。生成を実行しますか？",
-    default: false,
-  });
+  let shouldGenerate = options.shouldGenerate;
+  if (typeof shouldGenerate !== "boolean") {
+    ({ shouldGenerate } = await prompt({
+      type: "confirm",
+      name: "shouldGenerate",
+      message: "既存の関係ファイルはすべて上書きされます。生成を実行しますか？",
+      default: false,
+    }));
+  }
   if (!shouldGenerate) {
     console.log("ファイル生成をスキップしました。");
     return;

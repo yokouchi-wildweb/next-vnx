@@ -2,9 +2,9 @@
 
 "use client";
 
-import ListTop from "@/components/Admin/Elements/ListTop";
+import ListTop from "../../../../components/Admin/Elements/ListTop";
 import Pagination from "../../../../components/Fanctional/Pagination";
-import SearchBox from "@/components/Admin/Elements/SearchBox";
+import SearchBox from "../../../../components/Admin/Elements/SearchBox";
 import { useSearchParams } from "next/navigation";
 import config from "../../domain.json";
 

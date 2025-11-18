@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import AdminSampleCategoryCreate from "@/features/sampleCategory/components/AdminSampleCategoryCreate";
-import AdminPage from "@/components/Admin/Layout/AdminPage";
-import PageTitle from "@/components/Admin/Elements/PageTitle";
+import PageTitle from "../../../../../components/Admin/Elements/PageTitle";
+import { Main } from "@/components/TextBlocks";
 
 
 export const metadata = {
@@ -12,9 +12,11 @@ export const metadata = {
 export default function AdminSampleCategoryCreatePage() {
 
   return (
-    <AdminPage>
+
+    <Main containerType="plain">
       <PageTitle>サンプルカテゴリ追加</PageTitle>
       <AdminSampleCategoryCreate redirectPath="/admin/sample-categories" />
-    </AdminPage>
+    </Main>
+
   );
 }

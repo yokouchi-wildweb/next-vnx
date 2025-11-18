@@ -2,12 +2,19 @@ function isTimestampType(type) {
   return type === "timestamp" || type === "timestamp With Time Zone";
 }
 
-function defaultValueFor(type) {
+function defaultValueFor(field) {
+  const type = field?.fieldType;
+  const formInput = field?.formInput;
+  const hasOptions = Array.isArray(field?.options) && field.options.length > 0;
+
   switch (type) {
     case "integer":
     case "number":
       return "undefined";
     case "boolean":
+      if (formInput === "radio" || hasOptions) {
+        return "undefined";
+      }
       return "false";
     case "enum":
       return "undefined";
@@ -43,7 +50,7 @@ function buildDefaultValues(config, { mode = "create", entityVar } = {}) {
   }
 
   for (const f of fields) {
-    const dv = defaultValueFor(f.fieldType);
+    const dv = defaultValueFor(f);
     if (mode === "edit" && entityVar && isTimestampType(f.fieldType)) {
       const source = `${entityVar}.${f.name}`;
       lines.push(`${f.name}: ${source} ? new Date(${source}) : undefined,`);

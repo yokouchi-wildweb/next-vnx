@@ -15,3 +15,4 @@ export const UI_BEHAVIOR_CONFIG = [
   },
 ] as const;
 
+

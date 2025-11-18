@@ -2,8 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { sampleService } from "@/features/sample/services/server/sampleService";
 import AdminSampleEdit from "@/features/sample/components/AdminSampleEdit";
-import AdminPage from "@/components/Admin/Layout/AdminPage";
-import PageTitle from "@/components/Admin/Elements/PageTitle";
+import PageTitle from "../../../../../../components/Admin/Elements/PageTitle";
+import { Main } from "@/components/TextBlocks";
 import type { Sample } from "@/features/sample/entities";
 import { SWRConfig } from "swr";
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
@@ -18,22 +18,23 @@ type Props = {
 
 export default async function AdminSampleEditPage({ params }: Props) {
   const { id } = await params;
-  const [sample, sampleCategories] = await Promise.all([
+  const [sample, sampleCategories ] = await Promise.all([
     sampleService.get(id),
-    sampleCategoryService.list(),
+    sampleCategoryService.list()
   ]);
 
 
   return (
-    <SWRConfig
-      value={{
-        fallback: { sampleCategories },
-      }}
-    >
-      <AdminPage>
-        <PageTitle>サンプル編集</PageTitle>
-        <AdminSampleEdit sample={sample as Sample} redirectPath="/admin/samples" />
-      </AdminPage>
-    </SWRConfig>
+  <SWRConfig
+    value={{
+      fallback: { sampleCategories },
+  }}
+  >
+
+    <Main containerType="plain">
+      <PageTitle>サンプル編集</PageTitle>
+      <AdminSampleEdit sample={sample as Sample} redirectPath="/admin/samples" />
+    </Main>
+  </SWRConfig>
   );
 }

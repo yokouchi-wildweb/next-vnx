@@ -22,6 +22,7 @@
  */
 import init from "./init.mjs";
 import generate from "./generate.mjs";
+import generateAll from "./generate-all.mjs";
 import removeDomain from "./delete.mjs";
 import inquirer from "inquirer";
 
@@ -32,6 +33,7 @@ async function main() {
   const hasInit = args.includes("--init");
   const generateIndex = args.indexOf("--generate");
   const hasGenerate = generateIndex !== -1;
+  const hasAll = args.includes("--all");
   const deleteIndex = args.indexOf("--delete");
   const hasDelete = deleteIndex !== -1;
 
@@ -58,6 +60,10 @@ async function main() {
     }
 
     if (hasGenerate) {
+      if (hasAll) {
+        await generateAll();
+        return;
+      }
       const domain = args[generateIndex + 1];
       if (!domain) {
         console.error("--generate にはドメイン名が必要です");

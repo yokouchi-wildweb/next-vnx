@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import AdminSampleCreate from "@/features/sample/components/AdminSampleCreate";
-import AdminPage from "@/components/Admin/Layout/AdminPage";
-import PageTitle from "@/components/Admin/Elements/PageTitle";
+import PageTitle from "../../../../../components/Admin/Elements/PageTitle";
+import { Main } from "@/components/TextBlocks";
 import { SWRConfig } from "swr";
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
 
@@ -11,20 +11,21 @@ export const metadata = {
 };
 
 export default async function AdminSampleCreatePage() {
-  const [sampleCategories] = await Promise.all([
-    sampleCategoryService.list(),
+  const [sampleCategories ] = await Promise.all([
+    sampleCategoryService.list()
   ]);
 
   return (
-    <SWRConfig
-      value={{
-        fallback: { sampleCategories },
-      }}
-    >
-      <AdminPage>
-        <PageTitle>サンプル追加</PageTitle>
-        <AdminSampleCreate redirectPath="/admin/samples" />
-      </AdminPage>
-    </SWRConfig>
+  <SWRConfig
+    value={{
+      fallback: { sampleCategories },
+  }}
+  >
+
+    <Main containerType="plain">
+      <PageTitle>サンプル追加</PageTitle>
+      <AdminSampleCreate redirectPath="/admin/samples" />
+    </Main>
+  </SWRConfig>
   );
 }
