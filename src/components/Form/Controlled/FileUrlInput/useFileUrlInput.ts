@@ -102,10 +102,10 @@ export const useFileUrlInput = <
   };
 
   const confirmDelete = async () => {
+    setOpen(false);
     resolver?.(true);
     setResolver(null);
     await handleRemove();
-    setOpen(false);
   };
 
   return {
@@ -120,4 +120,3 @@ export const useFileUrlInput = <
     confirmDelete,
   } as const;
 };
-
