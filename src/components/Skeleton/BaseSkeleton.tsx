@@ -10,8 +10,12 @@ const shimmerKeyframes = `
     transform: translateX(-100%);
     opacity: 0.15;
   }
-  50% {
+  25% {
     opacity: 1;
+  }
+  50% {
+    transform: translateX(100%);
+    opacity: 0.15;
   }
   100% {
     transform: translateX(100%);
@@ -42,7 +46,7 @@ type BaseSkeletonProps = ComponentProps<typeof ShadcnSkeleton> & {
 export function BaseSkeleton({
   className,
   shimmer = true,
-  shimmerSpeed = 1.6,
+  shimmerSpeed = 1.5,
   shimmerWidth = 60,
   backgroundTone = "default",
   style,
