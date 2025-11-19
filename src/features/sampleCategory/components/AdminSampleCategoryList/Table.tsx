@@ -3,7 +3,7 @@
 "use client";
 
 import type { SampleCategory } from "../../entities";
-import DataTable, { TableCellAction, type DataTableColumn } from "@/components/Tables/DataTable";
+import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
 import EditButton from "../../../../components/Fanctional/EditButton";
 import DeleteButton from "../../../../components/Fanctional/DeleteButton";
 import { useDeleteSampleCategory } from "@/features/sampleCategory/hooks/useDeleteSampleCategory";

@@ -3,7 +3,7 @@ import React from "react";
 import { Checkbox } from "@/components/Shadcn/checkbox";
 import { cn } from "@/lib/cn";
 
-import { TableCell } from "../../DataTable/Table";
+import { TableCell } from "../../DataTable/components";
 import { isCheckboxEvent } from "../utils/checkboxEvent";
 
 type SelectionCellProps = {

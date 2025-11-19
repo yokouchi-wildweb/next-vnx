@@ -1,6 +1,6 @@
 "use client";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/Tables/DataTable/Table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/lib/tableSuite/DataTable/components";
 
 export type UserInfoRow = {
   label: string;

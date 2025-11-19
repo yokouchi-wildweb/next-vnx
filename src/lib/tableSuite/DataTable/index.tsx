@@ -1,4 +1,4 @@
-// src/components/Tables/DataTable/DataTable.tsx
+// src/components/Tables/DataTable/index.tsx
 
 "use client";
 
@@ -10,7 +10,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from "./Table";
+} from "./components";
 import { cn } from "@/lib/cn";
 
 export type DataTableColumn<T> = {
@@ -76,3 +76,5 @@ export default function DataTable<T>({
     </div>
   );
 }
+
+export * from "./components";

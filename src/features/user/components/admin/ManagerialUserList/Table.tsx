@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import DataTable, {
   TableCellAction,
   type DataTableColumn,
-} from "@/components/Tables/DataTable";
+} from "@/lib/tableSuite/DataTable";
 import DeleteButton from "@/components/Fanctional/DeleteButton";
 import EditButton from "@/components/Fanctional/EditButton";
 import type { User } from "@/features/user/entities";

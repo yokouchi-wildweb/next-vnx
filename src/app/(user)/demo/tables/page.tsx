@@ -1,11 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 
-import type { DataTableColumn } from "@/components/Tables/DataTable";
+import type { DataTableColumn } from "@/lib/tableSuite/DataTable";
+import EditableGridTable, {
+  type EditableGridCellChangeEvent,
+  type EditableGridColumn,
+} from "@/lib/tableSuite/EditableGridTable";
 import RecordSelectionTable, {
   type RecordSelectionTableProps,
-} from "@/components/Tables/RecordSelectionTable";
+} from "@/lib/tableSuite/RecordSelectionTable";
 import { Button } from "@/components/Form/Button/Button";
 import { RadioGroupInput } from "@/components/Form/Manual/RadioGroupInput";
 import { Block } from "@/components/Layout/Block";
@@ -13,83 +17,12 @@ import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Main, PageTitle, Para, SecTitle, Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
+import type { Sample } from "@/features/sample/entities";
+import { useSampleList } from "@/features/sample/hooks/useSampleList";
+import { sampleClient } from "@/features/sample/services/client/sampleClient";
+import { resolveErrorMessage } from "@/lib/errors";
 
-type DemoRecord = {
-  id: string;
-  company: string;
-  contactName: string;
-  email: string;
-  status: "active" | "attention" | "inactive";
-  lastActivity: string;
-};
-
-const demoRecords: DemoRecord[] = [
-  {
-    id: "cust-001",
-    company: "Acme Foods",
-    contactName: "山田 太郎",
-    email: "taro.yamada@example.com",
-    status: "active",
-    lastActivity: "2024/06/24 見積送付",
-  },
-  {
-    id: "cust-002",
-    company: "Future Logistics",
-    contactName: "斎藤 由美",
-    email: "yumi.saito@example.com",
-    status: "attention",
-    lastActivity: "2024/06/19 契約更新依頼",
-  },
-  {
-    id: "cust-003",
-    company: "北斗印刷",
-    contactName: "田中 信吾",
-    email: "shingo.tanaka@example.com",
-    status: "active",
-    lastActivity: "2024/06/10 製品紹介",
-  },
-  {
-    id: "cust-004",
-    company: "Cyan Security",
-    contactName: "加藤 充",
-    email: "mitsuru.kato@example.com",
-    status: "inactive",
-    lastActivity: "2024/05/28 解約完了",
-  },
-  {
-    id: "cust-005",
-    company: "Leaf Works",
-    contactName: "杉本 可奈",
-    email: "kana.sugimoto@example.com",
-    status: "attention",
-    lastActivity: "2024/06/05 請求書送付",
-  },
-  {
-    id: "cust-006",
-    company: "Bright Insights",
-    contactName: "三浦 裕",
-    email: "yu.miura@example.com",
-    status: "active",
-    lastActivity: "2024/06/21 PoC 実施中",
-  },
-];
-
-const statusAppearance: Record<DemoRecord["status"], { label: string; className: string }> = {
-  active: {
-    label: "稼働中",
-    className: "text-emerald-600 bg-emerald-50 border-emerald-200",
-  },
-  attention: {
-    label: "要フォロー",
-    className: "text-amber-600 bg-amber-50 border-amber-200",
-  },
-  inactive: {
-    label: "停止中",
-    className: "text-slate-500 bg-slate-50 border-slate-200",
-  },
-};
-
-type SelectionBehavior = NonNullable<RecordSelectionTableProps<DemoRecord>["selectionBehavior"]>;
+type SelectionBehavior = NonNullable<RecordSelectionTableProps<Sample>["selectionBehavior"]>;
 
 const selectionBehaviorOptions: Array<{
   value: SelectionBehavior;
@@ -108,52 +41,99 @@ const selectionBehaviorOptions: Array<{
   },
 ];
 
+const SAMPLE_SELECT_OPTIONS = [
+  { value: "apple", label: "りんご" },
+  { value: "orange", label: "オレンジ" },
+  { value: "berry", label: "いちご" },
+];
+
+const formatDisplayValue = (value: unknown) => {
+  if (value instanceof Date) {
+    return value.toLocaleString("ja-JP", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  if (value === null || value === undefined || value === "") {
+    return "未設定";
+  }
+
+  return String(value);
+};
+
 export default function TablesDemoPage() {
   const [selectionBehavior, setSelectionBehavior] = useState<SelectionBehavior>("row");
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
-  const [selectedRows, setSelectedRows] = useState<DemoRecord[]>([]);
+  const [selectedRows, setSelectedRows] = useState<Sample[]>([]);
+  const [editableOverrides, setEditableOverrides] = useState<Record<string, Partial<Sample>>>({});
+  const [lastEditSummary, setLastEditSummary] = useState("サンプルを編集するとログが更新されます");
+  const [isPending, startTransition] = useTransition();
+  const { data: sampleList = [], isLoading: isSampleLoading } = useSampleList();
 
-  const columns: DataTableColumn<DemoRecord>[] = useMemo(
+  const normalizedSampleList = useMemo(
+    () =>
+      sampleList.map((row) => ({
+        ...row,
+        createdAt: row.createdAt ? new Date(row.createdAt) : null,
+        updatedAt: row.updatedAt ? new Date(row.updatedAt) : null,
+      })),
+    [sampleList],
+  );
+
+  const editableRows = useMemo(
+    () =>
+      normalizedSampleList.map((row) => ({
+        ...row,
+        ...(editableOverrides[row.id] ?? {}),
+      })),
+    [editableOverrides, normalizedSampleList],
+  );
+
+  const columns: DataTableColumn<Sample>[] = useMemo(
     () => [
       {
-        header: "取引先 / 担当者",
+        header: "サンプル名 / 説明",
         render: (record) => (
           <Block className="space-y-1">
             <Span weight="medium" className="text-foreground">
-              {record.company}
+              {record.name}
             </Span>
             <Para size="sm" tone="muted" className="leading-snug">
-              {record.contactName}
+              {record.description ?? "説明が未登録です"}
             </Para>
           </Block>
         ),
       },
       {
-        header: "ステータス",
+        header: "カテゴリ",
         render: (record) => {
-          const appearance = statusAppearance[record.status];
+          const appearance = SAMPLE_SELECT_OPTIONS.find((option) => option.value === record.select);
           return (
             <Span
               size="sm"
               className={cn(
                 "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold",
-                appearance.className,
+                appearance ? "border-primary/50 text-primary" : "border-muted-foreground/30 text-muted-foreground",
               )}
             >
-              {appearance.label}
+              {appearance?.label ?? "未分類"}
             </Span>
           );
         },
       },
       {
-        header: "連絡先 / 最終アクション",
+        header: "更新日時 / 数量",
         render: (record) => (
           <Block className="space-y-1">
             <Para size="sm" tone="default" className="font-medium">
-              {record.email}
+              最終更新: {record.updatedAt ? formatDisplayValue(new Date(record.updatedAt)) : "未設定"}
             </Para>
             <Para size="xs" tone="muted">
-              {record.lastActivity}
+              数量: {record.number ?? "-"} / リッチナンバー: {record.rich_number ?? "-"}
             </Para>
           </Block>
         ),
@@ -162,15 +142,112 @@ export default function TablesDemoPage() {
     [],
   );
 
-  const handleSelectionChange = (keys: React.Key[], rows: DemoRecord[]) => {
+  const editableColumns = useMemo<EditableGridColumn<Sample>[]>(
+    () => [
+      {
+        field: "name",
+        header: "名前",
+        editorType: "text",
+        placeholder: "例: 新商品 A",
+        validator: (value) => {
+          if (!value || String(value).trim().length === 0) {
+            return "名前は必須です";
+          }
+          if (String(value).length > 40) {
+            return "40文字以内で入力してください";
+          }
+          return null;
+        },
+      },
+      {
+        field: "number",
+        header: "数量",
+        editorType: "number",
+        placeholder: "0 以上の整数",
+        validator: (value) => {
+          if (value == null || value === "") {
+            return null;
+          }
+          if (typeof value === "number" && value < 0) {
+            return "0以上の値を入力してください";
+          }
+          return null;
+        },
+      },
+      {
+        field: "select",
+        header: "カテゴリ",
+        editorType: "select",
+        placeholder: "カテゴリを選択",
+        options: SAMPLE_SELECT_OPTIONS,
+      },
+      {
+        field: "description",
+        header: "説明文",
+        editorType: "text",
+        placeholder: "任意で概要を入力",
+        validator: (value) => {
+          if (typeof value === "string" && value.length > 120) {
+            return "120文字以内で入力してください";
+          }
+          return null;
+        },
+      },
+      {
+        field: "updatedAt",
+        header: "最終更新日時",
+        editorType: "datetime",
+        placeholder: "日時を選択",
+        parseValue: (value) => (value ? new Date(value) : null),
+      },
+    ],
+    [],
+  );
+
+  const editableColumnHeaderMap = useMemo(
+    () =>
+      editableColumns.reduce<Record<string, string>>((acc, column) => {
+        acc[column.field] = column.header;
+        return acc;
+      }, {}),
+    [editableColumns],
+  );
+
+  const handleSelectionChange = (keys: React.Key[], rows: Sample[]) => {
     setSelectedKeys(keys);
     setSelectedRows(rows);
+  };
+
+  const handleEditableCellChange = (event: EditableGridCellChangeEvent<Sample>) => {
+    setEditableOverrides((prev) => {
+      const rowKey = String(event.rowKey);
+      const nextOverrides = { ...(prev[rowKey] ?? {}), [event.field]: event.value };
+      return { ...prev, [rowKey]: nextOverrides };
+    });
+
+    const columnLabel = editableColumnHeaderMap[event.field] ?? event.field;
+    setLastEditSummary(
+      `${String(event.rowKey)} の ${columnLabel} を ${formatDisplayValue(event.value)} に更新しました`,
+    );
+
+    startTransition(async () => {
+      try {
+        await sampleClient.update(String(event.rowKey), { [event.field]: event.value });
+      } catch (error) {
+        setLastEditSummary(resolveErrorMessage(error, "更新に失敗しました"));
+      }
+    });
+  };
+
+  const handleResetEditableRows = () => {
+    setEditableOverrides({});
+    setLastEditSummary("編集内容を初期化しました");
   };
 
   const selectedSummary =
     selectedRows.length === 0
       ? "まだレコードが選択されていません"
-      : `${selectedRows.length} 件を選択中`;
+      : `${selectedRows.length} 件を選択中 (${selectedRows.map((row) => row.name).join(" / ")})`;
   const selectionBehaviorField = {
     value: selectionBehavior,
     onChange: (value: string) => setSelectionBehavior(value as SelectionBehavior),
@@ -189,7 +266,7 @@ export default function TablesDemoPage() {
           RecordSelectionTable デモ
         </PageTitle>
         <Para tone="muted" size="sm">
-          チェックボックス付きのリストを用意し、行クリック / チェックボックスによる複数選択を切り替えられるサンプルです。
+          実データベース上の「サンプル」レコードを読み込み、行クリック / チェックボックスによる複数選択を切り替えられるサンプルです。
         </Para>
       </Section>
 
@@ -235,22 +312,34 @@ export default function TablesDemoPage() {
             </Block>
 
             <RecordSelectionTable
-              items={demoRecords}
+              items={sampleList}
               columns={columns}
               getKey={(record) => record.id}
               selectedKeys={selectedKeys}
               onSelectionChange={handleSelectionChange}
               selectionBehavior={selectionBehavior}
+              emptyValueFallback="-"
               rowClassName={(record, { selected }) => {
                 if (selected) {
                   return "bg-primary/5";
                 }
-                if (record.status === "attention") {
-                  return "bg-amber-50/40";
+                if (record.select === "apple") {
+                  return "bg-emerald-50/60";
+                }
+                if (record.select === "orange") {
+                  return "bg-amber-50/60";
+                }
+                if (record.select === "berry") {
+                  return "bg-rose-50/60";
                 }
                 return "";
               }}
             />
+            {isSampleLoading && (
+              <Para size="xs" tone="muted">
+                サンプルデータを読み込み中です…
+              </Para>
+            )}
           </Block>
 
           <Block className="w-full max-w-md space-y-4 rounded-2xl border bg-muted/20 p-6">
@@ -268,15 +357,74 @@ export default function TablesDemoPage() {
                     className="rounded-lg border border-dashed bg-background/70 p-3"
                   >
                     <Span weight="medium" className="text-foreground">
-                      {row.company}
+                      {row.name}
                     </Span>
                     <Para size="xs" tone="muted" className="mt-1">
-                      担当: {row.contactName} / {row.email}
+                      カテゴリ: {row.select ?? "未分類"} / 数量: {row.number ?? "-"}
                     </Para>
                   </li>
                 ))}
               </ul>
             )}
+          </Block>
+        </Flex>
+      </Section>
+
+      <Section space="lg">
+        <Flex direction="columnToRowSm" gap="xl" align="start">
+          <Block className="w-full flex-1 space-y-4 rounded-2xl border bg-card p-6 shadow-sm">
+            <Block className="space-y-2">
+              <SecTitle size="lg" className="font-semibold">
+                EditableGridTable デモ
+              </SecTitle>
+              <Para tone="muted" size="sm">
+                サンプルドメインのレコードを使ったインライン編集のサンプルです。セルの入力がバリデーションに通ると、その場で行データが更新されます。
+              </Para>
+            </Block>
+
+            <EditableGridTable
+              rows={editableRows}
+              columns={editableColumns}
+              getKey={(row) => row.id}
+              onCellChange={handleEditableCellChange}
+              emptyValueFallback="-"
+            />
+            {(isSampleLoading || isPending) && (
+              <Para size="xs" tone="muted">
+                データベースと同期中です…
+              </Para>
+            )}
+          </Block>
+
+          <Block className="w-full max-w-md space-y-4 rounded-2xl border bg-muted/20 p-6">
+            <SecTitle size="md" className="font-semibold">
+              更新ログ
+            </SecTitle>
+            <Para tone="muted" size="sm">
+              {lastEditSummary}
+            </Para>
+            <Button type="button" variant="outline" size="sm" onClick={handleResetEditableRows}>
+              編集内容をリセット
+            </Button>
+            <Block className="space-y-2">
+              <Span size="sm" weight="medium">
+                現在のデータ
+              </Span>
+              <ul className="max-h-64 space-y-2 overflow-auto">
+                {editableRows.map((row) => (
+                  <li key={row.id} className="rounded-lg border border-dashed bg-background/70 p-3">
+                    <Span weight="medium" className="text-foreground">
+                      {row.name}
+                    </Span>
+                    <Para size="xs" tone="muted" className="mt-1 leading-relaxed">
+                      数量: {row.number ?? "-"} / カテゴリ: {row.select ?? "-"}
+                      <br />
+                      最終更新: {formatDisplayValue(row.updatedAt)}
+                    </Para>
+                  </li>
+                ))}
+              </ul>
+            </Block>
           </Block>
         </Flex>
       </Section>

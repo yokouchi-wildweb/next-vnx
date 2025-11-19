@@ -13,7 +13,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from "../DataTable/Table";
+} from "../DataTable/components";
 import type { DataTableProps } from "../DataTable";
 import { SelectionCell } from "./components/SelectionCell";
 import { SelectionHeaderCell } from "./components/SelectionHeaderCell";

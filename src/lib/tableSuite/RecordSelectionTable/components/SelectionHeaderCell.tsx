@@ -4,7 +4,7 @@ import type { CheckedState } from "@radix-ui/react-checkbox";
 import { Checkbox } from "@/components/Shadcn/checkbox";
 import { cn } from "@/lib/cn";
 
-import { TableHead } from "../../DataTable/Table";
+import { TableHead } from "../../DataTable/components";
 import { isCheckboxEvent } from "../utils/checkboxEvent";
 
 type SelectionHeaderCellProps = {

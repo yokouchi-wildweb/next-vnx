@@ -1,4 +1,4 @@
-// src/components/Tables/DataTable/Table/TableBody.tsx
+// src/components/Tables/DataTable/components/TableBody.tsx
 
 "use client";
 

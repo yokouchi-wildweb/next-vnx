@@ -1,4 +1,4 @@
-// src/components/Tables/DataTable/Table/index.ts
+// src/components/Tables/DataTable/components/index.ts
 
 export * from "./Table";
 export * from "./TableHeader";
@@ -8,3 +8,4 @@ export * from "./TableRow";
 export * from "./TableHead";
 export * from "./TableCell";
 export * from "./TableCaption";
+export * from "./TableCellAction";
