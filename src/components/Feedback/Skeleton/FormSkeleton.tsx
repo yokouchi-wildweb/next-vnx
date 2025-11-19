@@ -1,6 +1,6 @@
 // src/components/Feedback/Skeleton/FormSkeleton.tsx
 import { Block } from "@/components/Layout/Block";
-import { Skeleton } from "@/components/Shadcn/skeleton";
+import { BaseSkeleton } from "./BaseSkeleton";
 
 type FormSkeletonProps = {
   fields?: number;
@@ -18,14 +18,14 @@ export function FormSkeleton({
     <Block className={className}>
       {placeholders.map((_, i) => (
         <Block key={i} space="sm">
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-10 w-full" />
+          <BaseSkeleton className="h-4 w-20" />
+          <BaseSkeleton className="h-10 w-full" />
         </Block>
       ))}
       {includeButtons && (
         <div className="flex gap-2">
-          <Skeleton className="h-10 w-24" />
-          <Skeleton className="h-10 w-24" />
+          <BaseSkeleton className="h-10 w-24" />
+          <BaseSkeleton className="h-10 w-24" />
         </div>
       )}
     </Block>

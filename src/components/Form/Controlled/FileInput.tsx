@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { Button } from "@/components/Form/Button/Button";
-import { Input } from "src/components/Form/Manual";
 import { Block } from "@/components/Layout/Block";
 import { cn } from "@/lib/cn";
+import { ImageUploaderSkeleton } from "@/components/Feedback/Skeleton/ImageUploaderSkeleton";
 import { XIcon } from "lucide-react";
 import { FieldPath, FieldValues } from "react-hook-form";
 import type { ControlledInputProps } from "@/types/form";
@@ -52,6 +52,9 @@ export const FileInput = <
   } = rest;
   void _valueIgnored;
   const [preview, setPreview] = useState<string | null>(initialUrl);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(
+    Boolean(initialUrl && !initialUrl.startsWith("blob:")),
+  );
   const [inputKey, setInputKey] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inputId = useMemo(() => id ?? `${field.name}-file-input`, [field.name, id]);
@@ -70,6 +73,7 @@ export const FileInput = <
 
   useEffect(() => {
     setPreview(initialUrl);
+    setIsPreviewLoading(Boolean(initialUrl && !initialUrl.startsWith("blob:")));
   }, [initialUrl]);
 
   useEffect(() => {
@@ -87,6 +91,7 @@ export const FileInput = <
     }
     revokePreviewUrl(preview);
     setPreview(null);
+    setIsPreviewLoading(false);
     setInputKey((k) => k + 1);
   };
 
@@ -95,13 +100,14 @@ export const FileInput = <
     const file = event.target.files?.[0] ?? null;
     field.onChange(file);
     onSelect?.(file);
+    revokePreviewUrl(preview);
     if (file) {
-      revokePreviewUrl(preview);
       const url = URL.createObjectURL(file);
       setPreview(url);
+      setIsPreviewLoading(false);
     } else {
-      revokePreviewUrl(preview);
       setPreview(null);
+      setIsPreviewLoading(false);
     }
   };
 
@@ -119,23 +125,35 @@ export const FileInput = <
         <div className="flex w-full flex-col items-center gap-3">
           {preview && (
             <div className="relative flex max-w-full items-center justify-center">
-              <div className="relative overflow-hidden rounded bg-muted p-2">
-                <img src={preview} alt="preview" className="max-h-40 w-auto object-contain" />
+              <div className="relative flex h-40 w-full max-w-[320px] items-center justify-center overflow-hidden rounded bg-muted p-2">
+                {isPreviewLoading && <ImageUploaderSkeleton />}
+                <img
+                  src={preview}
+                  alt="preview"
+                  className={cn(
+                    "z-[1] max-h-full w-auto object-contain transition-opacity",
+                    isPreviewLoading && "opacity-0",
+                  )}
+                  onLoad={() => setIsPreviewLoading(false)}
+                  onError={() => setIsPreviewLoading(false)}
+                />
               </div>
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                className="absolute right-2 top-2"
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  void handleRemove();
-                }}
-              >
-                <XIcon className="size-5" />
-                <span className="sr-only">画像を削除</span>
-              </Button>
+              {!isPreviewLoading && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute right-2 top-2"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    void handleRemove();
+                  }}
+                >
+                  <XIcon className="size-5" />
+                  <span className="sr-only">画像を削除</span>
+                </Button>
+              )}
             </div>
           )}
           <div className="flex flex-col items-center gap-1">
