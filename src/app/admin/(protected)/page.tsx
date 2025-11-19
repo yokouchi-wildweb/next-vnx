@@ -3,10 +3,10 @@
 import dayjs from "dayjs";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/_shadcn/card";
-import { DeveloperMotivationChart } from "@/components/Admin/Elements/DeveloperMotivationChart";
-import AdminPage from "@/components/Admin/Layout/AdminPage";
-import PageTitle from "@/components/Admin/Elements/PageTitle";
-import SecTitle from "@/components/Admin/Elements/SecTitle";
+import { DeveloperMotivationChart } from "@/components/AppFrames/Admin/Elements/DeveloperMotivationChart";
+import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import SecTitle from "@/components/AppFrames/Admin/Elements/SecTitle";
 import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
 import { Section } from "@/components/Layout/Section";

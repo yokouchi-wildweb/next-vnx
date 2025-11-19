@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
 import { Main, Para } from "@/components/TextBlocks";
-import PageTitle from "@/components/Admin/Elements/PageTitle";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import AdminSetupForm from "@/features/setting/components/AdminSetup";
 import { checkAdminUserExists } from "@/features/user/services/server/checkAdminUserExists";
 

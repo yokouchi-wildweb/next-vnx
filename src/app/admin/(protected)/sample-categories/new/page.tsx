@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import AdminSampleCategoryCreate from "@/features/sampleCategory/components/AdminSampleCategoryCreate";
-import PageTitle from "../../../../../components/Admin/Elements/PageTitle";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { Main } from "@/components/TextBlocks";
 
 

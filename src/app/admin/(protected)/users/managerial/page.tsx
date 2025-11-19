@@ -3,8 +3,8 @@
 export const dynamic = "force-dynamic";
 
 import ManagerialUserList from "@/features/user/components/admin/ManagerialUserList";
-import AdminPage from "@/components/Admin/Layout/AdminPage";
-import PageTitle from "@/components/Admin/Elements/PageTitle";
+import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { settingService } from "@/features/setting/services/server/settingService";
 import { userService } from "@/features/user/services/server/userService";
 import type { ListPageSearchParams } from "@/types/page";

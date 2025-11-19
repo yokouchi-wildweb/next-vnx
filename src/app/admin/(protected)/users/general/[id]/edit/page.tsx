@@ -5,8 +5,8 @@ export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import { userService } from "@/features/user/services/server/userService";
 import GeneralUserEdit from "@/features/user/components/admin/GeneralUserEdit";
-import AdminPage from "@/components/Admin/Layout/AdminPage";
-import PageTitle from "@/components/Admin/Elements/PageTitle";
+import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import type { User } from "@/features/user/entities";
 
 export const metadata = {

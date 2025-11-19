@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Main } from "@/components/TextBlocks";
-import PageTitle from "@/components/Admin/Elements/PageTitle";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { AdminLogin } from "@/features/auth/components/AdminLogin";
 import { authGuard } from "@/features/auth/services/server/authorization";
 import Link from "next/link";

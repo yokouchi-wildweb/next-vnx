@@ -1,6 +1,6 @@
 // src/app/admin/settings/page.tsx
-import AdminPage from "@/components/Admin/Layout/AdminPage";
-import PageTitle from "@/components/Admin/Elements/PageTitle";
+import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import AdminSettingEdit from "@/features/setting/components/AdminSettingEdit";
 import { settingService } from "@/features/setting/services/server/settingService";
 

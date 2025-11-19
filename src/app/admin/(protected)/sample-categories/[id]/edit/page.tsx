@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
 import AdminSampleCategoryEdit from "@/features/sampleCategory/components/AdminSampleCategoryEdit";
-import PageTitle from "../../../../../../components/Admin/Elements/PageTitle";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { Main } from "@/components/TextBlocks";
 import type { SampleCategory } from "@/features/sampleCategory/entities";
 

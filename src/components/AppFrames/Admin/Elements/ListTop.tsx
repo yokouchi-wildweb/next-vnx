@@ -4,7 +4,7 @@
 
 import Link from "next/link";
 
-import SecTitle from "@/components/Admin/Elements/SecTitle";
+import SecTitle from "@/components/AppFrames/Admin/Elements/SecTitle";
 import { Button } from "@/components/Form/Button/Button";
 
 type Props = {

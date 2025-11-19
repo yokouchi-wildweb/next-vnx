@@ -3,8 +3,8 @@
 export const dynamic = "force-dynamic";
 
 import ManagerialUserCreate from "@/features/user/components/admin/ManagerialUserCreate";
-import AdminPage from "@/components/Admin/Layout/AdminPage";
-import PageTitle from "@/components/Admin/Elements/PageTitle";
+import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 
 export const metadata = {
   title: "システム管理者追加",
