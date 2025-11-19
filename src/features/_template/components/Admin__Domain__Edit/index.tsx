@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import Edit__Domain__Form from "../common/Edit__Domain__Form";
 import type { __Domain__ } from "../../entities";
-import { FormSkeleton } from "@/components/Feedback/Skeleton/FormSkeleton";
+import { FormSkeleton } from "../../../../components/Skeleton/FormSkeleton";
 
 export type Admin__Domain__EditProps = {
   __domain__: __Domain__;

@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react";
-import { TableCaption as BaseTableCaption } from "@/components/Shadcn/table";
+import { TableCaption as BaseTableCaption } from "@/components/_shadcn/table";
 import { cn } from "@/lib/cn";
 
 export function TableCaption({ className, ...props }: React.ComponentProps<"caption">) {

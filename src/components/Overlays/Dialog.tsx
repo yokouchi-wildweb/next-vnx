@@ -15,7 +15,7 @@ import {
   DialogFooter,
   DialogTitle,
   DialogDescription,
-} from "@/components/Shadcn/dialog";
+} from "@/components/_shadcn/dialog";
 import { cn } from "@/lib/cn";
 
 type OverlayLayer =

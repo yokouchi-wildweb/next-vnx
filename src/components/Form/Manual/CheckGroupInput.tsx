@@ -7,7 +7,7 @@ import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { BookmarkTag } from "@/components/Form/Button/BookmarkTag";
 import { RoundedButton } from "@/components/Form/Button/RoundedButton";
 import { Label } from "@/components/Form/Label";
-import { Checkbox } from "@/components/Shadcn/checkbox";
+import { Checkbox } from "@/components/_shadcn/checkbox";
 
 export type CheckGroupDisplayType = "standard" | "bookmark" | "rounded" | "checkbox";
 

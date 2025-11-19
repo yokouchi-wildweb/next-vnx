@@ -1,8 +1,8 @@
-import { LoadingOverlay } from "@/components/Feedback/LoadingOverlay";
+import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 
 export function VerifyingState() {
   return (
-    <LoadingOverlay
+    <ScreenLoader
       mode="local"
       className="bg-muted"
       spinnerClassName="h-12 w-12 text-primary"

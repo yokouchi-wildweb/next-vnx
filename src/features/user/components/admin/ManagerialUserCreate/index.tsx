@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 
-import { FormSkeleton } from "@/components/Feedback/Skeleton/FormSkeleton";
+import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 import ManagerialUserCreateForm from "../form/ManagerialUserCreateForm";
 
 type Props = {

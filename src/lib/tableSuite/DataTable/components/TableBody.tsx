@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react";
-import { TableBody as BaseTableBody } from "@/components/Shadcn/table";
+import { TableBody as BaseTableBody } from "@/components/_shadcn/table";
 import { cn } from "@/lib/cn";
 import { TableContext } from "./context";
 

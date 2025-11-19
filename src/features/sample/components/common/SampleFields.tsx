@@ -6,7 +6,7 @@ import { SelectInput } from "@/components/Form/Manual";
 import { TextInput } from "@/components/Form/Controlled";
 import { NumberInput } from "@/components/Form/Controlled";
 import StepperInput from "@/components/Form/Manual/StepperInput";
-import { FormField, FormItem, FormControl, FormMessage } from "@/components/Shadcn/form";
+import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";
 import { SwitchInput } from "@/components/Form/Controlled";
 import { BooleanRadioGroupInput } from "@/components/Form/Manual";
 import { FileUrlInput } from "@/components/Form/Controlled";

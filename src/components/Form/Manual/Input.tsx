@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { Input as ShadcnInput } from "@/components/Shadcn/input";
+import { Input as ShadcnInput } from "@/components/_shadcn/input";
 
 export type InputProps = React.ComponentProps<typeof ShadcnInput>;
 

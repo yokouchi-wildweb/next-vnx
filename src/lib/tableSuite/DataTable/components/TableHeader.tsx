@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react";
-import { TableHeader as BaseTableHeader } from "@/components/Shadcn/table";
+import { TableHeader as BaseTableHeader } from "@/components/_shadcn/table";
 import { cn } from "@/lib/cn";
 import { headerVariants, TableContext } from "./context";
 

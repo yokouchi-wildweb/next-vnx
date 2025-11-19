@@ -18,7 +18,7 @@ import { CompletedState } from "./CompletedState";
 import { EmailInputState } from "./EmailInputState";
 import { InvalidProcessState } from "./InvalidProcessState";
 import { VerifyingState } from "./VerifyingState";
-import { LoadingOverlay } from "@/components/Feedback/LoadingOverlay";
+import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 
 export function Verification() {
   const searchParams = useSearchParams();
@@ -40,7 +40,7 @@ export function Verification() {
   return (
     <Section id="registration-email-verification" className="relative">
       {phase === "initial" && (
-        <LoadingOverlay mode="fullscreen" message="認証情報を読み込み中" />
+        <ScreenLoader mode="fullscreen" message="認証情報を読み込み中" />
       )}
       {phase === "invalidProcess" && <InvalidProcessState />}
       {phase === "emailInput" && <EmailInputState onSubmit={handleEmailSubmit} />}

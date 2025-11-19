@@ -1,11 +1,11 @@
-// src/components/Feedback/RouteTransitionOverlay.tsx
+// src/components/Feedback/RouteTransition.tsx
 "use client";
 
-import { LoadingOverlay } from "@/components/Feedback/LoadingOverlay";
+import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
 import { useRouteTransitionPending } from "@/hooks/useRouteTransitionPending";
 
-const [{ routeTransitionOverlay }] = UI_BEHAVIOR_CONFIG;
+const [{ routeTransitionOverlay: routeTransition }] = UI_BEHAVIOR_CONFIG;
 
 /**
  * グローバルなルート遷移中に全画面のローディングを表示します。
@@ -18,10 +18,10 @@ export function RouteTransitionOverlay() {
   }
 
   return (
-    <LoadingOverlay
+    <ScreenLoader
       mode="fullscreen"
-      message={routeTransitionOverlay.message}
-      spinnerVariant={routeTransitionOverlay.spinnerVariant}
+      message={routeTransition.message}
+      spinnerVariant={routeTransition.spinnerVariant}
     />
   );
 }

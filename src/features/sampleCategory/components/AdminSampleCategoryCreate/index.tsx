@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import CreateSampleCategoryForm from "../common/CreateSampleCategoryForm";
-import { FormSkeleton } from "@/components/Feedback/Skeleton/FormSkeleton";
+import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 
 export type AdminSampleCategoryCreateProps = {
   redirectPath?: string;

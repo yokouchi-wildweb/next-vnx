@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react";
-import { TableFooter as BaseTableFooter } from "@/components/Shadcn/table";
+import { TableFooter as BaseTableFooter } from "@/components/_shadcn/table";
 import { cn } from "@/lib/cn";
 
 export function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {

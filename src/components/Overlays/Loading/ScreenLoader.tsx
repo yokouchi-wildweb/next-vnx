@@ -1,7 +1,7 @@
-// src/components/Feedback/LoadingOverlay.tsx
+// src/components/Feedback/ScreenLoader.tsx
 import { type ReactNode } from "react";
 
-import { Spinner, type SpinnerVariant } from "@/components/Feedback/Spinner";
+import { Spinner, type SpinnerVariant } from "@/components/Overlays/Loading/Spinner";
 import { cn } from "@/lib/cn";
 
 type LoadingOverlayMode = "local" | "fullscreen";
@@ -40,7 +40,7 @@ const MODE_CLASS: Record<LoadingOverlayMode, string> = {
   fullscreen: "fixed inset-0 overlay-layer",
 };
 
-export function LoadingOverlay({
+export function ScreenLoader({
   mode = "fullscreen",
   className,
   spinnerClassName,

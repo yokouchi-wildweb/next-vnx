@@ -1,7 +1,7 @@
 import React from "react";
 import type { CheckedState } from "@radix-ui/react-checkbox";
 
-import { Checkbox } from "@/components/Shadcn/checkbox";
+import { Checkbox } from "@/components/_shadcn/checkbox";
 import { cn } from "@/lib/cn";
 
 import { TableHead } from "../../DataTable/components";

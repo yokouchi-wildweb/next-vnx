@@ -6,7 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/Shadcn/select";
+} from "@/components/_shadcn/select";
 import { Options } from "@/types/form";
 
 type Props = {

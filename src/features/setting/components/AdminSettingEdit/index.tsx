@@ -3,7 +3,7 @@
 import type { Setting } from "@/features/setting/entities";
 import { Suspense } from "react";
 import EditSettingForm from "../common/EditSettingForm";
-import { FormSkeleton } from "@/components/Feedback/Skeleton/FormSkeleton";
+import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 import { Section } from "@/components/Layout/Section";
 
 type Props = {

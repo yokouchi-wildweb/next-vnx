@@ -8,7 +8,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/Shadcn/select";
+} from "@/components/_shadcn/select";
 import { cn } from "@/lib/cn";
 
 import { TableCell } from "../../DataTable/components";

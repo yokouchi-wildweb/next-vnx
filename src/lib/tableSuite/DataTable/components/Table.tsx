@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react";
-import { Table as BaseTable } from "@/components/Shadcn/table";
+import { Table as BaseTable } from "@/components/_shadcn/table";
 import { cn } from "@/lib/cn";
 import { tableVariants, TableContext } from "./context";
 import type { VariantProps } from "class-variance-authority";

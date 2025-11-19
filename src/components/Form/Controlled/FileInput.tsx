@@ -5,7 +5,7 @@ import type { ChangeEvent } from "react";
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { cn } from "@/lib/cn";
-import { ImageUploaderSkeleton } from "@/components/Feedback/Skeleton/ImageUploaderSkeleton";
+import { ImageUploaderSkeleton } from "@/components/Skeleton/ImageUploaderSkeleton";
 import { XIcon } from "lucide-react";
 import { FieldPath, FieldValues } from "react-hook-form";
 import type { ControlledInputProps } from "@/types/form";

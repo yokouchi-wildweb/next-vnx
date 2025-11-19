@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "@/styles/global.css";
 import { Toaster } from "sonner";
 
-import { RouteTransitionOverlay } from "@/components/Feedback/RouteTransitionOverlay";
+import { RouteTransitionOverlay } from "@/components/Overlays/Loading/RouteTransition";
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
 import { AuthSessionProvider } from "@/features/auth/components/AuthSessionProvider";
 import { RedirectToastProvider } from "@/lib/redirectToast";

@@ -1,6 +1,6 @@
 // src/components/Form/Textarea.tsx
 
-import { Textarea as ShadcnTextarea } from "@/components/Shadcn/textarea";
+import { Textarea as ShadcnTextarea } from "@/components/_shadcn/textarea";
 import { FieldPath, FieldValues } from "react-hook-form";
 import { ControlledTextareaProps } from "@/types/form";
 

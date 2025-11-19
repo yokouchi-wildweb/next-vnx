@@ -2,22 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { LoadingOverlay } from "@/components/Feedback/LoadingOverlay";
-import { type SpinnerVariant } from "@/components/Feedback/Spinner";
+import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
+import { type SpinnerVariant } from "@/components/Overlays/Loading/Spinner";
 import { Button } from "@/components/Form/Button/Button";
 import { Input } from "src/components/Form/Manual";
 import { Label } from "@/components/Form/Label";
 import Modal from "@/components/Overlays/Modal";
 import { ConfirmDialog } from "@/components/Overlays/ConfirmDialog";
-import { Checkbox } from "@/components/Shadcn/checkbox";
+import { Checkbox } from "@/components/_shadcn/checkbox";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/Shadcn/select";
-import { Textarea } from "@/components/Shadcn/textarea";
+} from "@/components/_shadcn/select";
+import { Textarea } from "@/components/_shadcn/textarea";
 import { Section } from "@/components/Layout/Section";
 import { PageTitle, Para, SecTitle } from "@/components/TextBlocks";
 import { toast } from "sonner";
@@ -310,7 +310,7 @@ export default function OverlayDemoPage() {
                   <p>ここにコンテンツが表示される想定です。</p>
                   <p>local モードの場合、この枠内にオーバーレイが表示されます。</p>
                 </div>
-                {isVisible ? <LoadingOverlay {...overlayProps} /> : null}
+                {isVisible ? <ScreenLoader {...overlayProps} /> : null}
               </div>
             </Section>
 

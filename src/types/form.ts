@@ -2,7 +2,7 @@
 
 import { FieldValues, ControllerRenderProps, Path, FieldPath } from "react-hook-form";
 import { ComponentProps, InputHTMLAttributes, type ReactNode } from "react";
-import { RadioGroup, RadioGroupItem } from "@/components/Shadcn/radio-group";
+import { RadioGroup, RadioGroupItem } from "@/components/_shadcn/radio-group";
 
 export type Options = {
   label: ReactNode;

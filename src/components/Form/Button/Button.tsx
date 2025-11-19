@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { Button as ShadcnButton } from "@/components/Shadcn/button";
+import { Button as ShadcnButton } from "@/components/_shadcn/button";
 import { cn } from "@/lib/cn";
 
 import { buttonVariants, type ButtonStyleProps } from "./button-variants";

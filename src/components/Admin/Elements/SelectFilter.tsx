@@ -3,7 +3,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/Shadcn/select";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/_shadcn/select";
 
 type Option = { label: string; value: string };
 

@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import EditSampleCategoryForm from "../common/EditSampleCategoryForm";
 import type { SampleCategory } from "../../entities";
-import { FormSkeleton } from "@/components/Feedback/Skeleton/FormSkeleton";
+import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 
 export type AdminSampleCategoryEditProps = {
   sampleCategory: SampleCategory;

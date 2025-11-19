@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react";
-import { TableCell as BaseTableCell } from "@/components/Shadcn/table";
+import { TableCell as BaseTableCell } from "@/components/_shadcn/table";
 import { cn } from "@/lib/cn";
 import { cellVariants, TableContext } from "./context";
 

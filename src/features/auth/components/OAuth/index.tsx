@@ -5,7 +5,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import { LoadingOverlay } from "@/components/Feedback/LoadingOverlay";
+import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { Section } from "@/components/Layout/Section";
 import { SecTitle } from "@/components/TextBlocks";
 import { useOAuthPhase } from "@/features/auth/hooks/useOAuthPhase";
@@ -19,7 +19,7 @@ export type OAuthProps = {
 
 function LoadingState({ message }: { message: string }) {
   return (
-    <LoadingOverlay
+    <ScreenLoader
       mode="fullscreen"
       className="bg-muted"
       spinnerClassName="h-12 w-12 text-primary"

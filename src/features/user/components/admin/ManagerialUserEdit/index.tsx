@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 
 import type { User } from "@/features/user/entities";
-import { FormSkeleton } from "@/components/Feedback/Skeleton/FormSkeleton";
+import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 import ManagerialUserEditForm from "../form/ManagerialUserEditForm";
 
 type Props = {

@@ -2,7 +2,7 @@
 
 import dayjs from "dayjs";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/Shadcn/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/_shadcn/card";
 import { DeveloperMotivationChart } from "@/components/Admin/Elements/DeveloperMotivationChart";
 import AdminPage from "@/components/Admin/Layout/AdminPage";
 import PageTitle from "@/components/Admin/Elements/PageTitle";
