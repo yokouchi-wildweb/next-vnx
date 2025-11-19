@@ -1,6 +1,7 @@
 // src/components/Form/FileUrlInput/FileUrlInput.tsx
 
 import { Block } from "@/components/Layout/Block";
+import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 
 import { FileInput } from "../FileInput";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
@@ -41,15 +42,20 @@ export const FileUrlInput = <
 
   return (
     <Block space="sm" className="w-full">
-      <FileInput
-        {...fileInputProps}
-        disabled={pending || fileInputProps.disabled}
-        field={dummyField}
-        initialUrl={url ?? undefined}
-        onSelect={handleSelect}
-        onRemove={requestDelete}
-        selectedFileName={selectedFileName}
-      />
+      <div className="relative">
+        <FileInput
+          {...fileInputProps}
+          disabled={pending || fileInputProps.disabled}
+          field={dummyField}
+          initialUrl={url ?? undefined}
+          onSelect={handleSelect}
+          onRemove={requestDelete}
+          selectedFileName={selectedFileName}
+        />
+        {pending ? (
+          <ScreenLoader mode="fullscreen" message="画像を処理中..." />
+        ) : null}
+      </div>
       <input type="hidden" {...field} value={url ?? ""} />
       <DeleteConfirmDialog
         open={open}
@@ -59,4 +65,3 @@ export const FileUrlInput = <
     </Block>
   );
 };
-

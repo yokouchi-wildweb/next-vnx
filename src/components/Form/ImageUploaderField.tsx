@@ -1,5 +1,8 @@
+"use client";
+
 // src/components/Form/ImageUploaderField.tsx
 
+import { useCallback } from "react";
 import { useFormContext, type FieldValues, type FieldPath, type Control, type UseFormReturn } from "react-hook-form";
 import { FormFieldItem } from "./FormFieldItem";
 import { FileUrlInput } from "./Controlled";
@@ -34,21 +37,30 @@ export function ImageUploaderField<
   const formControl = control ?? formMethods.control;
   const { upload, remove } = useImageUploaderField(formMethods, name, uploadPath);
 
+  const handlePendingChange = useCallback(
+    (pending: boolean) => {
+      onPendingChange?.(pending);
+    },
+    [onPendingChange],
+  );
+
   return (
-    <FormFieldItem
-      control={formControl}
-      name={name}
-      label={label}
-      renderInput={(field) => (
-        <FileUrlInput
-          field={field as any}
-          accept="image/*"
-          initialUrl={initialUrl ?? undefined}
-          onUpload={upload}
-          onDelete={remove}
-          onPendingChange={onPendingChange}
-        />
-      )}
-    />
+    <>
+      <FormFieldItem
+        control={formControl}
+        name={name}
+        label={label}
+        renderInput={(field) => (
+          <FileUrlInput
+            field={field as any}
+            accept="image/*"
+            initialUrl={initialUrl ?? undefined}
+            onUpload={upload}
+            onDelete={remove}
+            onPendingChange={handlePendingChange}
+          />
+        )}
+      />
+    </>
   );
 }
