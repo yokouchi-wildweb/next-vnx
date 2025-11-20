@@ -33,6 +33,7 @@ export default function EditableGridTable<T>({
   tableLayout = "auto",
   autoSort = false,
   order,
+  rowHeight = "md",
 }: EditableGridTableProps<T>) {
   React.useEffect(() => {
     if (process.env.NODE_ENV !== "production" && autoSort && (!order || order.length === 0)) {
@@ -102,6 +103,7 @@ export default function EditableGridTable<T>({
                   row={row}
                   column={column}
                   fallbackPlaceholder={column.placeholder ?? emptyValueFallback}
+                  rowHeight={rowHeight}
                   onValidChange={(value) =>
                     onCellChange?.({
                       rowKey,

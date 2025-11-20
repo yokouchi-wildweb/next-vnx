@@ -22,13 +22,21 @@ type EditableGridCellProps<T> = {
   rowKey: React.Key;
   column: EditableGridColumn<T>;
   fallbackPlaceholder: string;
+  rowHeight: "xs" | "sm" | "md" | "lg" | "xl";
   onValidChange?: (value: unknown) => void;
 };
 
+const rowHeightToPadding: Record<string, string> = {
+  xs: "py-0",
+  sm: "py-0.5",
+  md: "py-1",
+  lg: "py-1.5",
+  xl: "py-2",
+};
+
 const inputBaseClassName =
-  "h-9 w-full rounded-none border-0 bg-transparent px-2.5 py-1 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 truncate";
-const displayBaseClassName =
-  "h-9 w-full px-2.5 py-1 text-sm flex items-center text-foreground truncate";
+  "w-full rounded-none border-0 bg-transparent px-2.5 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 truncate";
+const displayBaseClassName = "w-full px-2.5 text-sm flex items-center text-foreground truncate";
 
 const POPUP_ATTR = "data-editable-grid-popup";
 
@@ -37,6 +45,7 @@ export function EditableGridCell<T>({
   rowKey,
   column,
   fallbackPlaceholder,
+  rowHeight,
   onValidChange,
 }: EditableGridCellProps<T>) {
   const rawValue = React.useMemo(() => readCellValue(row, column), [column, row]);
@@ -96,10 +105,13 @@ export function EditableGridCell<T>({
     setSelectOpen(false);
   };
 
+  const paddingClass = rowHeightToPadding[rowHeight] ?? rowHeightToPadding.md;
+
   const sharedInputProps = {
     className: cn(
       inputBaseClassName,
       error && "aria-invalid:border-destructive aria-invalid:ring-destructive/30",
+      paddingClass,
     ),
     value: inputValue,
     placeholder: fallbackPlaceholder,
@@ -334,6 +346,7 @@ export function EditableGridCell<T>({
               displayBaseClassName,
               isReadOnly && "bg-muted/50 text-muted-foreground",
               isSwitchEditor && "justify-center",
+              paddingClass,
             )}
           >
             {displayValue}

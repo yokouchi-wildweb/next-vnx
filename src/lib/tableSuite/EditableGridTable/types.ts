@@ -63,4 +63,8 @@ export type EditableGridTableProps<T> = {
    * autoSort 時に適用する並び替え条件。配列の先頭ほど優先順位が高い。
    */
   order?: EditableGridOrderRule<T>[];
+  /**
+   * 行の高さ（セル上下の余白）
+   */
+  rowHeight?: "xs" | "sm" | "md" | "lg" | "xl";
 };
