@@ -17,6 +17,8 @@ export type ModalProps = {
   children?: ReactNode;
   showCloseButton?: boolean;
   className?: string;
+  maxWidth?: number | string;
+  minHeight?: number | string;
 };
 
 export default function Modal({
@@ -26,10 +28,17 @@ export default function Modal({
   children,
   showCloseButton = true,
   className,
+  maxWidth = 640,
+  minHeight,
 }: ModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={showCloseButton} className={className}>
+      <DialogContent
+        showCloseButton={showCloseButton}
+        className={className}
+        maxWidth={maxWidth}
+        minHeight={minHeight}
+      >
         {title && (
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>

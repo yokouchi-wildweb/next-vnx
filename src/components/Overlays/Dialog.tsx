@@ -2,7 +2,7 @@
 
 "use client";
 
-import type { ComponentProps } from "react";
+import type { ComponentProps, CSSProperties } from "react";
 
 import {
   Dialog as BaseDialog,
@@ -61,6 +61,8 @@ type DialogContentProps = Omit<
   showCloseButton?: boolean;
   layerClassName?: string;
   overlayLayerClassName?: string;
+  maxWidth?: number | string;
+  minHeight?: number | string;
 };
 
 export function DialogOverlay({
@@ -86,14 +88,29 @@ export function DialogContent({
   overlayLayer = "modal",
   layerClassName,
   overlayLayerClassName,
+  maxWidth,
+  minHeight,
+  style,
   ...props
 }: DialogContentProps) {
+  const resolvedMaxWidth = typeof maxWidth === "number" ? `${maxWidth}px` : maxWidth;
+  const resolvedMinHeight = typeof minHeight === "number" ? `${minHeight}px` : minHeight;
+  const contentStyle: CSSProperties | undefined =
+    resolvedMaxWidth || resolvedMinHeight
+      ? {
+          ...style,
+          ...(resolvedMaxWidth ? { maxWidth: resolvedMaxWidth } : {}),
+          ...(resolvedMinHeight ? { minHeight: resolvedMinHeight } : {}),
+        }
+      : style;
+
   return (
     <BaseDialogContent
       className={className}
       showCloseButton={showCloseButton}
       layerClassName={cn(CONTENT_LAYER_CLASS[layer], layerClassName)}
       overlayLayerClassName={cn(OVERLAY_LAYER_CLASS[overlayLayer], overlayLayerClassName)}
+      style={contentStyle}
       {...props}
     >
       {children}
