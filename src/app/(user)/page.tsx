@@ -33,7 +33,7 @@ const pageLinks = [
   { href: "/login", label: "ログイン", alertIfAuthenticated: true },
   { href: "/demo/form-components/", label: "フォームDEMO", alertIfAuthenticated: false },
   { href: "/demo/overlay/", label: "オーバーレイDEMO", alertIfAuthenticated: false },
-  { href: "/demo/block-appearance/", label: "ブロック外観DEMO", alertIfAuthenticated: false },
+  { href: "/demo/tables/", label: "テーブルスイートDEMO", alertIfAuthenticated: false },
 ];
 
 const resourceLinks = [
