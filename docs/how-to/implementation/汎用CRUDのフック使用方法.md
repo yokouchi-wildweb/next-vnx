@@ -126,6 +126,37 @@ export const SampleSearchResult = ({ keyword, status }: { keyword: string; statu
 
 > 💡 `where` 句は `{ and: [...] }`・`{ or: [...] }` をネストでき、`searchQuery` や `orderBy` と自由に組み合わせられます。サーバー側で用意した結合・集計ロジックも `search` から呼び出せるため、複雑な検索要件を UI からもそのまま活用できます。
 
+### 3-1. 無限スクロールで `search` を使い回す
+
+表示件数が多い画面では `useSearchSample` の `fetcher` をそのまま `useInfiniteScrollQuery`（`src/hooks/useInfiniteScrollQuery.ts`）へ渡すと、スクロール末尾で自動的に次チャンクを取得できます。
+
+```tsx
+import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
+import { sampleClient } from "@/features/sample/services/client/sampleClient";
+
+export const SampleInfiniteList = ({ keyword }: { keyword: string }) => {
+  const { items, isLoading, sentinelRef, error } = useInfiniteScrollQuery({
+    fetcher: (params) => sampleClient.search(params),
+    params: { searchQuery: keyword },
+    limit: 30,
+    deps: [keyword], // キーワードが変わったら1ページ目から取り直す
+  });
+
+  return (
+    <section>
+      {items.map((sample) => (
+        <article key={sample.id}>{sample.name}</article>
+      ))}
+      {error && <p>読み込みに失敗しました</p>}
+      <div ref={sentinelRef} aria-hidden />
+      {isLoading && <p>読み込み中...</p>}
+    </section>
+  );
+};
+```
+
+`useInfiniteScrollQuery` は `items`, `total`, `hasMore`, `loadMore`, `reset`, `sentinelRef` を返します。`sentinelRef` をリスト末尾のダミー要素へ付与するだけで IntersectionObserver が機能し、画面下端へ到達するたびに `loadMore` が自動実行されます。`deps` へ検索条件を渡しておけば、条件変更時に 1 ページ目からリロードされます。
+
 > ⚠️ **Firestore バックエンドを利用する場合**: 現行実装では `orderBy` の複数列指定、`searchFields` による複数フィールド検索、`where` の `or` 条件、`searchPriorityFields` を使った検索ヒット優先度は未対応です。Firestore で検索機能を提供する際は、単一列ソートと AND 条件を前提としたシンプルなクエリ構成に留めてください。
 
 ---
