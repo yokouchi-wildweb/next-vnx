@@ -267,10 +267,17 @@ export function EditableGridCell<T>({
         )}
       />
       <div className={cn("group relative flex h-full items-center")}>
-        {isEditing ? (
+        {isEditing && !isReadOnly ? (
           renderEditor()
         ) : (
-          <div className={displayBaseClassName}>{displayValue}</div>
+          <div
+            className={cn(
+              displayBaseClassName,
+              isReadOnly && "bg-muted/50 text-muted-foreground"
+            )}
+          >
+            {displayValue}
+          </div>
         )}
         {hasError ? <CellErrorIndicator message={error ?? ""} /> : null}
       </div>

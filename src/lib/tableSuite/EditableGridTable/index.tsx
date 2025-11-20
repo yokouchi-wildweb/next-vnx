@@ -76,7 +76,18 @@ export default function EditableGridTable<T>({
                 key={column.field}
                 style={column.width ? { width: column.width } : undefined}
               >
-                {column.header}
+                <div className="flex items-center gap-1">
+                  <span>{column.header}</span>
+                  {column.editorType === "readonly" && (
+                    <span
+                      aria-label="閲覧のみ"
+                      className="text-muted-foreground text-[10px] leading-none"
+                      title="この列は閲覧のみです"
+                    >
+                      🔒
+                    </span>
+                  )}
+                </div>
               </TableHead>
             ))}
           </TableRow>
