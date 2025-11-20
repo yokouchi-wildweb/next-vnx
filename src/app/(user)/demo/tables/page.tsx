@@ -147,17 +147,7 @@ export default function TablesDemoPage() {
       {
         field: "name",
         header: "名前",
-        editorType: "text",
-        placeholder: "例: 新商品 A",
-        validator: (value) => {
-          if (!value || String(value).trim().length === 0) {
-            return "名前は必須です";
-          }
-          if (String(value).length > 40) {
-            return "40文字以内で入力してください";
-          }
-          return null;
-        },
+        editorType: "readonly",
       },
       {
         field: "number",

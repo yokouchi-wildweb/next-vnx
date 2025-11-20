@@ -47,6 +47,7 @@ export function EditableGridCell<T>({
   const [isActive, setIsActive] = React.useState(false);
   const cellRef = React.useRef<HTMLTableCellElement | null>(null);
   const [selectOpen, setSelectOpen] = React.useState(false);
+  const isReadOnly = column.editorType === "readonly";
 
   const inputValue = draftValue ?? baseValue ?? "";
 
@@ -205,10 +206,16 @@ export function EditableGridCell<T>({
   }, [baseValue, column, fallbackPlaceholder, rawValue, row]);
 
   const handleSingleClick = () => {
+    if (isReadOnly) {
+      return;
+    }
     setIsActive(true);
   };
 
   const handleDoubleClick = () => {
+    if (isReadOnly) {
+      return;
+    }
     setIsActive(true);
     setIsEditing(true);
     if (column.editorType === "select") {
@@ -247,15 +254,16 @@ export function EditableGridCell<T>({
         hasError && "bg-destructive/10 ring-1 ring-inset ring-destructive/50",
       )}
       style={column.width ? { width: column.width } : undefined}
-      onClick={handleSingleClick}
-      onDoubleClick={handleDoubleClick}
+      onClick={isReadOnly ? undefined : handleSingleClick}
+      onDoubleClick={isReadOnly ? undefined : handleDoubleClick}
+      aria-readonly={isReadOnly || undefined}
       ref={cellRef}
     >
       <div
         className={cn(
           "pointer-events-none absolute inset-0 z-10 rounded border-2 border-transparent",
-          isActive && !isEditing && "border-primary/70",
-          isEditing && "border-accent",
+          !isReadOnly && isActive && !isEditing && "border-primary/70",
+          !isReadOnly && isEditing && "border-accent",
         )}
       />
       <div className={cn("group relative flex h-full items-center")}>

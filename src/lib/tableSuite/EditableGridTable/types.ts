@@ -2,7 +2,14 @@ import type React from "react";
 
 import type { Options } from "@/types/form";
 
-export type EditableGridEditorType = "text" | "number" | "select" | "date" | "time" | "datetime";
+export type EditableGridEditorType =
+  | "text"
+  | "number"
+  | "select"
+  | "date"
+  | "time"
+  | "datetime"
+  | "readonly";
 
 export type EditableGridColumn<T> = {
   field: string;
