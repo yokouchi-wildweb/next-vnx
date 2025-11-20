@@ -172,6 +172,11 @@ export default function TablesDemoPage() {
         options: SAMPLE_SELECT_OPTIONS,
       },
       {
+        field: "switch",
+        header: "フラグ",
+        editorType: "switch",
+      },
+      {
         field: "description",
         header: "説明文",
         editorType: "text",

@@ -9,7 +9,8 @@ export type EditableGridEditorType =
   | "date"
   | "time"
   | "datetime"
-  | "readonly";
+  | "readonly"
+  | "switch";
 
 export type EditableGridColumn<T> = {
   field: string;

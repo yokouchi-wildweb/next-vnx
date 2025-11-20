@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Input } from "@/components/Form/Manual";
+import { SwitchInput as ManualSwitchInput } from "@/components/Form/Manual/SwitchInput";
 import {
   Select,
   SelectContent,
@@ -48,6 +49,7 @@ export function EditableGridCell<T>({
   const cellRef = React.useRef<HTMLTableCellElement | null>(null);
   const [selectOpen, setSelectOpen] = React.useState(false);
   const isReadOnly = column.editorType === "readonly";
+  const isSwitchEditor = column.editorType === "switch";
 
   const inputValue = draftValue ?? baseValue ?? "";
 
@@ -186,6 +188,25 @@ export function EditableGridCell<T>({
             }}
           />
         );
+      case "switch":
+        return (
+          <div className="px-2 py-1">
+            <ManualSwitchInput
+              field={{
+                value: Boolean(rawValue),
+                name: `${String(rowKey)}-${column.field}`,
+                onChange: (checked: boolean) => {
+                  setIsActive(true);
+                  setIsEditing(false);
+                  setSelectOpen(false);
+                  onValidChange?.(checked);
+                },
+              }}
+              aria-label={`${column.header}の切り替え`}
+              activeColor="primary"
+            />
+          </div>
+        );
       default:
         return <Input type="text" {...sharedInputProps} />;
     }
@@ -206,14 +227,14 @@ export function EditableGridCell<T>({
   }, [baseValue, column, fallbackPlaceholder, rawValue, row]);
 
   const handleSingleClick = () => {
-    if (isReadOnly) {
+    if (isReadOnly || isSwitchEditor) {
       return;
     }
     setIsActive(true);
   };
 
   const handleDoubleClick = () => {
-    if (isReadOnly) {
+    if (isReadOnly || isSwitchEditor) {
       return;
     }
     setIsActive(true);
@@ -246,6 +267,8 @@ export function EditableGridCell<T>({
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [handleCommit, isEditing]);
 
+  const shouldRenderEditor = isEditing || isSwitchEditor;
+
   return (
     <TableCell
       key={cellKey}
@@ -254,8 +277,8 @@ export function EditableGridCell<T>({
         hasError && "bg-destructive/10 ring-1 ring-inset ring-destructive/50",
       )}
       style={column.width ? { width: column.width } : undefined}
-      onClick={isReadOnly ? undefined : handleSingleClick}
-      onDoubleClick={isReadOnly ? undefined : handleDoubleClick}
+      onClick={isReadOnly || isSwitchEditor ? undefined : handleSingleClick}
+      onDoubleClick={isReadOnly || isSwitchEditor ? undefined : handleDoubleClick}
       aria-readonly={isReadOnly || undefined}
       ref={cellRef}
     >
@@ -267,7 +290,7 @@ export function EditableGridCell<T>({
         )}
       />
       <div className={cn("group relative flex h-full items-center")}>
-        {isEditing && !isReadOnly ? (
+        {shouldRenderEditor && !isReadOnly ? (
           renderEditor()
         ) : (
           <div
