@@ -50,6 +50,7 @@ export function EditableGridCell<T>({
   const [selectOpen, setSelectOpen] = React.useState(false);
   const isReadOnly = column.editorType === "readonly";
   const isSwitchEditor = column.editorType === "switch";
+  const switchPreviousValue = React.useMemo(() => Boolean(rawValue), [rawValue]);
 
   const inputValue = draftValue ?? baseValue ?? "";
 
@@ -193,14 +194,9 @@ export function EditableGridCell<T>({
           <div className="px-2 py-1">
             <ManualSwitchInput
               field={{
-                value: Boolean(rawValue),
+                value: switchPreviousValue,
                 name: `${String(rowKey)}-${column.field}`,
-                onChange: (checked: boolean) => {
-                  setIsActive(true);
-                  setIsEditing(false);
-                  setSelectOpen(false);
-                  onValidChange?.(checked);
-                },
+                onChange: (checked: boolean) => handleSwitchToggle(checked),
               }}
               aria-label={`${column.header}の切り替え`}
               activeColor="primary"
@@ -243,6 +239,41 @@ export function EditableGridCell<T>({
       setSelectOpen(true);
     }
   };
+
+  const handleSwitchToggle = React.useCallback(
+    (nextValue: boolean) => {
+      if (!isSwitchEditor) {
+        return;
+      }
+
+      const proceed = column.onToggleRequest
+        ? column.onToggleRequest({
+            row,
+            rowKey,
+            field: column.field,
+            nextValue,
+            previousValue: switchPreviousValue,
+          })
+        : true;
+
+      Promise.resolve(proceed)
+        .then((allowed) => {
+          if (!allowed) {
+            return;
+          }
+          setIsActive(true);
+          setIsEditing(false);
+          setSelectOpen(false);
+          onValidChange?.(nextValue);
+        })
+        .catch((error) => {
+          if (process.env.NODE_ENV !== "production") {
+            console.error("EditableGridTable: switch toggle request failed", error);
+          }
+        });
+    },
+    [column, isSwitchEditor, onValidChange, row, rowKey, switchPreviousValue],
+  );
 
   React.useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {

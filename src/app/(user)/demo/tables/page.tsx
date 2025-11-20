@@ -175,6 +175,10 @@ export default function TablesDemoPage() {
         field: "switch",
         header: "フラグ",
         editorType: "switch",
+        onToggleRequest: ({ row, nextValue }) => {
+          const action = nextValue ? "オン" : "オフ";
+          return window.confirm(`${row.name} を${action}にしますか？`);
+        },
       },
       {
         field: "description",

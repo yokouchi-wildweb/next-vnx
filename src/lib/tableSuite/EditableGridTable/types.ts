@@ -24,6 +24,7 @@ export type EditableGridColumn<T> = {
   parseValue?: (value: string, row: T) => unknown;
   validator?: (value: unknown, row: T) => string | null;
   renderDisplay?: (value: unknown, row: T) => React.ReactNode;
+  onToggleRequest?: (event: EditableGridSwitchToggleEvent<T>) => boolean | Promise<boolean>;
 };
 
 export type EditableGridCellChangeEvent<T> = {
@@ -31,6 +32,14 @@ export type EditableGridCellChangeEvent<T> = {
   field: string;
   value: unknown;
   row: T;
+};
+
+export type EditableGridSwitchToggleEvent<T> = {
+  row: T;
+  rowKey: React.Key;
+  field: string;
+  nextValue: boolean;
+  previousValue: boolean;
 };
 
 export type EditableGridOrderRule<T> = {
