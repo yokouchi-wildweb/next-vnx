@@ -6,6 +6,7 @@ import { spawnSync } from "child_process";
 import inquirer from "inquirer";
 import askGenerateFiles from "./questions/generate-files.mjs";
 import { toCamelCase, toSnakeCase } from "../../src/utils/stringCase.mjs";
+import formatDomainConfig from "./utils/formatConfig.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -51,7 +52,7 @@ async function resolveGenerateTargets(config, configPath, options = {}) {
   if (mode === "manual" && manualGenerate) {
     if (saveManualSelection) {
       config.generateFiles = manualGenerate;
-      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+      fs.writeFileSync(configPath, `${formatDomainConfig(config)}\n`);
       console.log(`更新しました: ${configPath}`);
     }
     return manualGenerate;
@@ -94,7 +95,7 @@ async function resolveGenerateTargets(config, configPath, options = {}) {
 
   if (shouldSave) {
     config.generateFiles = manualResult;
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+    fs.writeFileSync(configPath, `${formatDomainConfig(config)}\n`);
     console.log(`更新しました: ${configPath}`);
   }
 

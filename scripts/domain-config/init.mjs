@@ -10,6 +10,7 @@ import askFields from "./questions/fields.mjs";
 import askViewConfig from "./questions/view-config.mjs";
 import askGenerateFiles from "./questions/generate-files.mjs";
 import { toCamelCase } from "../../src/utils/stringCase.mjs";
+import formatDomainConfig from "./utils/formatConfig.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -34,7 +35,7 @@ export default async function init() {
   const dir = path.join(rootDir, "src", "features", featureDir);
   ensureDir(dir);
   const file = path.join(dir, "domain.json");
-  fs.writeFileSync(file, JSON.stringify(config, null, 2));
+  fs.writeFileSync(file, formatDomainConfig(config));
   console.log(`設定ファイルを作成しました: ${file}`);
   return config.singular;
 }
