@@ -1,10 +1,13 @@
 {
+  "domainConfigVersion": "1.2",
   "singular": "sample_category",
   "plural": "sample_categories",
   "label": "サンプルカテゴリ",
   "dbEngine": "Neon",
   "idType": "uuid",
-  "relations": [],
+  "relations": [
+
+  ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
   "fields": [

@@ -7,6 +7,7 @@ import inquirer from "inquirer";
 import askGenerateFiles from "./questions/generate-files.mjs";
 import { toCamelCase, toSnakeCase } from "../../src/utils/stringCase.mjs";
 import formatDomainConfig from "./utils/formatConfig.mjs";
+import { DOMAIN_CONFIG_VERSION } from "./version.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -115,6 +116,10 @@ export default async function generate(domain, options = {}) {
     return;
   }
   const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  config.domainConfigVersion = DOMAIN_CONFIG_VERSION;
+  if (config.version) {
+    delete config.version;
+  }
   const normalizedDomain = toSnakeCase(config.singular) || toSnakeCase(input) || camel;
   const normalizedPlural = toSnakeCase(config.plural || "") || "";
   const gen = await resolveGenerateTargets(config, configPath, options);

@@ -24,10 +24,19 @@ const formatArray = (value, depth, parentKey) => {
 
 const formatObject = (value, depth) => {
   const lineIndent = indent(depth + 1);
-  const entries = Object.entries(value).map(
+  const entries = Object.entries(value);
+  const orderedEntries =
+    entries[0]?.[0] === "domainConfigVersion"
+      ? entries
+      : entries.sort(([a], [b]) => {
+          if (a === "domainConfigVersion") return -1;
+          if (b === "domainConfigVersion") return 1;
+          return 0;
+        });
+  const lines = orderedEntries.map(
     ([key, val]) => `${lineIndent}"${key}": ${formatValue(val, depth + 1, key)}`,
   );
-  return `{\n${entries.join(",\n")}\n${indent(depth)}}`;
+  return `{\n${lines.join(",\n")}\n${indent(depth)}}`;
 };
 
 function formatValue(value, depth, parentKey) {

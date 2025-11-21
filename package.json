@@ -2,9 +2,6 @@
   "name": "nextjs-app-template",
   "version": "0.1.0",
   "private": true,
-  "bin": {
-    "dc": "./scripts/domain-config/index.mjs"
-  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,13 +9,16 @@
     "lint": "eslint .",
     "db:generate": "cross-env APP_ENV=.env.development drizzle-kit generate",
     "db:push": "cross-env APP_ENV=.env.development drizzle-kit push",
-    "generate:client": "node scripts/domain-config/generator/generate-client-service.mjs"
+    "generate:client": "node scripts/domain-config/generator/generate-client-service.mjs",
+    "dc:init": "node scripts/domain-config/index.mjs --init",
+    "dc:generate": "node scripts/domain-config/index.mjs --generate",
+    "dc:generate:all": "node scripts/domain-config/index.mjs --generate --all",
+    "dc:delete": "node scripts/domain-config/index.mjs --delete"
   },
   "engines": {
     "node": "20"
   },
   "dependencies": {
-    "@next-starter/domain-config": "file:scripts/domain-config",
     "@headlessui/react": "^2.2.4",
     "@hookform/resolvers": "^5.1.1",
     "@radix-ui/react-checkbox": "^1.3.2",

@@ -11,6 +11,7 @@ import askViewConfig from "./questions/view-config.mjs";
 import askGenerateFiles from "./questions/generate-files.mjs";
 import { toCamelCase } from "../../src/utils/stringCase.mjs";
 import formatDomainConfig from "./utils/formatConfig.mjs";
+import { DOMAIN_CONFIG_VERSION } from "./version.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -22,6 +23,7 @@ function ensureDir(dir) {
 
 export default async function init() {
   const config = {};
+  config.domainConfigVersion = DOMAIN_CONFIG_VERSION;
   Object.assign(config, await askName());
   Object.assign(config, await askBasics());
   Object.assign(config, await askRelations(config));
