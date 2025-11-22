@@ -1,10 +1,11 @@
 // src/features/__domain__/services/server/firestoreBase.ts
 
 import { createCrudService } from "@/lib/crud/firestore";
+import type { CreateCrudServiceOptions } from "@/lib/crud/types";
 import type { __Domain__ } from "@/features/__domain__/entities";
 import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/features/__domain__/entities/schema";
 
-const baseOptions = __serviceOptions__;
+const baseOptions = __serviceOptions__ satisfies CreateCrudServiceOptions;
 
 export const base = createCrudService<__Domain__>("__domains__", {
   ...baseOptions,

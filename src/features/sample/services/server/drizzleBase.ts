@@ -3,6 +3,7 @@
 import { SampleTable } from "@/features/sample/entities/drizzle";
 import { SampleCreateSchema, SampleUpdateSchema } from "@/features/sample/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
+import type { CreateCrudServiceOptions } from "@/lib/crud/types";
 
 const baseOptions = {
   idType: "uuid",
@@ -18,7 +19,7 @@ const baseOptions = {
       "DESC"
     ]
   ]
-};
+} satisfies CreateCrudServiceOptions;
 
 export const base = createCrudService(SampleTable, {
   ...baseOptions,

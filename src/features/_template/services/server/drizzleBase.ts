@@ -3,8 +3,9 @@
 import { __Domain__Table } from "@/features/__domain__/entities/drizzle";
 import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/features/__domain__/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
+import type { CreateCrudServiceOptions } from "@/lib/crud/types";
 
-const baseOptions = __serviceOptions__;
+const baseOptions = __serviceOptions__ satisfies CreateCrudServiceOptions;
 
 export const base = createCrudService(__Domain__Table, {
   ...baseOptions,
