@@ -21,6 +21,10 @@ const baseOptions = {
   ]
 } satisfies CreateCrudServiceOptions;
 
+// NOTE: drizzleBase ではスキーマの parse/validation のみに責務を限定すること。
+// ドメイン固有のロジック（外部サービス連携や判定処理など）は
+// src/features/sample/services/server/wrappers/ 以下にラップを作成して差し替えること。
+
 export const base = createCrudService(SampleTable, {
   ...baseOptions,
   parseCreate: (data) => SampleCreateSchema.parse(data),

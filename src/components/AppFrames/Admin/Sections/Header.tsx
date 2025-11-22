@@ -21,8 +21,10 @@ type AdminHeaderProps = {
 };
 
 export function Header({ logoUrl, darkLogoUrl }: AdminHeaderProps) {
-  const lightLogoSrc = logoUrl ?? "/imgs/logos/nextjs.png";
-  const darkLogoSrc = darkLogoUrl ?? logoUrl ?? "/imgs/logos/nextjs-dm.png";
+  const normalizedLightLogo = logoUrl && logoUrl.trim() !== "" ? logoUrl : null;
+  const normalizedDarkLogo = darkLogoUrl && darkLogoUrl.trim() !== "" ? darkLogoUrl : null;
+  const lightLogoSrc = normalizedLightLogo ?? "/imgs/logos/nextjs.png";
+  const darkLogoSrc = normalizedDarkLogo ?? normalizedLightLogo ?? "/imgs/logos/nextjs-dm.png";
   const showDarkModeSwitch = APP_FEATURES.admin.appearance.enableDarkModeSwitch;
   const { isAuthenticated } = useAuthSession();
 
