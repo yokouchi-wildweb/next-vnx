@@ -5,18 +5,18 @@ import useSWRMutation from "swr/mutation";
 import type { HttpError } from "@/lib/errors";
 
 /**
- * 複数削除用のフック
+ * ID 配列での複数削除用フック
  */
-export function useBulkDeleteDomain(
+export function useBulkDeleteByIdsDomain(
   key: string,
-  bulkDeleteFn: (ids: string[]) => Promise<void>,
+  bulkDeleteByIdsFn: (ids: string[]) => Promise<void>,
   revalidateKey?: string | string[],
 ) {
   const { mutate } = useSWRConfig();
 
   const mutation = useSWRMutation<void, HttpError, string, string[]>(
     key,
-    (_key, { arg }) => bulkDeleteFn(arg),
+    (_key, { arg }) => bulkDeleteByIdsFn(arg),
     {
       onSuccess: async () => {
         if (revalidateKey) {

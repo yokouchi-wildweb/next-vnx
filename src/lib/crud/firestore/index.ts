@@ -8,8 +8,9 @@ import type {
   CreateCrudServiceOptions,
   PaginatedResult,
   UpsertOptions,
+  WhereExpr,
 } from "../types";
-import { buildSearchQuery } from "./query";
+import { buildSearchQuery, applyWhere } from "./query";
 
 export type DefaultInsert<T> = Omit<T, "id" | "createdAt" | "updatedAt">;
 
@@ -114,10 +115,22 @@ export function createCrudService<
       return { results, total };
     },
 
-
-    async bulkDelete(ids: string[]): Promise<void> {
+    async bulkDeleteByIds(ids: string[]): Promise<void> {
       const batch = firestore.batch();
       ids.forEach((id) => batch.delete(col.doc(id)));
+      await batch.commit();
+    },
+
+    async bulkDeleteByQuery(where: WhereExpr): Promise<void> {
+      if (!where) {
+        throw new Error("bulkDeleteByQuery requires a where condition.");
+      }
+      const query = applyWhere(col, where);
+      const snap = await query.get();
+      if (snap.empty) return;
+
+      const batch = firestore.batch();
+      snap.docs.forEach((doc) => batch.delete(doc.ref));
       await batch.commit();
     },
 

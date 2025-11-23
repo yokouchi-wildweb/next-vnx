@@ -55,7 +55,8 @@ export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   update(id: string, data: UpdateData): Promise<T>;
   delete(id: string): Promise<void>;
   search?(params: SearchParams): Promise<PaginatedResult<T>>;
-  bulkDelete?(ids: string[]): Promise<void>;
+  bulkDeleteByIds?(ids: string[]): Promise<void>;
+  bulkDeleteByQuery?(where: WhereExpr): Promise<void>;
   upsert?(data: CreateData, options?: UpsertOptions<CreateData>): Promise<T>;
 };
 

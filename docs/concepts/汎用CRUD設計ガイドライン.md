@@ -67,7 +67,7 @@ registry/
 
 ### 4.1 Drizzle 用サービス
 - `createCrudService` は Drizzle のテーブルを受け取り 
-`create / list / get / update / remove / search / query / bulkDelete / upsert` をまとめて提供します。
+`create / list / get / update / remove / search / query / bulkDeleteByIds / bulkDeleteByQuery / upsert` をまとめて提供します。
 - ID の採番方法（UUID・DB 自動採番など）、既定の並び順、検索対象カラムなどはオプションで指定できます。
 - `search` では `searchQuery` と `searchFields` を組み合わせたあいまい検索、`where` 句での詳細な条件、`orderBy` やページングの指定が可能です。
 - `query` を使うと、ドメイン固有の JOIN や複雑な集計を行いつつ、共通のページング処理だけを流用できます。
@@ -99,10 +99,11 @@ registry/
 | PUT  | `/api/<domain>/<id>`          | `update(id, data)`          | 更新（`null` は空値で上書きし、`undefined` は変更なし） |
 | DELETE | `/api/<domain>/<id>`        | `remove(id)`                | 主キー削除              |
 | GET  | `/api/<domain>/search`        | `search(params)`            | ページング・並び順・部分一致を備えた検索 |
-| POST | `/api/<domain>/bulk/delete`   | `bulkDelete(ids)`           | ID 配列による一括削除              |
+| POST | `/api/<domain>/bulk/delete-by-ids`   | `bulkDeleteByIds(ids)`           | ID 配列による一括削除              |
+| POST | `/api/<domain>/bulk/delete-by-query` | `bulkDeleteByQuery(where)`       | where 条件による一括削除          |
 | PUT  | `/api/<domain>/upsert`        | `upsert(data)`              | 存在すれば更新、なければ作成 |
 
-- `create` / `update` / `upsert` は JSON `{ "data": ... }` 形式でリクエストします。`bulkDelete` は `{ "ids": [...] }` を受け取ります。
+- `create` / `update` / `upsert` は JSON `{ "data": ... }` 形式でリクエストします。`bulkDeleteByIds` は `{ "ids": [...] }`、`bulkDeleteByQuery` は `{ "where": { ... } }` を受け取ります。
 
 ### 5.2 サービス登録
 - `src/registry/serviceRegistry.ts` にドメイン名とサーバーサービスを登録すると、API ルートから呼び出せるようになります。
@@ -153,7 +154,8 @@ registry/
   - `getAll()` / `getById(id)` … 一覧と単体取得。
   - `create(data)` / `update(id, data)` / `delete(id)` … 作成・更新・削除。
   - `search(params)` … ページングや `searchQuery`、`where` 句、`orderBy` を組み合わせた柔軟な検索。ドメインサービスが提供する複雑な検索条件をそのまま利用できます。
-  - `bulkDelete(ids)` … ID 配列で一括削除。
+  - `bulkDeleteByIds(ids)` … ID 配列で一括削除。
+  - `bulkDeleteByQuery(where)` … where 条件で一括削除。
   - `upsert(data, options)` … 衝突検知フィールドを切り替えながらの作成＋更新。
 - 具体的な利用例と React Hooks との組み合わせは「[自動生成されるドメインのフック使用方法](../how-to/implementation/汎用CRUDのフック使用方法.md)」を参照してください。
 

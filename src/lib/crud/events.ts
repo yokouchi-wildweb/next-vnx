@@ -9,7 +9,8 @@ export type CrudAction =
   | "update"
   | "delete"
   | "search"
-  | "bulkDelete"
+  | "bulkDeleteByIds"
+  | "bulkDeleteByQuery"
   | "upsert";
 
 export type CrudEvent = {

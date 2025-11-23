@@ -4,5 +4,6 @@ export * from "./useCreateDomain";
 export * from "./useUpdateDomain";
 export * from "./useDeleteDomain";
 export * from "./useSearchDomain";
-export * from "./useBulkDeleteDomain";
+export * from "./useBulkDeleteByIdsDomain";
+export * from "./useBulkDeleteByQueryDomain";
 export * from "./useUpsertDomain";

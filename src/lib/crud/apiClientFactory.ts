@@ -1,7 +1,13 @@
 // src/lib/crud/apiClientFactory.ts
 
 import axios from "axios";
-import type { ApiClient, SearchParams, PaginatedResult, UpsertOptions } from "./types";
+import type {
+  ApiClient,
+  SearchParams,
+  PaginatedResult,
+  UpsertOptions,
+  WhereExpr,
+} from "./types";
 import type { CrudAction } from "./events";
 import { emitCrudEvent } from "./events";
 import { normalizeHttpError, type HttpError } from "@/lib/errors";
@@ -58,9 +64,14 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
 
         return (await axios.get<PaginatedResult<T>>(`${baseUrl}/search`, { params: queryParams })).data;
       }),
-    bulkDelete: (ids) =>
-      handleRequest("bulkDelete", async () => {
-        await axios.post(`${baseUrl}/bulk/delete`, { ids });
+    bulkDeleteByIds: (ids) =>
+      handleRequest("bulkDeleteByIds", async () => {
+        await axios.post(`${baseUrl}/bulk/delete-by-ids`, { ids });
+        return undefined;
+      }),
+    bulkDeleteByQuery: (where: WhereExpr) =>
+      handleRequest("bulkDeleteByQuery", async () => {
+        await axios.post(`${baseUrl}/bulk/delete-by-query`, { where });
         return undefined;
       }),
     upsert: (data: CreateData, options?: UpsertOptions<CreateData>) =>

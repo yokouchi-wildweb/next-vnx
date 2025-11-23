@@ -11,6 +11,7 @@ import type {
   CreateCrudServiceOptions,
   PaginatedResult,
   UpsertOptions,
+  WhereExpr,
 } from "../types";
 import { uuidv7 } from "uuidv7";
 import { buildOrderBy, buildWhere, runQuery } from "./query";
@@ -183,8 +184,16 @@ export function createCrudService<
     },
 
     // ID の配列を指定して一括削除を行う
-    async bulkDelete(ids: string[]): Promise<void> {
+    async bulkDeleteByIds(ids: string[]): Promise<void> {
       await db.delete(table).where(inArray(idColumn, ids));
+    },
+    // where 条件を指定して一括削除を行う
+    async bulkDeleteByQuery(where: WhereExpr): Promise<void> {
+      if (!where) {
+        throw new Error("bulkDeleteByQuery requires a where condition.");
+      }
+      const condition = buildWhere(table, where);
+      await db.delete(table).where(condition);
     },
 
     // レコードが存在すれば更新、存在しなければ作成する
