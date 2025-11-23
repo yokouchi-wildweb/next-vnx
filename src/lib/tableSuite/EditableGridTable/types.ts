@@ -32,6 +32,8 @@ export type EditableGridColumn<T> = {
   align?: TableColumnAlignment;
 };
 
+export type EditableGridHeaderIconMode = "readonly" | "editable" | "none";
+
 export type EditableGridCellChangeEvent<T> = {
   rowKey: React.Key;
   field: string;
@@ -74,4 +76,11 @@ export type EditableGridTableProps<T> = TableStylingProps<T> & {
    * 行の高さ（セル上下の余白）
    */
   rowHeight?: "xs" | "sm" | "md" | "lg" | "xl";
+  /**
+   * ヘッダーへ表示するアイコンのモード。
+   * - readonly: Readonly列のみ表示（デフォルト）
+   * - editable: 編集可能列のみ表示
+   * - none: アイコンを表示しない
+   */
+  headerIconMode?: EditableGridHeaderIconMode;
 };

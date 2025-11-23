@@ -402,6 +402,7 @@ export default function TablesDemoPage() {
               items={editableRows}
               columns={editableColumns}
               getKey={(row) => row.id}
+              headerIconMode="editable"
               onCellChange={handleEditableCellChange}
               autoSort
               order={[

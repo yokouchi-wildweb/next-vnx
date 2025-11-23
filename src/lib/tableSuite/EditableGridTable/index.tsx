@@ -4,6 +4,8 @@
 
 import React from "react";
 
+import { Lock, PencilLine } from "lucide-react";
+
 import { cn } from "@/lib/cn";
 
 import {
@@ -36,6 +38,7 @@ export default function EditableGridTable<T>({
   autoSort = false,
   order,
   rowHeight = "md",
+  headerIconMode = "readonly",
 }: EditableGridTableProps<T>) {
   React.useEffect(() => {
     if (process.env.NODE_ENV !== "production" && autoSort && (!order || order.length === 0)) {
@@ -69,6 +72,45 @@ export default function EditableGridTable<T>({
     return nextRows;
   }, [autoSort, columns, keyedRows, order]);
 
+  const renderHeaderIcon = React.useCallback(
+    (column: EditableGridColumn<T>) => {
+      if (column.editorType === "action") {
+        return null;
+      }
+
+      if (headerIconMode === "none") {
+        return null;
+      }
+
+      if (headerIconMode === "readonly" && column.editorType === "readonly") {
+        return (
+          <span
+            aria-label="閲覧のみ"
+            className="text-muted-foreground text-[10px] leading-none flex items-center"
+            title="この列は閲覧のみです"
+          >
+            <Lock aria-hidden="true" className="h-3 w-3" strokeWidth={2} />
+          </span>
+        );
+      }
+
+      if (headerIconMode === "editable" && column.editorType !== "readonly") {
+        return (
+          <span
+            aria-label="編集可能"
+            className="text-blue-500 text-[10px] leading-none flex items-center"
+            title="この列は編集可能です"
+          >
+            <PencilLine aria-hidden="true" className="h-3 w-3" strokeWidth={2} />
+          </span>
+        );
+      }
+
+      return null;
+    },
+    [headerIconMode],
+  );
+
   return (
     <div className={cn("overflow-x-auto overflow-y-auto max-h-[70vh]", className)}>
       <Table variant="list" tableLayout={tableLayout}>
@@ -82,15 +124,7 @@ export default function EditableGridTable<T>({
               >
                 <div className="flex items-center gap-1">
                   <span>{column.header}</span>
-                  {column.editorType === "readonly" && (
-                    <span
-                      aria-label="閲覧のみ"
-                      className="text-muted-foreground text-[10px] leading-none"
-                      title="この列は閲覧のみです"
-                    >
-                      🔒
-                    </span>
-                  )}
+                  {renderHeaderIcon(column)}
                 </div>
               </TableHead>
             ))}
