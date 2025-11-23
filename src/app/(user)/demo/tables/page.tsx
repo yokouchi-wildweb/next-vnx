@@ -202,6 +202,17 @@ export default function TablesDemoPage() {
         placeholder: "日時を選択",
         parseValue: (value) => (value ? new Date(value) : null),
       },
+      {
+        field: "action",
+        header: "操作",
+        editorType: "action",
+        align: "center",
+        renderAction: () => (
+          <Button type="button" size="xs" variant="outline">
+            ボタン
+          </Button>
+        ),
+      },
     ],
     [],
   );

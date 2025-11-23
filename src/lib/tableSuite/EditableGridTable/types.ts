@@ -11,7 +11,8 @@ export type EditableGridEditorType =
   | "time"
   | "datetime"
   | "readonly"
-  | "switch";
+  | "switch"
+  | "action";
 
 export type EditableGridColumn<T> = {
   field: string;
@@ -25,6 +26,8 @@ export type EditableGridColumn<T> = {
   parseValue?: (value: string, row: T) => unknown;
   validator?: (value: unknown, row: T) => string | null;
   renderDisplay?: (value: unknown, row: T) => React.ReactNode;
+  /** action タイプで使用する操作部品のレンダラー */
+  renderAction?: (row: T) => React.ReactNode;
   onToggleRequest?: (event: EditableGridSwitchToggleEvent<T>) => boolean | Promise<boolean>;
   align?: TableColumnAlignment;
 };

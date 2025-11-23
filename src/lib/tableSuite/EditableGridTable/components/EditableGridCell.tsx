@@ -13,7 +13,7 @@ import {
 import { ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-import { TableCell } from "@/lib/tableSuite/DataTable/components";
+import { TableCell, TableCellAction } from "@/lib/tableSuite/DataTable/components";
 import { resolveColumnFlexAlignClass, resolveColumnTextAlignClass } from "../../types";
 import type { EditableGridColumn } from "../types";
 import { formatCellValue, parseCellValue, readCellValue } from "../utils/value";
@@ -59,7 +59,8 @@ export function EditableGridCell<T>({
   const [isActive, setIsActive] = React.useState(false);
   const cellRef = React.useRef<HTMLTableCellElement | null>(null);
   const [selectOpen, setSelectOpen] = React.useState(false);
-  const isReadOnly = column.editorType === "readonly";
+  const isActionEditor = column.editorType === "action";
+  const isReadOnly = column.editorType === "readonly" || isActionEditor;
   const isSwitchEditor = column.editorType === "switch";
   const isSelectEditor = column.editorType === "select";
   const switchPreviousValue = React.useMemo(() => Boolean(rawValue), [rawValue]);
@@ -339,7 +340,34 @@ export function EditableGridCell<T>({
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [handleCommit, isEditing]);
 
-  const shouldRenderEditor = isEditing || isSwitchEditor;
+  const shouldRenderEditor = (isEditing || isSwitchEditor) && !isActionEditor;
+
+  const renderActionDisplay = () => {
+    if (!isActionEditor) {
+      return null;
+    }
+
+    if (!column.renderAction) {
+      return (
+        <div
+          className={cn(
+            displayBaseClassName,
+            "text-muted-foreground",
+            flexAlignClass,
+            paddingClass,
+          )}
+        >
+          {fallbackPlaceholder}
+        </div>
+      );
+    }
+
+    return (
+      <TableCellAction className={cn("w-full px-2", flexAlignClass, paddingClass)}>
+        {column.renderAction(row)}
+      </TableCellAction>
+    );
+  };
 
   return (
     <TableCell
@@ -371,6 +399,8 @@ export function EditableGridCell<T>({
       >
         {shouldRenderEditor && !isReadOnly ? (
           renderEditor()
+        ) : isActionEditor ? (
+          renderActionDisplay()
         ) : (
           <div
             className={cn(
