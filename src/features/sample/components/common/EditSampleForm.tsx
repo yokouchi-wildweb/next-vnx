@@ -33,6 +33,7 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
       switch: sample.switch ?? false,
       radio: sample.radio ?? undefined,
       select: sample.select ?? undefined,
+      multi_select: sample.multi_select ?? [],
       main_image: sample.main_image ?? "",
       description: sample.description ?? "",
     },

@@ -48,7 +48,16 @@ const SAMPLE_SELECT_OPTIONS = [
   { value: "berry", label: "いちご" },
 ];
 
+const SAMPLE_MULTI_SELECT_OPTIONS = [
+  { value: "apple", label: "りんご" },
+  { value: "orange", label: "オレンジ" },
+  { value: "cherry", label: "さくらんぼ" },
+];
+
 const formatDisplayValue = (value: unknown) => {
+  if (Array.isArray(value)) {
+    return value.length ? value.map((entry) => String(entry)).join(", ") : "未設定";
+  }
   if (value instanceof Date) {
     return value.toLocaleString("ja-JP", {
       year: "numeric",
@@ -194,6 +203,13 @@ export default function TablesDemoPage() {
           }
           return null;
         },
+      },
+      {
+        field: "multi_select",
+        header: "マルチセレクト",
+        editorType: "multi-select",
+        placeholder: "複数選択できます",
+        options: SAMPLE_MULTI_SELECT_OPTIONS,
       },
       {
         field: "updatedAt",

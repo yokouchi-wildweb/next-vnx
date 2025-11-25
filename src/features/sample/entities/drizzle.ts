@@ -15,6 +15,7 @@ export const SampleTable = pgTable("samples", {
   switch: boolean("switch"),
   radio: boolean("radio"),
   select: SampleSelectEnum("select"),
+  multi_select: text("multi_select").array().notNull(),
   main_image: text("main_image"),
   description: text("description"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),

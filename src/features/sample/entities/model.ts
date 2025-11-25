@@ -9,6 +9,7 @@ export type Sample = {
   switch: boolean | null;
   radio: boolean | null;
   select: 'apple' | 'orange' | 'berry' | null;
+  multi_select: string[];
   main_image: string | null;
   description: string | null;
   createdAt: Date | null;

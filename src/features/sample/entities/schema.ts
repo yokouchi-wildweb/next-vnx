@@ -11,6 +11,7 @@ export const SampleBaseSchema = z.object({
   switch: z.coerce.boolean().nullish(),
   radio: z.coerce.boolean().nullish(),
   select: z.enum(["apple", "orange", "berry"]).nullish(),
+  multi_select: z.array(z.string()).default([]),
   main_image: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   description: z.string().trim().nullish()

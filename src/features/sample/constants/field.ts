@@ -13,3 +13,9 @@ export const SampleSelectOptions = [
   { value: "orange", label: "オレンジ" },
   { value: "berry", label: "いちご" }
 ] as const;
+
+export const SampleMultiSelectOptions = [
+  { value: "apple", label: "りんご" },
+  { value: "orange", label: "オレンジ" },
+  { value: "cherry", label: "さくらんぼ" }
+] as const;

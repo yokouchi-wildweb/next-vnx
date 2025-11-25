@@ -71,6 +71,18 @@
       ]
     },
     {
+      "name": "multi_select",
+      "label": "マルチセレクトコンボ",
+      "fieldType": "array",
+      "formInput": "multiSelect",
+      "required": false,
+      "options": [
+        { "value": "apple", "label": "りんご" },
+        { "value": "orange", "label": "オレンジ" },
+        { "value": "cherry", "label": "さくらんぼ" }
+      ]
+    },
+    {
       "name": "main_image",
       "label": "メイン画像",
       "fieldType": "imageUploader",

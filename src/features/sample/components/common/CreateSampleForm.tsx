@@ -32,6 +32,7 @@ export default function CreateSampleForm({ redirectPath = "/" }: Props) {
       switch: false,
       radio: undefined,
       select: undefined,
+      multi_select: [],
       main_image: "",
       description: "",
     },

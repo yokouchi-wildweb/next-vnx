@@ -9,6 +9,7 @@ import StepperInput from "@/components/Form/Manual/StepperInput";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";
 import { SwitchInput } from "@/components/Form/Controlled";
 import { BooleanRadioGroupInput } from "@/components/Form/Manual";
+import { MultiSelectInput } from "@/components/Form/Manual";
 import { FileUrlInput } from "@/components/Form/Controlled";
 import { Textarea } from "@/components/Form/Controlled";
 import type { Options } from "@/types/form";
@@ -93,6 +94,18 @@ export function SampleFields<TFieldValues extends FieldValues>({
         name={"select" as FieldPath<TFieldValues>}
         label="セレクトボックス（Enum）"
         renderInput={(field) => <SelectInput field={field} options={[{"value":"apple","label":"りんご"},{"value":"orange","label":"オレンジ"},{"value":"berry","label":"いちご"}]} />}
+      />
+      <FormFieldItem
+        control={control}
+        name={"multi_select" as FieldPath<TFieldValues>}
+        label="マルチセレクトコンボ"
+        renderInput={(field) => (
+          <MultiSelectInput
+            field={field as any}
+            options={[{"value":"apple","label":"りんご"},{"value":"orange","label":"オレンジ"},{"value":"cherry","label":"さくらんぼ"}]}
+            placeholder="選択してください"
+          />
+        )}
       />
       <FormFieldItem
         control={control}

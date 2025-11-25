@@ -12,3 +12,7 @@ export type SampleRadioLabel = SampleRadioOption["label"];
 export type SampleSelectOption = FieldConstants["SampleSelectOptions"][number];
 export type SampleSelectValue = SampleSelectOption["value"];
 export type SampleSelectLabel = SampleSelectOption["label"];
+
+export type SampleMultiSelectOption = FieldConstants["SampleMultiSelectOptions"][number];
+export type SampleMultiSelectValue = SampleMultiSelectOption["value"];
+export type SampleMultiSelectLabel = SampleMultiSelectOption["label"];
