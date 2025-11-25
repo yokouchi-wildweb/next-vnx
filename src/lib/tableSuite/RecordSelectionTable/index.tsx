@@ -35,6 +35,7 @@ export default function RecordSelectionTable<T>({
   columns,
   getKey = (_, index) => index,
   className,
+  maxHeight,
   rowClassName,
   onRowClick,
   emptyValueFallback,
@@ -81,8 +82,13 @@ export default function RecordSelectionTable<T>({
 
   const resolvedSelectColumnLabel = selectColumnLabel || "選択";
 
+  const resolvedMaxHeight = maxHeight ?? "70vh";
+
   return (
-    <div className={cn("overflow-x-auto overflow-y-auto max-h-[70vh]", className)}>
+    <div
+      className={cn("overflow-x-auto overflow-y-auto", className)}
+      style={{ maxHeight: resolvedMaxHeight }}
+    >
       <Table variant="list">
         <TableHeader>
           <TableRow>

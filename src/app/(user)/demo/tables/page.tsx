@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 
-import type { DataTableColumn } from "@/lib/tableSuite/DataTable";
+import DataTable, { type DataTableColumn } from "@/lib/tableSuite/DataTable";
 import EditableGridTable, {
   type EditableGridCellChangeEvent,
   type EditableGridColumn,
@@ -53,6 +53,26 @@ const SAMPLE_MULTI_SELECT_OPTIONS = [
   { value: "orange", label: "オレンジ" },
   { value: "cherry", label: "さくらんぼ" },
 ];
+
+type DataTableRecord = {
+  id: number;
+  project: string;
+  owner: string;
+  status: string;
+  progress: number;
+};
+
+const DATA_TABLE_STATUSES = ["進行中", "レビュー待ち", "完了", "保留"] as const;
+const DATA_TABLE_DEMO_ROWS: DataTableRecord[] = Array.from({ length: 30 }, (_, index) => {
+  const status = DATA_TABLE_STATUSES[index % DATA_TABLE_STATUSES.length];
+  return {
+    id: index + 1,
+    project: `プロジェクト ${index + 1}`,
+    owner: `担当者 ${String.fromCharCode(65 + (index % 5))}`,
+    status,
+    progress: ((index * 7) % 100) + 1,
+  };
+});
 
 const formatDisplayValue = (value: unknown) => {
   if (Array.isArray(value)) {
@@ -227,6 +247,51 @@ export default function TablesDemoPage() {
           <Button type="button" size="xs" variant="outline">
             ボタン
           </Button>
+        ),
+      },
+    ],
+    [],
+  );
+
+  const dataTableColumns = useMemo<DataTableColumn<DataTableRecord>[]>(
+    () => [
+      {
+        header: "ID",
+        render: (record) => (
+          <Span size="sm" className="font-mono text-muted-foreground">
+            #{record.id.toString().padStart(2, "0")}
+          </Span>
+        ),
+      },
+      {
+        header: "プロジェクト名",
+        align: "left",
+        render: (record) => (
+          <Block className="space-y-1">
+            <Span weight="medium" className="text-foreground">
+              {record.project}
+            </Span>
+            <Para size="xs" tone="muted">
+              担当: {record.owner}
+            </Para>
+          </Block>
+        ),
+      },
+      {
+        header: "ステータス",
+        render: (record) => (
+          <Span size="sm" className="text-primary font-medium">
+            {record.status}
+          </Span>
+        ),
+      },
+      {
+        header: "進捗率",
+        align: "right",
+        render: (record) => (
+          <Span size="sm" className="font-mono">
+            {record.progress}%
+          </Span>
         ),
       },
     ],
@@ -466,6 +531,24 @@ export default function TablesDemoPage() {
             </Block>
           </Block>
         </Flex>
+      </Section>
+
+      <Section space="lg">
+        <Block className="space-y-4 rounded-2xl border bg-card p-6 shadow-sm">
+          <SecTitle size="lg" className="font-semibold">
+            DataTable デモ
+          </SecTitle>
+          <Para tone="muted" size="sm">
+            ダミーレコードを 200px の固定最大高さで表示し、スクロール挙動を確認できるセクションです。
+          </Para>
+          <DataTable
+            items={DATA_TABLE_DEMO_ROWS}
+            columns={dataTableColumns}
+            getKey={(record) => record.id}
+            emptyValueFallback="-"
+            maxHeight="200px"
+          />
+        </Block>
       </Section>
     </Main>
   );

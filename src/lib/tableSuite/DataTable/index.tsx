@@ -38,6 +38,7 @@ export default function DataTable<T>({
   columns,
   getKey = (_, i) => i,
   className,
+  maxHeight,
   rowClassName,
   onRowClick,
   emptyValueFallback,
@@ -52,8 +53,13 @@ export default function DataTable<T>({
     );
   };
 
+  const resolvedMaxHeight = maxHeight ?? "70vh";
+
   return (
-    <div className={cn("overflow-x-auto overflow-y-auto max-h-[70vh]", className)}>
+    <div
+      className={cn("overflow-x-auto overflow-y-auto", className)}
+      style={{ maxHeight: resolvedMaxHeight }}
+    >
       <Table variant="list">
         <TableHeader>
           <TableRow>

@@ -19,6 +19,10 @@ export type TableStylingProps<T> = {
    */
   className?: string;
   /**
+   * テーブルラッパーの最大高さ。CSSの長さ表現で指定する。未指定時は 70vh。
+   */
+  maxHeight?: string;
+  /**
    * 行単位で適用するクラス名。関数を渡すと行ごとに計算できる。
    */
   rowClassName?: RowClassNameResolver<T>;

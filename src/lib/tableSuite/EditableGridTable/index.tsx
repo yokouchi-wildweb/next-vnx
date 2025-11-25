@@ -31,6 +31,7 @@ export default function EditableGridTable<T>({
   columns,
   getKey = (_, index) => index,
   className,
+  maxHeight,
   rowClassName,
   onCellChange,
   emptyValueFallback = "(未設定)",
@@ -114,8 +115,13 @@ export default function EditableGridTable<T>({
     [headerIconMode],
   );
 
+  const resolvedMaxHeight = maxHeight ?? "70vh";
+
   return (
-    <div className={cn("overflow-x-auto overflow-y-auto max-h-[70vh]", className)}>
+    <div
+      className={cn("overflow-x-auto overflow-y-auto", className)}
+      style={{ maxHeight: resolvedMaxHeight }}
+    >
       <Table variant="list" tableLayout={tableLayout}>
         <TableHeader>
           <TableRow>
