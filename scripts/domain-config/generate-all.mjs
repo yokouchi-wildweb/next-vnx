@@ -27,16 +27,30 @@ export default async function generateAllDomains() {
     return;
   }
 
-  console.log(`合計 ${domains.length} 件のドメインに対してファイル生成を実行します。`);
+  const { selectedDomains } = await prompt({
+    type: "checkbox",
+    name: "selectedDomains",
+    message: "生成対象のドメインを選択してください（スペースで選択／Enterで確定）:",
+    choices: domains.map((domain) => ({ name: domain, value: domain })),
+    default: domains,
+    loop: false,
+  });
+
+  if (!selectedDomains.length) {
+    console.log("生成対象が選択されなかったため、一括生成をキャンセルしました。");
+    return;
+  }
+
+  console.log(`合計 ${selectedDomains.length} 件のドメインに対してファイル生成を実行します。`);
   console.log("生成対象ドメイン:");
-  domains.forEach((domain) => {
+  selectedDomains.forEach((domain) => {
     console.log(`  - ${domain}`);
   });
 
   const { confirmGenerateAll } = await prompt({
     type: "confirm",
     name: "confirmGenerateAll",
-    message: "すべてのドメインの生成を実行しますか？既存ファイルは上書きされます。",
+    message: "選択したドメインの生成を実行しますか？既存ファイルは上書きされます。",
     default: false,
   });
 
@@ -45,7 +59,7 @@ export default async function generateAllDomains() {
     return;
   }
 
-  for (const domain of domains) {
+  for (const domain of selectedDomains) {
     console.log(`\n[${domain}] の生成を開始します。`);
     await generate(domain, {
       mode: "config",
