@@ -1,8 +1,10 @@
 // src/features/user/services/server/drizzleBase.ts
 
 import { UserTable } from "@/features/user/entities/drizzle";
+import { AdminUserSchema } from "@/features/user/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import type { z } from "zod";
 
 // NOTE: drizzleBase ではスキーマの parse/validation のみに責務を限定すること。
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
@@ -12,6 +14,6 @@ const baseOptions = {
   idType: "uuid",
   defaultOrderBy: [["updatedAt", "DESC"]],
   defaultSearchFields: ["displayName", "email"],
-} satisfies DrizzleCrudServiceOptions;
+} satisfies DrizzleCrudServiceOptions<z.infer<typeof AdminUserSchema>>;
 
 export const base = createCrudService(UserTable, baseOptions);

@@ -16,6 +16,13 @@ import {
   syncBelongsToManyRelations,
 } from "./belongsToMany";
 
+const resolveRecordId = (value: unknown): string | number | undefined => {
+  if (typeof value === "string" || typeof value === "number") {
+    return value;
+  }
+  return undefined;
+};
+
 export type DefaultInsert<TTable extends PgTable> = Omit<
   InferInsertModel<TTable>,
   "id" | "createdAt" | "updatedAt"
@@ -50,7 +57,10 @@ export function createCrudService<
         const rows = await tx.insert(table).values(finalInsert).returning();
         const created = rows[0] as Select;
         if (!created) return created;
-        await syncBelongsToManyRelations(tx, belongsToManyRelations, created.id, relationValues);
+        const relationRecordId = resolveRecordId(created.id as unknown);
+        if (relationRecordId !== undefined) {
+          await syncBelongsToManyRelations(tx, belongsToManyRelations, relationRecordId, relationValues);
+        }
         assignLocalRelationValues(created, belongsToManyRelations, relationValues);
         return created;
       });
@@ -80,10 +90,7 @@ export function createCrudService<
       const parsed = serviceOptions.parseUpdate
         ? await serviceOptions.parseUpdate(data)
         : data;
-      const { sanitizedData, relationValues } = separateBelongsToManyInput(
-        parsed as Record<string, any>,
-        belongsToManyRelations,
-      );
+      const { sanitizedData, relationValues } = separateBelongsToManyInput(parsed, belongsToManyRelations);
       const updateData = {
         ...omitUndefined(sanitizedData as Record<string, any>),
       } as Partial<Insert> & Record<string, any> & { updatedAt?: Date };
@@ -155,12 +162,12 @@ export function createCrudService<
         }).filter((clause): clause is SQL => clause !== undefined);
       }
 
-      const baseQuery: any = db.select().from(table as any);
+      const baseQuery = db.select().from(table as any);
       const orderByClauses = buildOrderBy(table, orderBy);
       const orderClauses = prioritizeSearchHits
         ? [...priorityOrderClauses, ...orderByClauses]
         : [...orderByClauses, ...priorityOrderClauses];
-      const result = await runQuery(table, baseQuery, {
+      const result = await runQuery<Select>(table, baseQuery, {
         page,
         limit,
         orderBy: orderClauses,
@@ -171,12 +178,12 @@ export function createCrudService<
       return result;
     },
 
-    async query<T>(
+    async query<TSelect extends Record<string, any> = Select>(
       baseQuery: any,
       options: { page?: number; limit?: number; orderBy?: SQL[]; where?: SQL } = {},
       countQuery?: any,
-    ): Promise<PaginatedResult<T>> {
-      const result = await runQuery(table, baseQuery, options, countQuery);
+    ): Promise<PaginatedResult<TSelect>> {
+      const result = await runQuery<TSelect>(table, baseQuery, options, countQuery);
       if (!belongsToManyRelations.length) return result;
       await hydrateBelongsToManyRelations(result.results, belongsToManyRelations);
       return result;
@@ -239,7 +246,10 @@ export function createCrudService<
           .returning();
         const upserted = rows[0] as Select;
         if (!upserted) return upserted;
-        await syncBelongsToManyRelations(tx, belongsToManyRelations, upserted.id, relationValues);
+        const relationRecordId = resolveRecordId(upserted.id as unknown);
+        if (relationRecordId !== undefined) {
+          await syncBelongsToManyRelations(tx, belongsToManyRelations, relationRecordId, relationValues);
+        }
         assignLocalRelationValues(upserted, belongsToManyRelations, relationValues);
         return upserted;
       });

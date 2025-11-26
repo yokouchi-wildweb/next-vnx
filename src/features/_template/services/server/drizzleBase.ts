@@ -4,8 +4,11 @@ import { __DrizzleEntityImports__ } from "@/features/__domain__/entities/drizzle
 import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/features/__domain__/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import type { z } from "zod";
 
-const baseOptions = __serviceOptions__ satisfies DrizzleCrudServiceOptions;
+const baseOptions = __serviceOptions__ satisfies DrizzleCrudServiceOptions<
+  z.infer<typeof __Domain__CreateSchema>
+>;
 
 // NOTE: drizzleBase ではスキーマの parse/validation のみに責務を限定すること。
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は

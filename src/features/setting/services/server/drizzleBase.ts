@@ -8,6 +8,7 @@ import {
 } from "@/features/setting/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import type { z } from "zod";
 
 // NOTE: drizzleBase ではスキーマの parse/validation のみに責務を限定すること。
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
@@ -18,6 +19,6 @@ const baseOptions = {
   parseCreate: (data) => SettingCreateSchema.parse(data),
   parseUpdate: (data) => SettingUpdateSchema.parse(data),
   parseUpsert: (data) => SettingUpsertSchema.parse(data),
-} satisfies DrizzleCrudServiceOptions;
+} satisfies DrizzleCrudServiceOptions<z.infer<typeof SettingCreateSchema>>;
 
 export const base = createCrudService(settingTable, baseOptions);

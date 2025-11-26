@@ -4,6 +4,7 @@ import { SampleTable, SampleToSampleTagTable } from "@/features/sample/entities/
 import { SampleCreateSchema, SampleUpdateSchema } from "@/features/sample/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import type { z } from "zod";
 
 const baseOptions = {
   idType: "uuid",
@@ -29,7 +30,7 @@ const baseOptions = {
     targetProperty: "sampleTagId",
   }
   ],
-} satisfies DrizzleCrudServiceOptions;
+} satisfies DrizzleCrudServiceOptions<z.infer<typeof SampleCreateSchema>>;
 
 // NOTE: drizzleBase ではスキーマの parse/validation のみに責務を限定すること。
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は

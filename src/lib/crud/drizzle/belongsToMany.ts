@@ -8,8 +8,11 @@ const hasOwn = Object.prototype.hasOwnProperty;
 
 type RelationValueMap = Map<string, unknown[]>;
 
-export function separateBelongsToManyInput<TData extends Record<string, any>>(
-  data: TData,
+export function separateBelongsToManyInput<
+  TData extends Record<string, any>,
+  TInput extends Partial<TData> = TData
+>(
+  data: TInput,
   relations: Array<BelongsToManyRelationConfig<TData>>,
 ) {
   if (!relations.length) {
@@ -31,13 +34,13 @@ export function separateBelongsToManyInput<TData extends Record<string, any>>(
   });
 
   return {
-    sanitizedData: sanitizedData as TData,
+    sanitizedData: sanitizedData as TInput,
     relationValues,
   };
 }
 
 export async function syncBelongsToManyRelations(
-  executor: typeof db,
+  executor: Pick<typeof db, "insert" | "delete">,
   relations: Array<BelongsToManyRelationConfig<any>>,
   recordId: string | number,
   relationValues: RelationValueMap,
@@ -102,9 +105,11 @@ export async function hydrateBelongsToManyRelations<TRecord extends Record<strin
 
       const grouped = new Map<string | number, unknown[]>();
       rows.forEach((row) => {
-        const valueList = grouped.get(row.sourceId) ?? [];
+        const sourceId = row.sourceId;
+        if (typeof sourceId !== "string" && typeof sourceId !== "number") return;
+        const valueList = grouped.get(sourceId) ?? [];
         valueList.push(row.targetId);
-        grouped.set(row.sourceId, valueList);
+        grouped.set(sourceId, valueList);
       });
 
       records.forEach((record) => {
