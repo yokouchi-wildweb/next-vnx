@@ -232,7 +232,7 @@ src/
   - Firestore と Neon で提供される検索機能の差分を吸収する必要があり、共通 CRUD だけでは表現しきれないとき。
 
 これらの場合は `services/server/wrappers/` へ処理を追加し、共通サービスの前後に独自ロジックを組み込みます。必要であれば Firestore 用と Neon 用にサービスを分岐させて対応してください。  
-判断基準や作業手順の詳細は [docs/concepts/汎用CRUD設計ガイドライン.md](docs/concepts/汎用CRUD設計ガイドライン.md) を参照してください。
+判断基準や作業手順の詳細は [docs/!must-read/汎用CRUDの仕様と拡張方法について.md](docs/!must-read/汎用CRUDの仕様と拡張方法について.md) を参照してください。
 
 > ⚖️ 関連: [docs/core-specs/DB種別の違いによる機能の差異.md](docs/core-specs/DB種別の違いによる機能の差異.md) 
 
