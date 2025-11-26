@@ -55,11 +55,14 @@ const baseTemplateDir = resolveFeatureTemplatePath("services", "server");
 const camelDir = resolveFeaturePath(camel);
 const configPath = path.join(camelDir, "domain.json");
 let dbEngine = "";
-let serviceOptions = {};
+let serviceOptionsLiteral = "{}";
+let relationImports = [];
 if (fs.existsSync(configPath)) {
   const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
   dbEngine = cfg.dbEngine || "";
-  serviceOptions = collectServiceOptions(cfg);
+  const composed = composeServiceOptions(cfg);
+  serviceOptionsLiteral = composed.optionsLiteral;
+  relationImports = composed.relationTableImports;
 }
 // コマンドラインで指定された場合は設定より優先
 if (dbEngineArg) dbEngine = dbEngineArg;
@@ -71,15 +74,7 @@ const wrapperDir = path.join(outputDir, "wrappers");
 const baseFile = dbEngine === "Firestore" ? "firestoreBase.ts" : "drizzleBase.ts";
 const templates = [baseFile, "__domain__Service.ts"];
 
-// オプションオブジェクトを TypeScript のオブジェクト記法に変換
-function optionsToString(obj) {
-  const json = JSON.stringify(obj, null, 2);
-  return json.replace(/"([^"\n]+)":/g, "$1:");
-}
-
-const optionsString = optionsToString(serviceOptions);
-
-function collectServiceOptions(config) {
+function collectBaseServiceOptions(config) {
   if (!config) return {};
   const options = {};
   if (config.idType) options.idType = config.idType;
@@ -94,6 +89,69 @@ function collectServiceOptions(config) {
   return options;
 }
 
+function composeServiceOptions(config) {
+  const baseOptions = collectBaseServiceOptions(config);
+  const belongsToMany = buildBelongsToManySnippets(config);
+  const optionsLiteral = formatOptionsLiteral(baseOptions, belongsToMany);
+  const relationTableImports = belongsToMany.map((item) => item.tableVar);
+  return { optionsLiteral, relationTableImports };
+}
+
+function buildBelongsToManySnippets(config) {
+  if (!Array.isArray(config.relations)) return [];
+  if (config.dbEngine !== "Neon") return [];
+
+  return config.relations
+    .filter((relation) => relation.relationType === "belongsToMany" && relation.includeRelationTable !== false)
+    .map((relation) => {
+      const relationPascal = toPascalCase(relation.domain);
+      const relationCamel = toCamelCase(relation.domain);
+      const relationTableVar = `${pascal}To${relationPascal}Table`;
+      const sourceProperty = `${camel}Id`;
+      const targetProperty = `${relationCamel}Id`;
+      return {
+        tableVar: relationTableVar,
+        literal: [
+          "{",
+          `    fieldName: "${relation.fieldName}",`,
+          `    throughTable: ${relationTableVar},`,
+          `    sourceColumn: ${relationTableVar}.${sourceProperty},`,
+          `    targetColumn: ${relationTableVar}.${targetProperty},`,
+          `    sourceProperty: "${sourceProperty}",`,
+          `    targetProperty: "${targetProperty}",`,
+          "  }",
+        ].join("\n"),
+      };
+    });
+}
+
+function formatOptionsLiteral(baseOptions, belongsToMany) {
+  const entries = Object.entries(baseOptions).map(([key, value]) => {
+    const formatted = JSON.stringify(value, null, 2).replace(/\n/g, "\n  ");
+    return `  ${key}: ${formatted},`;
+  });
+
+  if (belongsToMany.length) {
+    const literal = belongsToMany.map((item) => `  ${item.literal}`).join(",\n");
+    entries.push(`  belongsToManyRelations: [\n${literal}\n  ],`);
+  }
+
+  if (!entries.length) return "{}";
+  return `{\n${entries.join("\n")}\n}`;
+}
+
+function buildEntityImports() {
+  const imports = [`${pascal}Table`];
+  relationImports.forEach((item) => {
+    if (!imports.includes(item)) {
+      imports.push(item);
+    }
+  });
+  return imports.join(", ");
+}
+
+const drizzleEntityImports = buildEntityImports();
+
 // テンプレート文字列内のトークンを置換
 function replaceTokens(content) {
   return content
@@ -102,7 +160,8 @@ function replaceTokens(content) {
     .replace(/__domains__/g, camelPlural)
     .replace(/__Domains__/g, pascalPlural)
     .replace(/__serviceBase__/g, baseFile.replace(/\.ts$/, ""))
-    .replace(/__serviceOptions__/g, optionsString);
+    .replace(/__serviceOptions__/g, serviceOptionsLiteral)
+    .replace(/__DrizzleEntityImports__/g, drizzleEntityImports);
 }
 
 for (const file of templates) {

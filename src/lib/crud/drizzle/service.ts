@@ -5,15 +5,16 @@ import { omitUndefined } from "@/utils/object";
 import { eq, inArray, SQL, ilike, and, or, sql } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { PgTable, AnyPgColumn, PgUpdateSetSource } from "drizzle-orm/pg-core";
-import type {
-  SearchParams,
-  CreateCrudServiceOptions,
-  PaginatedResult,
-  UpsertOptions,
-  WhereExpr,
-} from "../types";
+import type { SearchParams, PaginatedResult, UpsertOptions, WhereExpr } from "../types";
 import { buildOrderBy, buildWhere, runQuery } from "./query";
 import { applyInsertDefaults, resolveConflictTarget } from "./utils";
+import type { DrizzleCrudServiceOptions } from "./types";
+import {
+  assignLocalRelationValues,
+  hydrateBelongsToManyRelations,
+  separateBelongsToManyInput,
+  syncBelongsToManyRelations,
+} from "./belongsToMany";
 
 export type DefaultInsert<TTable extends PgTable> = Omit<
   InferInsertModel<TTable>,
@@ -23,26 +24,45 @@ export type DefaultInsert<TTable extends PgTable> = Omit<
 export function createCrudService<
   TTable extends PgTable & { id: AnyPgColumn },
   TCreate extends Record<string, any> = DefaultInsert<TTable>
->(table: TTable, serviceOptions: CreateCrudServiceOptions<TCreate> = {}) {
+>(table: TTable, serviceOptions: DrizzleCrudServiceOptions<TCreate> = {}) {
   type Select = InferSelectModel<TTable>;
   type Insert = TCreate;
   const idColumn = table.id;
+  const belongsToManyRelations = serviceOptions.belongsToManyRelations ?? [];
 
   return {
     async create(data: Insert): Promise<Select> {
       const parsedInput = serviceOptions.parseCreate
         ? await serviceOptions.parseCreate(data)
         : data;
-      const finalInsert = applyInsertDefaults(parsedInput, serviceOptions) as Insert;
-      const rows = await db.insert(table).values(finalInsert).returning();
-      return rows[0] as Select;
+      const { sanitizedData, relationValues } = separateBelongsToManyInput(
+        parsedInput,
+        belongsToManyRelations,
+      );
+      const finalInsert = applyInsertDefaults(sanitizedData as Insert, serviceOptions) as Insert;
+
+      if (!belongsToManyRelations.length) {
+        const rows = await db.insert(table).values(finalInsert).returning();
+        return rows[0] as Select;
+      }
+
+      return db.transaction(async (tx) => {
+        const rows = await tx.insert(table).values(finalInsert).returning();
+        const created = rows[0] as Select;
+        if (!created) return created;
+        await syncBelongsToManyRelations(tx, belongsToManyRelations, created.id, relationValues);
+        assignLocalRelationValues(created, belongsToManyRelations, relationValues);
+        return created;
+      });
     },
 
     async list(): Promise<Select[]> {
       let query: any = db.select().from(table as any);
       const orderClauses = buildOrderBy(table, serviceOptions.defaultOrderBy);
       if (orderClauses.length) query = query.orderBy(...orderClauses);
-      return (await query) as Select[];
+      const results = (await query) as Select[];
+      if (!belongsToManyRelations.length) return results;
+      return hydrateBelongsToManyRelations(results, belongsToManyRelations);
     },
 
     async get(id: string): Promise<Select | undefined> {
@@ -50,27 +70,51 @@ export function createCrudService<
         .select()
         .from(table as any)
         .where(eq(idColumn, id))) as Select[];
-      return rows[0] as Select | undefined;
+      const record = rows[0] as Select | undefined;
+      if (!record || !belongsToManyRelations.length) return record;
+      await hydrateBelongsToManyRelations([record], belongsToManyRelations);
+      return record;
     },
 
     async update(id: string, data: Partial<Insert>): Promise<Select> {
       const parsed = serviceOptions.parseUpdate
         ? await serviceOptions.parseUpdate(data)
         : data;
+      const { sanitizedData, relationValues } = separateBelongsToManyInput(
+        parsed as Record<string, any>,
+        belongsToManyRelations,
+      );
       const updateData = {
-        ...omitUndefined(parsed as Record<string, any>),
+        ...omitUndefined(sanitizedData as Record<string, any>),
       } as Partial<Insert> & Record<string, any> & { updatedAt?: Date };
 
       if (serviceOptions.useUpdatedAt && updateData.updatedAt === undefined) {
         updateData.updatedAt = new Date();
       }
 
-      const rows = await db
-        .update(table)
-        .set(updateData as PgUpdateSetSource<TTable>)
-        .where(eq(idColumn, id))
-        .returning();
-      return rows[0] as Select;
+      const shouldSyncRelations = belongsToManyRelations.length > 0 && relationValues.size > 0;
+
+      if (!shouldSyncRelations) {
+        const rows = await db
+          .update(table)
+          .set(updateData as PgUpdateSetSource<TTable>)
+          .where(eq(idColumn, id))
+          .returning();
+        return rows[0] as Select;
+      }
+
+      return db.transaction(async (tx) => {
+        const rows = await tx
+          .update(table)
+          .set(updateData as PgUpdateSetSource<TTable>)
+          .where(eq(idColumn, id))
+          .returning();
+        const updated = rows[0] as Select;
+        if (!updated) return updated;
+        await syncBelongsToManyRelations(tx, belongsToManyRelations, id, relationValues);
+        assignLocalRelationValues(updated, belongsToManyRelations, relationValues);
+        return updated;
+      });
     },
 
     async remove(id: string): Promise<void> {
@@ -116,12 +160,15 @@ export function createCrudService<
       const orderClauses = prioritizeSearchHits
         ? [...priorityOrderClauses, ...orderByClauses]
         : [...orderByClauses, ...priorityOrderClauses];
-      return runQuery(table, baseQuery, {
+      const result = await runQuery(table, baseQuery, {
         page,
         limit,
         orderBy: orderClauses,
         where: finalWhere,
       });
+      if (!belongsToManyRelations.length) return result;
+      await hydrateBelongsToManyRelations(result.results, belongsToManyRelations);
+      return result;
     },
 
     async query<T>(
@@ -129,7 +176,10 @@ export function createCrudService<
       options: { page?: number; limit?: number; orderBy?: SQL[]; where?: SQL } = {},
       countQuery?: any,
     ): Promise<PaginatedResult<T>> {
-      return runQuery(table, baseQuery, options, countQuery);
+      const result = await runQuery(table, baseQuery, options, countQuery);
+      if (!belongsToManyRelations.length) return result;
+      await hydrateBelongsToManyRelations(result.results, belongsToManyRelations);
+      return result;
     },
 
     async bulkDeleteByIds(ids: string[]): Promise<void> {
@@ -150,8 +200,12 @@ export function createCrudService<
         : serviceOptions.parseCreate
           ? await serviceOptions.parseCreate(data)
           : data;
+      const { sanitizedData, relationValues } = separateBelongsToManyInput(
+        parsedInput,
+        belongsToManyRelations,
+      );
 
-      const sanitizedInsert = applyInsertDefaults(parsedInput, serviceOptions) as Insert & {
+      const sanitizedInsert = applyInsertDefaults(sanitizedData as Insert, serviceOptions) as Insert & {
         id?: string;
         createdAt?: Date;
         updatedAt?: Date;
@@ -162,15 +216,33 @@ export function createCrudService<
       } as PgUpdateSetSource<TTable> & Record<string, any> & { id?: string };
       delete (updateData as Record<string, unknown>).id;
 
-      const rows = await db
-        .insert(table)
-        .values(sanitizedInsert as any)
-        .onConflictDoUpdate({
-          target: resolveConflictTarget(table, serviceOptions, upsertOptions),
-          set: updateData,
-        })
-        .returning();
-      return rows[0] as Select;
+      if (!belongsToManyRelations.length) {
+        const rows = await db
+          .insert(table)
+          .values(sanitizedInsert as any)
+          .onConflictDoUpdate({
+            target: resolveConflictTarget(table, serviceOptions, upsertOptions),
+            set: updateData,
+          })
+          .returning();
+        return rows[0] as Select;
+      }
+
+      return db.transaction(async (tx) => {
+        const rows = await tx
+          .insert(table)
+          .values(sanitizedInsert as any)
+          .onConflictDoUpdate({
+            target: resolveConflictTarget(table, serviceOptions, upsertOptions),
+            set: updateData,
+          })
+          .returning();
+        const upserted = rows[0] as Select;
+        if (!upserted) return upserted;
+        await syncBelongsToManyRelations(tx, belongsToManyRelations, upserted.id, relationValues);
+        assignLocalRelationValues(upserted, belongsToManyRelations, relationValues);
+        return upserted;
+      });
     },
   };
 }
