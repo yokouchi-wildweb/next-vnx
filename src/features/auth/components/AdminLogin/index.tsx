@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
-import { PasswordInput, TextInput } from "@/components/Form/Controlled";
+import { Input, PasswordInput } from "@/components/Form/Manual";
 import { Block } from "@/components/Layout/Block";
 import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { localLogin } from "@/features/auth/services/client/localLogin";
@@ -50,7 +50,7 @@ export function AdminLogin() {
           <Label htmlFor="admin-login-email" className="block text-foreground">
             メールアドレス
           </Label>
-          <TextInput
+          <Input
             id="admin-login-email"
             type="email"
             autoComplete="email"

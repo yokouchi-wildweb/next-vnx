@@ -1,6 +1,6 @@
-// src/components/Form/Textarea.tsx
+// src/components/Form/Controlled/Textarea.tsx
 
-import { Textarea as ShadcnTextarea } from "@/components/_shadcn/textarea";
+import { Textarea as ManualTextarea } from "@/components/Form/Manual/Textarea";
 import { FieldPath, FieldValues } from "react-hook-form";
 import { ControlledTextareaProps } from "@/types/form";
 
@@ -8,5 +8,5 @@ export const Textarea = <TFieldValues extends FieldValues, TName extends FieldPa
   props: ControlledTextareaProps<TFieldValues, TName>,
 ) => {
   const { field, ...rest } = props;
-  return <ShadcnTextarea {...field} {...rest} />;
+  return <ManualTextarea {...field} {...rest} />;
 };
