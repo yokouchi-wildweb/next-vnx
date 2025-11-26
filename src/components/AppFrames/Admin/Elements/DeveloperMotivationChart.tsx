@@ -23,14 +23,11 @@ function arcPath(cx: number, cy: number, r: number, startAngle: number, endAngle
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
 }
 
-function getGradientColors(percentage: number): [string, string] {
-  if (percentage < 67) {
-    return ["#f87171", "#ef4444"]; // 赤 (red-400, red-500)
-  } else if (percentage < 134) {
-    return ["#fdba74", "#fb923c"]; // オレンジ (orange-300, orange-400)
-  } else {
-    return ["#7dd3fc", "#38bdf8"]; // 水色 (sky-300, sky-400)
-  }
+function getGradientColors(): [string, string] {
+  return [
+    "color-mix(in oklch, var(--color-primary) 70%, var(--color-card))",
+    "var(--color-primary)",
+  ];
 }
 
 function getMotivationMessage(percentage: number): string {
@@ -50,7 +47,7 @@ export function DeveloperMotivationChart({ percentage }: DeveloperMotivationChar
   const progressEnd = START_ANGLE + ANGLE_RANGE * progress;
   const size = (RADIUS + STROKE) * 2;
 
-  const [startColor, endColor] = getGradientColors(clamped);
+  const [startColor, endColor] = getGradientColors();
   const message = getMotivationMessage(clamped);
 
   return (
@@ -81,7 +78,7 @@ export function DeveloperMotivationChart({ percentage }: DeveloperMotivationChar
       </svg>
 
       <span
-        className="mt-4 mb-4 max-sm:my-1 text-sm font-medium text-white px-3 py-1 rounded-full shadow-sm"
+        className="mt-4 mb-4 max-sm:my-1 text-sm font-medium text-primary-foreground px-3 py-1 rounded-full shadow-sm"
         style={{ background: endColor }}
       >
         {message}
