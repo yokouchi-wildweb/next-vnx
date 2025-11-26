@@ -2,13 +2,16 @@
 
 import { UserTable } from "@/features/user/entities/drizzle";
 import { createCrudService } from "@/lib/crud/drizzle";
+import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 
 // NOTE: drizzleBase ではスキーマの parse/validation のみに責務を限定すること。
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
 // src/features/user/services/server/wrappers/ 以下にラップを作成して差し替えること。
 
-export const base = createCrudService(UserTable, {
+const baseOptions = {
   idType: "uuid",
   defaultOrderBy: [["updatedAt", "DESC"]],
   defaultSearchFields: ["displayName", "email"],
-});
+} satisfies DrizzleCrudServiceOptions;
+
+export const base = createCrudService(UserTable, baseOptions);
