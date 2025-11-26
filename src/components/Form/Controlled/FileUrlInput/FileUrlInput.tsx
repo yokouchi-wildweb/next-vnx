@@ -48,7 +48,7 @@ export const FileUrlInput = <
           disabled={pending || fileInputProps.disabled}
           field={dummyField}
           initialUrl={url ?? undefined}
-          onSelect={handleSelect}
+          onFileSelect={handleSelect}
           onRemove={requestDelete}
           selectedFileName={selectedFileName}
         />

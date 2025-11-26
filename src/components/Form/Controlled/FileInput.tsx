@@ -9,7 +9,7 @@ export type FileInputProps<
   TName extends FieldPath<TFieldValues>,
 > = Omit<ControlledInputProps<TFieldValues, TName>, "onSelect"> & {
   initialUrl?: string | null;
-  onSelect?: (file: File | null) => void;
+  onFileSelect?: (file: File | null) => void;
   onRemove?: () => boolean | Promise<boolean>;
   containerClassName?: string;
   selectedFileName?: string | null;
@@ -23,14 +23,16 @@ export const FileInput = <
   ...rest
 }: FileInputProps<TFieldValues, TName>) => {
   const { ref: fieldRef, onChange, value, ...fieldRest } = field;
+  const { onFileSelect, ...restProps } = rest;
 
   return (
     <ManualFileInput
-      {...rest}
+      {...restProps}
       {...fieldRest}
       ref={fieldRef}
       value={(value as File | null) ?? null}
       onValueChange={(file) => onChange(file)}
+      onFileSelect={onFileSelect}
     />
   );
 };

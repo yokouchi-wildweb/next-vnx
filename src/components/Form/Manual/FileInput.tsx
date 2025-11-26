@@ -26,10 +26,11 @@ export type FileInputProps = BaseProps & {
   value?: File | null;
   onValueChange?: (file: File | null) => void;
   initialUrl?: string | null;
-  onSelect?: (file: File | null) => void;
+  onFileSelect?: (file: File | null) => void;
   onRemove?: () => boolean | Promise<boolean>;
   containerClassName?: string;
   selectedFileName?: string | null;
+  onChange?: React.ChangeEventHandler<HTMLInputElement>;
 };
 
 export const FileInput = forwardRef<HTMLInputElement, FileInputProps>((props, forwardedRef) => {
@@ -37,7 +38,7 @@ export const FileInput = forwardRef<HTMLInputElement, FileInputProps>((props, fo
     value,
     onValueChange,
     initialUrl = null,
-    onSelect,
+    onFileSelect,
     onRemove,
     containerClassName,
     selectedFileName: selectedFileNameProp,
@@ -49,10 +50,9 @@ export const FileInput = forwardRef<HTMLInputElement, FileInputProps>((props, fo
     accept,
     multiple,
     required,
+    onChange,
     ...rest
   } = props;
-
-  const { onChange, ...inputRest } = rest;
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [preview, setPreview] = useState<string | null>(initialUrl);
@@ -94,7 +94,7 @@ export const FileInput = forwardRef<HTMLInputElement, FileInputProps>((props, fo
     const shouldRemove = onRemove ? await onRemove() : true;
     if (!shouldRemove) return;
     onValueChange?.(null);
-    onSelect?.(null);
+    onFileSelect?.(null);
     if (inputRef.current) {
       inputRef.current.value = "";
     }
@@ -102,14 +102,14 @@ export const FileInput = forwardRef<HTMLInputElement, FileInputProps>((props, fo
     setPreview(null);
     setIsPreviewLoading(false);
     setInputKey((k) => k + 1);
-  }, [onRemove, onSelect, onValueChange, preview, revokePreviewUrl]);
+  }, [onRemove, onFileSelect, onValueChange, preview, revokePreviewUrl]);
 
   const handleChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       onChange?.(event);
       const file = event.target.files?.[0] ?? null;
       onValueChange?.(file);
-      onSelect?.(file);
+      onFileSelect?.(file);
       revokePreviewUrl(preview);
       if (file) {
         const url = URL.createObjectURL(file);
@@ -120,7 +120,7 @@ export const FileInput = forwardRef<HTMLInputElement, FileInputProps>((props, fo
         setIsPreviewLoading(false);
       }
     },
-    [onChange, onSelect, onValueChange, preview, revokePreviewUrl],
+    [onChange, onFileSelect, onValueChange, preview, revokePreviewUrl],
   );
 
   return (
@@ -199,7 +199,7 @@ export const FileInput = forwardRef<HTMLInputElement, FileInputProps>((props, fo
         required={required}
         className="sr-only"
         onChange={handleChange}
-        {...inputRest}
+        {...rest}
       />
     </Block>
   );

@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   type ComponentProps,
+  type ChangeEventHandler,
 } from "react";
 
 import { cn } from "@/lib/cn";
@@ -23,6 +24,7 @@ export type DatetimeInputProps = BaseProps & {
   defaultValue?: DatetimeLike;
   onValueChange?: (value: string) => void;
   containerClassName?: string;
+  onChange?: ChangeEventHandler<HTMLInputElement>;
 };
 
 const formatDatetimeValue = (value: DatetimeLike): string => {
@@ -48,10 +50,11 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
       onValueChange,
       containerClassName,
       className,
-      onFocus,
-      onClick,
-      ...rest
-    } = props;
+    onFocus,
+    onClick,
+    onChange,
+    ...rest
+  } = props;
 
     const localRef = useRef<HTMLInputElement | null>(null);
 
@@ -89,8 +92,8 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
     return (
       <div className={cn("relative flex h-9 items-center", containerClassName)}>
         <Input
-          {...rest}
-          ref={assignRef}
+        {...rest}
+        ref={assignRef}
           type="datetime-local"
           className={cn("pr-8", className)}
           value={resolvedValue}
@@ -104,7 +107,7 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
             openPicker();
           }}
           onChange={(event) => {
-            rest.onChange?.(event);
+            onChange?.(event);
             onValueChange?.(event.target.value);
           }}
         />

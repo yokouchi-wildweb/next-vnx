@@ -101,7 +101,7 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     rest.email !== current.email;
 
   if (shouldSyncFirebaseEmail) {
-    await updateFirebaseEmail(current.providerUid, rest.email);
+    await updateFirebaseEmail(current.providerUid, rest.email as string);
   }
 
   const shouldSyncFirebasePassword =

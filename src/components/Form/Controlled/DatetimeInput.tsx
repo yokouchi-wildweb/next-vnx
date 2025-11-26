@@ -13,6 +13,7 @@ export const DatetimeInput = <
   ...rest
 }: ControlledInputProps<TFieldValues, TName>) => {
   const { ref: fieldRef, onChange, value, ...fieldRest } = field;
+  const { defaultValue: _defaultValueIgnored, ...restProps } = rest;
 
   const handleValueChange = (rawValue: string) => {
     if (!rawValue) {
@@ -31,10 +32,10 @@ export const DatetimeInput = <
 
   return (
     <ManualDatetimeInput
-      {...rest}
+      {...restProps}
       {...fieldRest}
       ref={fieldRef}
-      value={value}
+      value={value as any}
       onValueChange={handleValueChange}
     />
   );

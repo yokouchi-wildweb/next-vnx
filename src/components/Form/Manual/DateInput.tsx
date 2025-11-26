@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   type ComponentProps,
+  type ChangeEventHandler,
 } from "react";
 
 import { cn } from "@/lib/cn";
@@ -22,6 +23,7 @@ export type DateInputProps = BaseProps & {
   defaultValue?: DateLike;
   onValueChange?: (value: string) => void;
   containerClassName?: string;
+  onChange?: ChangeEventHandler<HTMLInputElement>;
 };
 
 const formatDateValue = (value: DateLike): string => {
@@ -49,6 +51,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
     className,
     onFocus,
     onClick,
+    onChange,
     ...rest
   } = props;
 
@@ -103,7 +106,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
           openPicker();
         }}
         onChange={(event) => {
-          rest.onChange?.(event);
+          onChange?.(event);
           onValueChange?.(event.target.value);
         }}
       />
