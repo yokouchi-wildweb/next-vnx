@@ -57,13 +57,13 @@ CLI からドメインを自動生成した場合も、最終的なマイグレ�
 
 1. **ドメイン設定を作成**
    ```bash
-   npx domain-config --init
+   npm run dc:init
    ```
    - 質問に沿って `dbEngine` に `Neon` を選ぶと、`src/features/<domain>/domain.json` に設定が保存されます。
 
 2. **関連ファイルを一括生成**
    ```bash
-   npx domain-config --generate <Domain名のパスカルケース>
+   npm run dc:generate -- <Domain名のパスカルケース>
    ```
    - `generate-drizzle-entity.mjs` などのスクリプトが呼び出され、`drizzle.ts` を含む各種ファイルが自動で作成されます。
    - 同時に `updateSchemaRegistry.mjs` が走り、`schemaRegistry.ts` にドメインのエクスポートが追加されます。

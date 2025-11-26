@@ -223,7 +223,7 @@ src/
 
 ## ✨ ドメイン追加方法について
 
-- **スクリプトによる自動生成**：`npx domain-config --init` で `domain.json` の初期雛形を作成し、設定を記述したうえで `npx domain-config --generate`（もしくは `node scripts/domain-config/index.mjs --generate`）を実行すると、`features/_template` をもとにエンティティ・サービス・フック・レジストリ更新などの雛形を生成できます。生成後は差分を確認し、不要な項目を整理してください。
+- **スクリプトによる自動生成**：`npm run dc:init` で `domain.json` の初期雛形を作成し、設定を記述したうえで `npm run dc:generate -- <Domain>`（もしくは `node scripts/domain-config/index.mjs --generate <Domain>`）を実行すると、`features/_template` をもとにエンティティ・サービス・フック・レジストリ更新などの雛形を生成できます。生成後は差分を確認し、不要な項目を整理してください。
 - **汎用 CRUD の活用**：`src/lib/crud` の共通処理で完結する場合（単一テーブル、共通の検索・並び替え設定で足りるケース、外部サービス連携なしなど）は、生成されたベースサービスを登録するだけで API・SWR フックまで揃います。検索機能は Neon/PostgreSQL と Firestore で利用できるオプションが一部異なるため、必要な条件がサポートされるか事前に確認してください。
 - **個別実装が必要なケース**：
   - 複数テーブルの JOIN やドキュメント間集計など、単一テーブル CRUD に収まらない処理が必要なとき。
