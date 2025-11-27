@@ -9,6 +9,12 @@ import { directStorageClient, getPathFromStorageUrl } from "@/lib/storage/client
 import { Para } from "@/components/TextBlocks";
 import { Button } from "@/components/Form/Button/Button";
 
+const isStorageCanceledError = (error: unknown): error is { code?: string } => {
+  if (typeof error !== "object" || error === null) return false;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === "string" && code === "storage/canceled";
+};
+
 export type MediaUploaderProps = Omit<MediaInputProps, "onFileChange" | "previewUrl" | "statusOverlay" | "clearButtonDisabled"> & {
   uploadPath: string;
   initialUrl?: string | null;
@@ -30,6 +36,7 @@ export const MediaUploader = ({
   const [currentUrl, setCurrentUrl] = useState<string | null>(initialUrl);
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [inputResetSignal, setInputResetSignal] = useState(0);
   const uploadHandleRef = useRef<{ cancel: () => void } | null>(null);
   const uploadedPathRef = useRef<string | null>(initialUrl ? getPathFromStorageUrl(initialUrl) ?? null : null);
 
@@ -81,24 +88,39 @@ export const MediaUploader = ({
         onError: (err) => {
           uploadHandleRef.current = null;
           setProgress(null);
-          setError(err.message);
+          if (isStorageCanceledError(err)) {
+            setError("アップロードをキャンセルしました。");
+          } else {
+            setError(err.message);
+          }
         },
       });
     },
     [removeUploadedFile, updateUrl, uploadPath],
   );
 
+  const cancelUpload = useCallback((options?: { notify?: boolean }) => {
+    uploadHandleRef.current?.cancel();
+    uploadHandleRef.current = null;
+    setProgress(null);
+    if (options?.notify ?? true) {
+      setError("アップロードをキャンセルしました。");
+    } else {
+      setError(null);
+    }
+    setInputResetSignal((value) => value + 1);
+    void removeUploadedFile();
+  }, [removeUploadedFile]);
+
   const handleFileChange = useCallback(
     (file: File | null) => {
       if (!file) {
-        uploadHandleRef.current?.cancel();
-        uploadHandleRef.current = null;
-        void removeUploadedFile();
+        cancelUpload({ notify: Boolean(progress) });
         return;
       }
       beginUpload(file);
     },
-    [beginUpload, removeUploadedFile],
+    [beginUpload, cancelUpload, progress],
   );
 
   const overlay = useMemo(() => {
@@ -118,17 +140,14 @@ export const MediaUploader = ({
           className="text-xs text-muted-foreground"
           onClick={(event) => {
             event.preventDefault();
-            uploadHandleRef.current?.cancel();
-            uploadHandleRef.current = null;
-            setProgress(null);
-            void removeUploadedFile();
+            cancelUpload();
           }}
         >
           キャンセル
         </Button>
       </div>
     );
-  }, [progress, removeUploadedFile]);
+  }, [progress, cancelUpload]);
 
   return (
     <div className="space-y-2">
@@ -140,6 +159,7 @@ export const MediaUploader = ({
         onMetadataChange={onMetadataChange}
         onFileChange={handleFileChange}
         previewUrl={currentUrl}
+        resetSignal={inputResetSignal}
         containerOverlay={overlay}
         clearButtonDisabled={Boolean(progress)}
       />

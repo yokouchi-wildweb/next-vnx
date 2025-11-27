@@ -33,6 +33,7 @@ export type MediaInputProps = {
   previewUrl?: string | null;
   statusOverlay?: ReactNode;
   containerOverlay?: ReactNode;
+  resetSignal?: number;
   clearButtonDisabled?: boolean;
 };
 
@@ -50,6 +51,7 @@ export const MediaInput = ({
   previewUrl,
   statusOverlay,
   containerOverlay,
+  resetSignal = 0,
   clearButtonDisabled = false,
 }: MediaInputProps) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -80,7 +82,10 @@ export const MediaInput = ({
   const handleFileChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0] ?? null;
-      if (file && validationRule) {
+      if (!file) {
+        return;
+      }
+      if (validationRule) {
         const error = validateFile(file, validationRule);
         if (error) {
           setValidationError(error);
@@ -129,6 +134,13 @@ export const MediaInput = ({
     },
     [],
   );
+
+  useEffect(() => {
+    setSelectedFile(null);
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  }, [resetSignal]);
 
   const hasContainerOverlay = Boolean(containerOverlay);
 
