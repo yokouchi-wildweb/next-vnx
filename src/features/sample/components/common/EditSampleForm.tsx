@@ -13,7 +13,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useSampleCategoryList } from "@/features/sampleCategory/hooks/useSampleCategoryList";
 import { useSampleTagList } from "@/features/sampleTag/hooks/useSampleTagList";
-import { useImageUploaderField } from "@/hooks/useImageUploaderField";
 import { err } from "@/lib/errors";
 
 type Props = {
@@ -47,8 +46,6 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
   const sampleCategoryOptions = sampleCategories.map((v) => ({ value: v.id, label: v.name }));
   const sampleTagOptions = sampleTags.map((v) => ({ value: v.id, label: v.name }));
 
-  const { upload: uploadMain, remove: removeMain } = useImageUploaderField(methods, "main_image", "sample/main", false);
-
   const router = useRouter();
 
   const { trigger, isMutating } = useUpdateSample();
@@ -70,8 +67,8 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
       isMutating={isMutating}
       sampleCategoryOptions={sampleCategoryOptions}
       sampleTagOptions={sampleTagOptions}
-      onUploadMain={uploadMain}
-      onDeleteMain={removeMain}
+      uploadPath="sample/main"
+      defaultMainImageUrl={sample.main_image ?? null}
       submitLabel="更新"
       processingLabel="更新中..."
       onCancel={() => router.push(redirectPath)}

@@ -11,8 +11,8 @@ import { FormField, FormItem, FormControl, FormMessage } from "@/components/_sha
 import { SwitchInput } from "@/components/Form/Controlled";
 import { BooleanRadioGroupInput } from "@/components/Form/Manual";
 import { MultiSelectInput } from "@/components/Form/Manual";
-import { FileUrlInput } from "@/components/Form/Controlled";
 import { Textarea } from "@/components/Form/Controlled";
+import { ControlledMediaUploader } from "@/components/Form/MediaHandler";
 import type { Options } from "@/types/form";
 
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {
@@ -20,20 +20,18 @@ export type SampleFieldsProps<TFieldValues extends FieldValues> = {
   sampleCategoryOptions?: Options[];
   sampleTagOptions?: Options[];
   /** 既存のメイン画像 URL (編集時のプレビュー用) */
-  main_image?: string | null;
-  onPendingChange?: (pending: boolean) => void;
-  onUploadMain: (file: File) => Promise<string>;
-  onDeleteMain?: (url: string) => Promise<void>;
+  defaultMainImageUrl?: string | null;
+  uploadPath: string;
+  onUploadingChange?: (uploading: boolean) => void;
 };
 
 export function SampleFields<TFieldValues extends FieldValues>({
   control,
   sampleCategoryOptions,
   sampleTagOptions,
-  onPendingChange,
-  main_image,
-  onUploadMain,
-  onDeleteMain,
+  defaultMainImageUrl,
+  uploadPath,
+  onUploadingChange,
 }: SampleFieldsProps<TFieldValues>) {
   return (
     <>
@@ -121,13 +119,13 @@ export function SampleFields<TFieldValues extends FieldValues>({
         name={"main_image" as FieldPath<TFieldValues>}
         label="メイン画像"
         renderInput={(field) => (
-          <FileUrlInput
-            field={field as any}
+          <ControlledMediaUploader
+            field={field}
+            uploadPath={uploadPath}
             accept="image/*"
-            initialUrl={main_image ?? undefined}
-            onUpload={onUploadMain}
-            onDelete={onDeleteMain}
-            onPendingChange={onPendingChange}
+            helperText="1枚の画像をアップロードできます"
+            defaultUrl={defaultMainImageUrl ?? null}
+            onUploadingChange={onUploadingChange}
           />
         )}
       />

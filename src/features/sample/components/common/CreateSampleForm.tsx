@@ -12,8 +12,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useSampleCategoryList } from "@/features/sampleCategory/hooks/useSampleCategoryList";
 import { useSampleTagList } from "@/features/sampleTag/hooks/useSampleTagList";
-import { useImageUploaderField } from "@/hooks/useImageUploaderField";
-import { useRouteChangeEffect } from "@/hooks/useRouteChangeEffect";
 import { err } from "@/lib/errors";
 
 type Props = {
@@ -46,11 +44,6 @@ export default function CreateSampleForm({ redirectPath = "/" }: Props) {
   const sampleCategoryOptions = sampleCategories.map((v) => ({ value: v.id, label: v.name }));
   const sampleTagOptions = sampleTags.map((v) => ({ value: v.id, label: v.name }));
 
-  const { upload: uploadMain, remove: removeMain, markDeleted: markDeletedMain } =
-    useImageUploaderField(methods, "main_image", "sample/main", { cleanupOnRouteChange: true });
-
-
-
   const router = useRouter();
 
   const { trigger, isMutating } = useCreateSample();
@@ -59,8 +52,6 @@ export default function CreateSampleForm({ redirectPath = "/" }: Props) {
     try {
       await trigger(data);
       toast.success("登録しました");
-      markDeletedMain();
-      methods.setValue("main_image", "");
       router.push(redirectPath);
     } catch (error) {
       toast.error(err(error, "登録に失敗しました"));
@@ -74,8 +65,7 @@ export default function CreateSampleForm({ redirectPath = "/" }: Props) {
       isMutating={isMutating}
       sampleCategoryOptions={sampleCategoryOptions}
       sampleTagOptions={sampleTagOptions}
-      onUploadMain={uploadMain}
-      onDeleteMain={removeMain}
+      uploadPath="sample/main"
       submitLabel="登録"
       processingLabel="登録中..."
       onCancel={() => router.push(redirectPath)}

@@ -32,21 +32,21 @@ export function SampleForm<TFieldValues extends FieldValues>({
     formState: { isSubmitting },
   } = methods;
 
-  const [imagePending, setImagePending] = useState(false);
-
-  const loading = isSubmitting || isMutating || imagePending;
+  const loading = isSubmitting || isMutating;
+  const [isUploading, setUploading] = useState(false);
+  const disabled = loading || isUploading;
 
   return (
     <AppForm
       methods={methods}
       onSubmit={onSubmitAction}
-      pending={isMutating}
+      pending={disabled}
       fieldSpace="md"
     >
-      <SampleFields<TFieldValues> {...fieldsProps} control={control} />
+      <SampleFields<TFieldValues> {...fieldsProps} control={control} onUploadingChange={setUploading} />
       <div className="flex justify-center gap-3">
-        <Button type="submit" disabled={loading} variant="default">
-          {loading ? processingLabel : submitLabel}
+        <Button type="submit" disabled={disabled} variant="default">
+          {disabled ? processingLabel : submitLabel}
         </Button>
         {onCancel ? (
           <Button type="button" variant="outline" onClick={onCancel}>
