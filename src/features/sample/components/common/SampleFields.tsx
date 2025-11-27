@@ -23,6 +23,8 @@ export type SampleFieldsProps<TFieldValues extends FieldValues> = {
   defaultMainImageUrl?: string | null;
   uploadPath: string;
   onUploadingChange?: (uploading: boolean) => void;
+  onUrlChange?: (url: string | null) => void;
+  onRegisterPendingDelete?: (url: string | null) => void;
 };
 
 export function SampleFields<TFieldValues extends FieldValues>({
@@ -32,6 +34,8 @@ export function SampleFields<TFieldValues extends FieldValues>({
   defaultMainImageUrl,
   uploadPath,
   onUploadingChange,
+  onUrlChange,
+  onRegisterPendingDelete,
 }: SampleFieldsProps<TFieldValues>) {
   return (
     <>
@@ -126,6 +130,8 @@ export function SampleFields<TFieldValues extends FieldValues>({
             helperText="1枚の画像をアップロードできます"
             defaultUrl={defaultMainImageUrl ?? null}
             onUploadingChange={onUploadingChange}
+            onUrlChange={onUrlChange}
+            onRegisterPendingDelete={onRegisterPendingDelete}
           />
         )}
       />
