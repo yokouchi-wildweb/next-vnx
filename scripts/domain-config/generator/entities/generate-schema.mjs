@@ -84,7 +84,7 @@ function isTimestampField(fieldType) {
 }
 
 function isStringField(fieldType) {
-  return ['string', 'email', 'password', 'mediaUploader', 'date', 'time'].includes(fieldType);
+  return ['string', 'email', 'password', 'mediaUploader', 'date', 'time', 'uuid'].includes(fieldType);
 }
 
 function shouldTrimField(fieldType) {
