@@ -12,4 +12,5 @@ export { TimeInput } from "./TimeInput";
 export { DatetimeInput } from "./DatetimeInput";
 export { Textarea } from "./Textarea";
 export { FileInput } from "./FileInput";
+export type { FileInputProps } from "./FileInput";
 export { PasswordInput } from "./PasswordInput";

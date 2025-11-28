@@ -1,126 +1,53 @@
 // src/features/sample/components/common/SampleFields.tsx
 
-import { FieldValues, type Control, type FieldPath } from "react-hook-form";
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { SelectInput } from "@/components/Form/Manual";
-import { CheckGroupInput } from "@/components/Form/Manual";
-import { TextInput } from "@/components/Form/Controlled";
-import { NumberInput } from "@/components/Form/Controlled";
-import StepperInput from "@/components/Form/Manual/StepperInput";
-import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";
-import { SwitchInput } from "@/components/Form/Controlled";
-import { BooleanRadioGroupInput } from "@/components/Form/Manual";
-import { MultiSelectInput } from "@/components/Form/Manual";
-import { Textarea } from "@/components/Form/Controlled";
-import type { MediaUploaderFieldRenderer } from "@/lib/mediaInputSuite";
+import { useMemo } from "react";
+import type { FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
+import {
+  DomainFieldRenderer,
+  type DomainFieldRenderConfig,
+  type DomainMediaState,
+} from "@/components/Form/DomainFieldRenderer";
 import type { Options } from "@/types/form";
+import domainConfig from "@/features/sample/domain.json";
 
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {
-  control: Control<TFieldValues, any, TFieldValues>;
+  methods: UseFormReturn<TFieldValues>;
+  onMediaStateChange?: (state: DomainMediaState | null) => void;
   sampleCategoryOptions?: Options[];
   sampleTagOptions?: Options[];
-  mainImageFieldRender: MediaUploaderFieldRenderer<TFieldValues, FieldPath<TFieldValues>>;
 };
 
 export function SampleFields<TFieldValues extends FieldValues>({
-  control,
+  methods,
+  onMediaStateChange,
   sampleCategoryOptions,
   sampleTagOptions,
-  mainImageFieldRender,
 }: SampleFieldsProps<TFieldValues>) {
+  const relationFieldConfigs = useMemo<DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>[]>(
+    () => [
+      {
+        type: "select",
+        name: "sample_category_id" as FieldPath<TFieldValues>,
+        label: "サンプルカテゴリ",
+        options: sampleCategoryOptions,
+      },
+      {
+        type: "checkGroup",
+        name: "sample_tag_ids" as FieldPath<TFieldValues>,
+        label: "サンプルタグ",
+        options: sampleTagOptions,
+      }
+    ],
+    [sampleCategoryOptions, sampleTagOptions],
+  );
+
   return (
-    <>
-      <FormFieldItem
-        control={control}
-        name={"sample_category_id" as FieldPath<TFieldValues>}
-        label="サンプルカテゴリ"
-        renderInput={(field) => <SelectInput field={field} options={sampleCategoryOptions} />}
-      />
-      <FormFieldItem
-        control={control}
-        name={"sample_tag_ids" as FieldPath<TFieldValues>}
-        label="サンプルタグ"
-        renderInput={(field) => <CheckGroupInput field={field as any} options={sampleTagOptions} />}
-      />
-      <FormFieldItem
-        control={control}
-        name={"name" as FieldPath<TFieldValues>}
-        label="名前"
-        renderInput={(field) => <TextInput field={field} />}
-      />
-      <FormFieldItem
-        control={control}
-        name={"number" as FieldPath<TFieldValues>}
-        label="数字"
-        renderInput={(field) => <NumberInput field={field} />}
-      />
-      <FormField
-        control={control}
-        name={"rich_number" as FieldPath<TFieldValues>}
-        render={({ field }) => (
-          <FormItem>
-            <FormControl>
-              <StepperInput
-                label="リッチナンバー"
-                value={typeof field.value === "number" ? field.value : Number(field.value ?? 0)}
-                className="w-fit"
-                onValueChange={(value) => field.onChange(value)}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={control}
-        name={"switch" as FieldPath<TFieldValues>}
-        render={({ field }) => (
-          <FormItem>
-            <FormControl>
-              <SwitchInput field={field} label="スイッチ" />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormFieldItem
-        control={control}
-        name={"radio" as FieldPath<TFieldValues>}
-        label="ラジオボタン"
-        renderInput={(field) => (
-          <BooleanRadioGroupInput field={field} options={[{"value":true,"label":"はい"},{"value":false,"label":"いいえ"}]} />
-        )}
-      />
-      <FormFieldItem
-        control={control}
-        name={"select" as FieldPath<TFieldValues>}
-        label="セレクトボックス（Enum）"
-        renderInput={(field) => <SelectInput field={field} options={[{"value":"apple","label":"りんご"},{"value":"orange","label":"オレンジ"},{"value":"berry","label":"いちご"}]} />}
-      />
-      <FormFieldItem
-        control={control}
-        name={"multi_select" as FieldPath<TFieldValues>}
-        label="マルチセレクトコンボ"
-        renderInput={(field) => (
-          <MultiSelectInput
-            field={field as any}
-            options={[{"value":"apple","label":"りんご"},{"value":"orange","label":"オレンジ"},{"value":"cherry","label":"さくらんぼ"}]}
-            placeholder="選択してください"
-          />
-        )}
-      />
-      <FormFieldItem
-        control={control}
-        name={"main_image" as FieldPath<TFieldValues>}
-        label="メイン画像"
-        renderInput={mainImageFieldRender}
-      />
-      <FormFieldItem
-        control={control}
-        name={"description" as FieldPath<TFieldValues>}
-        label="説明文"
-        renderInput={(field) => <Textarea field={field} />}
-      />
-    </>
+    <DomainFieldRenderer
+      control={methods.control}
+      methods={methods}
+      fields={relationFieldConfigs}
+      domainJsonFields={domainConfig.fields ?? []}
+      onMediaStateChange={onMediaStateChange}
+    />
   );
 }

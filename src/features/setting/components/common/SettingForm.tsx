@@ -5,7 +5,7 @@
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { SettingFields } from "./SettingFields";
-import type { FieldValues, UseFormReturn } from "react-hook-form";
+import type { FieldValues, Path, UseFormReturn } from "react-hook-form";
 import { useCallback, useRef, useState } from "react";
 import { usePendingMediaUploads, usePendingMediaDeletion } from "@/lib/mediaInputSuite";
 
@@ -32,8 +32,10 @@ export function SettingForm<TFieldValues extends FieldValues>({
   const loading = isSubmitting || isMutating;
   const [isUploading, setUploading] = useState(false);
   const disabled = loading || isUploading;
-  const lightUrlRef = useRef(methods.getValues("adminHeaderLogoImageUrl" as keyof TFieldValues) ?? null);
-  const darkUrlRef = useRef(methods.getValues("adminHeaderLogoImageDarkUrl" as keyof TFieldValues) ?? null);
+  const initialLightUrl = methods.getValues("adminHeaderLogoImageUrl" as Path<TFieldValues>);
+  const initialDarkUrl = methods.getValues("adminHeaderLogoImageDarkUrl" as Path<TFieldValues>);
+  const lightUrlRef = useRef<string | null>((initialLightUrl as string | null | undefined) ?? null);
+  const darkUrlRef = useRef<string | null>((initialDarkUrl as string | null | undefined) ?? null);
   const {
     register: registerUploads,
     commit: commitUpload,
@@ -83,9 +85,16 @@ export function SettingForm<TFieldValues extends FieldValues>({
     void cleanupUploads();
     revertLightDeletion();
     revertDarkDeletion();
-    methods.setValue("adminHeaderLogoImageUrl" as keyof TFieldValues, lightUrlRef.current as any);
-    methods.setValue("adminHeaderLogoImageDarkUrl" as keyof TFieldValues, darkUrlRef.current as any);
+    methods.setValue("adminHeaderLogoImageUrl" as Path<TFieldValues>, lightUrlRef.current as any, {
+      shouldDirty: false,
+    });
+    methods.setValue("adminHeaderLogoImageDarkUrl" as Path<TFieldValues>, darkUrlRef.current as any, {
+      shouldDirty: false,
+    });
   }, [cleanupUploads, methods, revertDarkDeletion, revertLightDeletion]);
+
+  const defaultLightLogoUrl = lightUrlRef.current ?? null;
+  const defaultDarkLogoUrl = darkUrlRef.current ?? null;
 
   return (
     <AppForm
@@ -99,8 +108,8 @@ export function SettingForm<TFieldValues extends FieldValues>({
         onUploadingChange={setUploading}
         onLightLogoUrlChange={handleLightUrlChange}
         onDarkLogoUrlChange={handleDarkUrlChange}
-        defaultLightLogoUrl={lightUrlRef.current}
-        defaultDarkLogoUrl={darkUrlRef.current}
+        defaultLightLogoUrl={defaultLightLogoUrl}
+        defaultDarkLogoUrl={defaultDarkLogoUrl}
         onRegisterLightDelete={(url) => {
           if (url === lightUrlRef.current) markDeleteLight(url);
         }}

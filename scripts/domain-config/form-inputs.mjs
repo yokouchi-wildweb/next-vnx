@@ -10,7 +10,7 @@ export const FORM_INPUTS = {
     ],
     number: ['number input', 'stepper input', 'select', 'radio', 'none'],
     boolean: ['checkbox', 'radio', 'switch input', 'none'],
-    imageUploader: ['image uploader', 'none'],
+    mediaUploader: ['media uploader', 'none'],
     timestamp: [
       'datetime input',
       'none',
@@ -35,7 +35,7 @@ export const FORM_INPUTS = {
     integer: ['number input', 'stepper input', 'select', 'radio', 'none'],
     boolean: ['checkbox', 'radio', 'switch input', 'none'],
     enum: ['select', 'radio', 'none'],
-    imageUploader: ['image uploader', 'none'],
+    mediaUploader: ['media uploader', 'none'],
     date: ['date input', 'text input', 'none'],
     time: ['time input', 'text input', 'none'],
     'timestamp With Time Zone': [

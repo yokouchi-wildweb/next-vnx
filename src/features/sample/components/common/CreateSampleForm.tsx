@@ -34,6 +34,7 @@ export default function CreateSampleForm({ redirectPath = "/" }: Props) {
       select: undefined,
       multi_select: [],
       main_image: "",
+      sub_image: "",
       description: "",
     },
   });
@@ -65,7 +66,6 @@ export default function CreateSampleForm({ redirectPath = "/" }: Props) {
       isMutating={isMutating}
       sampleCategoryOptions={sampleCategoryOptions}
       sampleTagOptions={sampleTagOptions}
-      uploadPath="sample/main"
       submitLabel="登録"
       processingLabel="登録中..."
       onCancel={() => router.push(redirectPath)}

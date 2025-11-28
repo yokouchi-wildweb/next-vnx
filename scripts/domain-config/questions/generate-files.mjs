@@ -6,6 +6,16 @@ export default async function askGenerateFiles() {
     type: 'checkbox',
     name: 'files',
     message: '生成するファイルを選択:',
+    default: [
+      'entities',
+      'components',
+      'hooks',
+      'clientServices',
+      'serverServices',
+      'fieldConstants',
+      'adminRoutes',
+      'registry',
+    ],
     choices: [
       { name: 'エンティティ', value: 'entities' },
       { name: 'コンポーネント', value: 'components' },

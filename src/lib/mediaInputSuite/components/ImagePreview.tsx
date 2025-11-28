@@ -8,8 +8,8 @@ export type ImagePreviewProps = {
   alt?: string;
   className?: string;
   style?: CSSProperties;
-  onLoad?: (event: SyntheticEvent<HTMLImageElement>) => void;
-  onError?: (event: SyntheticEvent<HTMLImageElement>) => void;
+  onLoad?: (element: HTMLImageElement) => void;
+  onError?: (element: HTMLImageElement) => void;
 };
 
 export const ImagePreview = ({

@@ -36,6 +36,7 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
       select: sample.select ?? undefined,
       multi_select: sample.multi_select ?? [],
       main_image: sample.main_image ?? "",
+      sub_image: sample.sub_image ?? "",
       description: sample.description ?? "",
     },
   });
@@ -67,8 +68,6 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
       isMutating={isMutating}
       sampleCategoryOptions={sampleCategoryOptions}
       sampleTagOptions={sampleTagOptions}
-      uploadPath="sample/main"
-      defaultMainImageUrl={sample.main_image ?? null}
       submitLabel="更新"
       processingLabel="更新中..."
       onCancel={() => router.push(redirectPath)}

@@ -37,7 +37,7 @@ function mapType(t) {
     case 'string':
     case 'email':
     case 'password':
-    case 'imageUploader':
+    case 'mediaUploader':
       return 'text';
     case 'integer':
       return 'integer';

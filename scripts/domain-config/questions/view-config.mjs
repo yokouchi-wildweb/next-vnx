@@ -5,7 +5,7 @@ export default async function askViewConfig(config) {
   const result = {};
 
   const searchChoices = (config.fields || [])
-    .filter((f) => ['string', 'email', 'imageUploader'].includes(f.fieldType))
+    .filter((f) => ['string', 'email', 'mediaUploader'].includes(f.fieldType))
     .map((f) => ({ name: f.name, value: f.name }));
   if (searchChoices.length > 0) {
     const { searchFields } = await prompt({

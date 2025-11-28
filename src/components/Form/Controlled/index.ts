@@ -10,11 +10,5 @@ export type { SwitchInputProps } from "./SwitchInput";
 export { EmailInput } from "./EmailInput";
 export { TextInput } from "./TextInput";
 export { Textarea } from "./Textarea";
-export { FileUrlInput } from "./FileUrlInput";
-export type {
-  FileUrlInputProps,
-  FileUrlOptions,
-  OmittedFileInputProps,
-} from "./FileUrlInput";
 export { MultiSelectInput } from "./MultiSelectInput";
 export type { ControlledMultiSelectInputProps } from "./MultiSelectInput";

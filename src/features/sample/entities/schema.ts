@@ -15,6 +15,8 @@ export const SampleBaseSchema = z.object({
   multi_select: z.array(z.string()).default([]),
   main_image: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
+  sub_image: z.string().trim().nullish()
+    .transform((value) => emptyToNull(value)),
   description: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
 });

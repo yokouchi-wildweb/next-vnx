@@ -18,6 +18,7 @@ export const SampleTable = pgTable("samples", {
   select: SampleSelectEnum("select"),
   multi_select: text("multi_select").array().notNull(),
   main_image: text("main_image"),
+  sub_image: text("sub_image"),
   description: text("description"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),

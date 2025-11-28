@@ -105,7 +105,7 @@ function renderValue({
     return truncateJapanese(String(value ?? ""), truncateLength);
   }
 
-  if (inputType === "imageUploader" || inputType === "fileUploader") {
+  if (inputType === "mediaUploader" || inputType === "fileUploader") {
     return value
       ? React.createElement("img", {
           src: String(value),

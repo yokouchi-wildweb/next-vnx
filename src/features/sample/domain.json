@@ -95,11 +95,26 @@
     {
       "name": "main_image",
       "label": "メイン画像",
-      "fieldType": "imageUploader",
-      "formInput": "imageUploader",
+      "fieldType": "mediaUploader",
+      "formInput": "mediaUploader",
       "required": false,
       "uploadPath": "sample/main",
-      "slug": "main"
+      "slug": "main",
+      "mediaTypePreset": "imagesAndVideos",
+      "accept": "image/*,video/*",
+      "validationRule": { "maxSizeBytes": 104857600 }
+    },
+    {
+      "name": "sub_image",
+      "label": "サブ画像",
+      "fieldType": "mediaUploader",
+      "formInput": "mediaUploader",
+      "required": false,
+      "uploadPath": "sample/sub",
+      "slug": "sub",
+      "mediaTypePreset": "imagesAndVideos",
+      "accept": "image/*,video/*",
+      "validationRule": { "maxSizeBytes": 104857600 }
     },
     {
       "name": "description",

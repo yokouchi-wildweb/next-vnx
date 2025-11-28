@@ -12,6 +12,7 @@ export type Sample = {
   select: 'apple' | 'orange' | 'berry' | null;
   multi_select: string[];
   main_image: string | null;
+  sub_image: string | null;
   description: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;

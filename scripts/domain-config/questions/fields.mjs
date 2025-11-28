@@ -4,6 +4,14 @@ import { toCamelCase, toSnakeCase } from '../../../src/utils/stringCase.mjs';
 const prompt = inquirer.createPromptModule();
 
 const NUMERIC_FIELD_TYPES = new Set(['number', 'integer', 'bigint', 'numeric(10,2)']);
+const MEDIA_ACCEPT_PRESETS = [
+  { value: 'images', label: '画像のみ (image/*)', accept: 'image/*' },
+  { value: 'videos', label: '動画のみ (video/*)', accept: 'video/*' },
+  { value: 'imagesAndVideos', label: '画像・動画の両方 (image/*, video/*)', accept: 'image/*,video/*' },
+  { value: 'all', label: '制限なし (全てのファイル)', accept: '' },
+];
+const DEFAULT_MEDIA_PRESET = 'images';
+const DEFAULT_MAX_FILE_SIZE_MB = 100;
 
 function parseOptionValue(input, parseValue) {
   const trimmed = input.trim();
@@ -109,7 +117,10 @@ async function askSingleField(config) {
 
   let uploadPath;
   let slug;
-  if (normalizedInput === 'imageUploader') {
+  let mediaTypePreset;
+  let acceptValue;
+  let maxSizeBytes;
+  if (normalizedInput === 'mediaUploader') {
     const domainSlug = toCamelCase(config.singular ?? '') || 'domain';
     const uploadExample = `${domainSlug}/main`;
     while (true) {
@@ -118,7 +129,7 @@ async function askSingleField(config) {
         name: 'uploadPath',
         message: `画像の保存パス（例: ${uploadExample}）:`,
       });
-      uploadPath = up.uploadPath.trim();
+      uploadPath = typeof up.uploadPath === 'string' ? up.uploadPath.trim() : '';
       if (uploadPath) break;
       console.log('画像の保存パスは必須です。空で続行することはできません。');
     }
@@ -134,6 +145,45 @@ async function askSingleField(config) {
       default: baseSlug,
     });
     slug = sl.slug.trim() || baseSlug;
+
+    const presetChoices = MEDIA_ACCEPT_PRESETS.map((preset) => ({
+      name: preset.label,
+      value: preset.value,
+    }));
+    const presetAnswer = await prompt({
+      type: 'list',
+      name: 'mediaTypePreset',
+      message: '許可するファイルタイプを選択:',
+      choices: presetChoices,
+      default: DEFAULT_MEDIA_PRESET,
+    });
+    mediaTypePreset = presetAnswer.mediaTypePreset || DEFAULT_MEDIA_PRESET;
+    const preset = MEDIA_ACCEPT_PRESETS.find((item) => item.value === mediaTypePreset);
+    acceptValue = preset?.accept ?? '';
+
+    const maxAnswer = await prompt({
+      type: 'input',
+      name: 'maxFileSizeMb',
+      message: '最大ファイルサイズ (MB 単位):',
+      default: String(DEFAULT_MAX_FILE_SIZE_MB),
+      validate: (input) => {
+        const rawInput = typeof input === 'number' ? String(input) : input ?? '';
+        const trimmed = rawInput.trim();
+        if (!trimmed) return '数値を入力してください。';
+        const value = Number(trimmed);
+        if (Number.isNaN(value)) {
+          return '数値で入力してください (例: 50)。';
+        }
+        if (value <= 0) {
+          return '1以上の値を入力してください。';
+        }
+        return true;
+      },
+    });
+    const parsedMax = Number(maxAnswer.maxFileSizeMb);
+    if (!Number.isNaN(parsedMax) && parsedMax > 0) {
+      maxSizeBytes = Math.round(parsedMax * 1024 * 1024);
+    }
   }
 
   let requiredAnswer = { required: false };
@@ -193,6 +243,11 @@ async function askSingleField(config) {
     required: isArrayField ? false : requiredAnswer.required,
     ...(uploadPath ? { uploadPath } : {}),
     ...(slug ? { slug } : {}),
+    ...(mediaTypePreset ? { mediaTypePreset } : {}),
+    ...(acceptValue ? { accept: acceptValue } : {}),
+    ...(typeof maxSizeBytes === 'number'
+      ? { validationRule: { maxSizeBytes } }
+      : {}),
     ...(options && options.length ? { options } : {}),
   };
 

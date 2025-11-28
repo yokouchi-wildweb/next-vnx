@@ -13,7 +13,6 @@ export default function generate(tokens) {
 
   const configPath = path.join(process.cwd(), "src", "features", camel, "domain.json");
   let relations = [];
-  let fields = [];
   let domainConfig = null;
   // ドメイン設定ファイルがあれば読み込む
   if (fs.existsSync(configPath)) {
@@ -26,7 +25,6 @@ export default function generate(tokens) {
       }
       return false;
     });
-    fields = domainConfig.fields || [];
   }
 
   // 関連設定からフォーム向けのコード片を生成
@@ -65,38 +63,6 @@ export default function generate(tokens) {
     };
   };
 
-  // 画像アップロードフィールドの処理を組み立てる
-  const buildImageExtras = () => {
-    const images = fields.filter((f) => f.formInput === "imageUploader");
-    // 対象が無ければ何も返さない
-    if (!images.length) return { imports: "", hooks: "", props: "" };
-
-    const importLines = ['import { useImageUploaderField } from "@/hooks/useImageUploaderField";'];
-    const hookLines = [];
-    const propLines = [];
-
-    images.forEach((f) => {
-      const base = (f.slug || f.name)
-        .replace(/ImageUrl$/, "")
-        .replace(/Url$/, "")
-        .replace(/Image$/, "");
-      const pascal = toPascalCase(base || f.name);
-      const upVar = `upload${pascal}`;
-      const rmVar = `remove${pascal}`;
-      hookLines.push(
-        `  const { upload: ${upVar}, remove: ${rmVar} } = useImageUploaderField(methods, "${f.name}", "${f.uploadPath}", false);`,
-      );
-      propLines.push(`onUpload${pascal}={${upVar}}`);
-      propLines.push(`onDelete${pascal}={${rmVar}}`);
-    });
-
-    return {
-      imports: importLines.join("\n"),
-      hooks: hookLines.join("\n"),
-      props: propLines.map((p) => `      ${p}`).join("\n"),
-    };
-  };
-
   // テンプレートが無い場合はエラー
   if (!fs.existsSync(templatePath)) {
     console.error(`テンプレートが見つかりません: ${templatePath}`);
@@ -109,21 +75,20 @@ export default function generate(tokens) {
   let content = replaceTokens(template, tokens);
 
   const extras = buildRelationExtras();
-  const imgExtras = buildImageExtras();
   // デフォルト値のコードを生成
   const defaultLines = buildDefaultValues(domainConfig, {
     mode: "edit",
     entityVar: camel,
   });
   // 追加の import を挿入
-  if (extras.imports || imgExtras.imports) {
+  if (extras.imports) {
     content = content.replace(
       'import { toast } from "sonner";',
-      `import { toast } from "sonner";\n${extras.imports}${extras.imports && imgExtras.imports ? "\n" : ""}${imgExtras.imports}`,
+      `import { toast } from "sonner";\n${extras.imports}`,
     );
   }
   // フォーム用のフック処理を挿入
-  if (extras.hooks || imgExtras.hooks) {
+  if (extras.hooks) {
     const lines = [];
     if (extras.hooks) {
       lines.push(extras.hooks);
@@ -131,10 +96,6 @@ export default function generate(tokens) {
     if (extras.optionLines) {
       if (extras.hooks) lines.push("");
       lines.push(extras.optionLines);
-    }
-    if (imgExtras.hooks) {
-      if (extras.hooks || extras.optionLines) lines.push("");
-      lines.push(imgExtras.hooks);
     }
     content = content.replace("const router = useRouter();", `${lines.join("\n")}\n\n  const router = useRouter();`);
   }
@@ -152,10 +113,10 @@ export default function generate(tokens) {
     content = content.replace(/\n\s*defaultValues: \{\n\s*\/\/ TODO: 初期値を設定してください\n\s*\},/, "");
   }
   // 生成した props を差し込む
-  if (extras.props || imgExtras.props) {
+  if (extras.props) {
     content = content.replace(
       "isMutating={isMutating}",
-      `isMutating={isMutating}\n${extras.props}${extras.props && imgExtras.props ? "\n" : ""}${imgExtras.props}`,
+      `isMutating={isMutating}\n${extras.props}`,
     );
   }
 

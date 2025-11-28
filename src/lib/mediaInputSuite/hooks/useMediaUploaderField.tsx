@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import type { ControllerRenderProps, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
 import type { ControlledMediaUploaderProps } from "@/components/Form/MediaHandler/ControlledMediaUploader";
@@ -24,7 +24,7 @@ export type ControlledMediaUploaderBridgeProps<
 export type MediaUploaderFieldRenderer<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>,
-> = (field: ControllerRenderProps<TFieldValues, TName>) => JSX.Element;
+> = (field: ControllerRenderProps<TFieldValues, TName>) => ReactElement;
 
 export type UseMediaUploaderFieldOptions<
   TFieldValues extends FieldValues,

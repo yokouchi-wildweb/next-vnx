@@ -31,7 +31,7 @@ const iconSize: Record<NonNullable<Size>, string> = {
 };
 
 export type StepperInputProps = {
-  label: string;
+  label?: string;
   unit?: string;
   initialValue?: number;
   step?: number;

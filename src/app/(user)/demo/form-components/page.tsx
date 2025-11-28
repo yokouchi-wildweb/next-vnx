@@ -14,6 +14,7 @@ import { Button } from "@/components/Form/Button/Button";
 import {
   DateInput,
   DatetimeInput,
+  FileInput,
   TimeInput,
   NumberInput,
   PasswordInput,
@@ -65,6 +66,7 @@ type DemoFormValues = {
   number: number | "";
   switch: boolean;
   booleanCheckbox: boolean;
+  file: File | string | null;
 };
 
 const defaultValues: DemoFormValues = {
@@ -85,6 +87,7 @@ const defaultValues: DemoFormValues = {
   number: 0,
   switch: true,
   booleanCheckbox: false,
+  file: null,
 };
 
 type StepperInputValues = {
@@ -93,7 +96,18 @@ type StepperInputValues = {
   large: number;
 };
 
-type DemoSnapshot = DemoFormValues & {
+const formatFileValue = (value: DemoFormValues["file"]): string | null => {
+  if (value instanceof File) {
+    return value.name;
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  return null;
+};
+
+type DemoSnapshot = Omit<DemoFormValues, "file"> & {
+  file: string | null;
   stepperInput: StepperInputValues;
 };
 
@@ -113,6 +127,7 @@ export default function FormComponentsDemoPage() {
   const currentValues = form.watch();
   const currentSnapshot: DemoSnapshot = {
     ...currentValues,
+    file: formatFileValue(currentValues.file),
     stepperInput: stepperValues,
   };
 
@@ -124,7 +139,11 @@ export default function FormComponentsDemoPage() {
 
   const handleSubmit = useCallback(
       (values: DemoFormValues) => {
-        setSubmitted({ ...values, stepperInput: stepperValues });
+        setSubmitted({
+          ...values,
+          file: formatFileValue(values.file),
+          stepperInput: stepperValues,
+        });
       },
       [stepperValues],
   );
@@ -279,6 +298,23 @@ export default function FormComponentsDemoPage() {
                             field={field}
                             options={textOptions}
                             placeholder="複数選択してください"
+                        />
+                    )}
+                />
+
+                <FormFieldItem
+                    control={form.control}
+                    name="file"
+                    label="FileInput"
+                    description={{ text: "選択中のファイル名とクリアボタンを確認できます。", tone: "muted", size: "xs" }}
+                    renderInput={(field) => (
+                        <FileInput
+                            field={field}
+                            accept="image/*"
+                            onRemove={() => {
+                              field.onChange(null);
+                              field.onBlur();
+                            }}
                         />
                     )}
                 />
