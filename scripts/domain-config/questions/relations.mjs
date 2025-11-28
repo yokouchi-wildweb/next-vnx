@@ -67,7 +67,7 @@ async function askSingleRelation(config, domain, label, relationType) {
     onDeleteCascade = res.onDeleteCascade;
   }
 
-  let includeRelationTable = undefined;
+  let includeRelationTable = false;
   if (relationType === 'belongsToMany') {
     const res = await prompt({
       type: 'confirm',
