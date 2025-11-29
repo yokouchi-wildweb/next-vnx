@@ -13,12 +13,17 @@ export type DomainJsonField = {
   accept?: string;
   placeholder?: string;
   validationRule?: FileValidationRule;
+  readonly?: boolean;
 };
 
 export const mapDomainFieldToRenderConfig = (
   field: DomainJsonField,
 ): DomainFieldRenderConfig<any, any> | null => {
-  const base = { name: field.name, label: field.label };
+  const base = {
+    name: field.name,
+    label: field.label,
+    readOnly: field.readonly ?? false,
+  };
   switch (field.formInput) {
     case "hidden":
       return { ...base, type: "hidden" };

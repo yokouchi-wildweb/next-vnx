@@ -95,7 +95,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
       name={fieldConfig.name}
       label={fieldConfig.label}
       description={fieldConfig.description}
-      renderInput={(field) => <TextInput field={field} />}
+      renderInput={(field) => <TextInput field={field} readOnly={fieldConfig.readOnly} />}
     />
   );
 
@@ -108,7 +108,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
       name={fieldConfig.name}
       label={fieldConfig.label}
       description={fieldConfig.description}
-      renderInput={(field) => <NumberInput field={field} />}
+      renderInput={(field) => <NumberInput field={field} readOnly={fieldConfig.readOnly} />}
     />
   );
 
@@ -121,7 +121,13 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
       name={fieldConfig.name}
       label={fieldConfig.label}
       description={fieldConfig.description}
-      renderInput={(field) => <Textarea field={field} placeholder={fieldConfig.placeholder} />}
+      renderInput={(field) => (
+        <Textarea
+          field={field}
+          placeholder={fieldConfig.placeholder}
+          readOnly={fieldConfig.readOnly}
+        />
+      )}
     />
   );
 

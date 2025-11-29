@@ -12,6 +12,7 @@ const MEDIA_ACCEPT_PRESETS = [
 ];
 const DEFAULT_MEDIA_PRESET = 'images';
 const DEFAULT_MAX_FILE_SIZE_MB = 100;
+const READONLY_SUPPORTED_FORM_INPUTS = new Set(['textInput', 'numberInput', 'textarea']);
 
 function parseOptionValue(input, parseValue) {
   const trimmed = input.trim();
@@ -240,6 +241,7 @@ async function askSingleField(config) {
     label: trimmedLabel,
     fieldType,
     formInput: normalizedInput,
+    ...(READONLY_SUPPORTED_FORM_INPUTS.has(normalizedInput) ? { readonly: false } : {}),
     required: isArrayField ? false : requiredAnswer.required,
     ...(uploadPath ? { uploadPath } : {}),
     ...(slug ? { slug } : {}),

@@ -11,6 +11,7 @@ type BaseFieldConfig<
   name: TName;
   label: ReactNode;
   description?: FormFieldItemDescription;
+  readOnly?: boolean;
 };
 
 export type TextFieldConfig<
