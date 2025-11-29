@@ -20,6 +20,8 @@ export const mapDomainFieldToRenderConfig = (
 ): DomainFieldRenderConfig<any, any> | null => {
   const base = { name: field.name, label: field.label };
   switch (field.formInput) {
+    case "hidden":
+      return { ...base, type: "hidden" };
     case "textInput":
       return { ...base, type: "text" };
     case "numberInput":

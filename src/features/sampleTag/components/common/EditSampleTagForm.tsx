@@ -49,7 +49,7 @@ export default function EditSampleTagForm({ sampleTag, redirectPath = "/" }: Pro
       onSubmitAction={submit}
       isMutating={isMutating}
       submitLabel="更新"
-      processingLabel="更新中..."
+      processingLabel="処理中..."
       onCancel={() => router.push(redirectPath)}
     />
   );

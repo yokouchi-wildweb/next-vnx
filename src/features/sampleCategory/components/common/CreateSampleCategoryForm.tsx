@@ -47,7 +47,7 @@ export default function CreateSampleCategoryForm({ redirectPath = "/" }: Props) 
       onSubmitAction={submit}
       isMutating={isMutating}
       submitLabel="登録"
-      processingLabel="登録中..."
+      processingLabel="処理中..."
       onCancel={() => router.push(redirectPath)}
     />
   );

@@ -48,7 +48,7 @@ export default function Edit__Domain__Form({ __domain__, redirectPath = "/" }: P
       onSubmitAction={submit}
       isMutating={isMutating}
       submitLabel="更新"
-      processingLabel="更新中..."
+      processingLabel="処理中..."
       onCancel={() => router.push(redirectPath)}
     />
   );

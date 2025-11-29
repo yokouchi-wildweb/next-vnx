@@ -107,4 +107,12 @@ export type DomainFieldRenderConfig<
   | RadioBooleanFieldConfig<TFieldValues, TName>
   | StepperFieldConfig<TFieldValues, TName>
   | SwitchFieldConfig<TFieldValues, TName>
-  | MediaUploaderFieldConfig<TFieldValues, TName>;
+  | MediaUploaderFieldConfig<TFieldValues, TName>
+  | HiddenFieldConfig<TFieldValues, TName>;
+
+export type HiddenFieldConfig<
+  TFieldValues extends FieldValues,
+  TName extends FieldPath<TFieldValues>
+> = BaseFieldConfig<TFieldValues, TName> & {
+  type: "hidden";
+};

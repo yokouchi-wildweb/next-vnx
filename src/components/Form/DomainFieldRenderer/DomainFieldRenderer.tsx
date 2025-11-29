@@ -27,6 +27,7 @@ import type {
   StepperFieldConfig,
   SwitchFieldConfig,
   MediaUploaderFieldConfig,
+  HiddenFieldConfig,
 } from "./fieldTypes";
 import { MediaFieldItem } from "./MediaFieldItem";
 
@@ -235,6 +236,17 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
     />
   );
 
+  const renderHiddenField = (
+    fieldConfig: HiddenFieldConfig<TFieldValues, FieldPath<TFieldValues>>
+  ) => (
+    <FormField
+      key={fieldConfig.name}
+      control={control}
+      name={fieldConfig.name}
+      render={({ field }) => <input type="hidden" {...field} />}
+    />
+  );
+
   const combinedFields = useMemo(() => {
     const jsonFields = buildFieldConfigsFromDomainJson<TFieldValues>(domainJsonFields);
     return [...fields, ...jsonFields];
@@ -270,6 +282,8 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
             onHandleChange={handleMediaHandleChange}
           />
         );
+      case "hidden":
+        return renderHiddenField(fieldConfig);
       default:
         return <Fragment key={index} />;
     }
