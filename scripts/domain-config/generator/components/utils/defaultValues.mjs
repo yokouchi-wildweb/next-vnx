@@ -10,6 +10,8 @@ function defaultValueFor(field) {
   switch (type) {
     case "integer":
     case "number":
+    case "bigint":
+    case "numeric(10,2)":
       return "undefined";
     case "boolean":
       if (formInput === "radio" || hasOptions) {
