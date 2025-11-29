@@ -20,25 +20,30 @@ export function FooFields<TFieldValues extends FieldValues>({
   methods,
   onMediaStateChange,
 }: FooFieldsProps<TFieldValues>) {
-
   const relationFieldConfigs = useMemo<DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>[]>(
     () => [],
     [],
   );
 
-  const handleMetadata = useMediaMetadataBinding({
+  const handleMainMediaMetadata = useMediaMetadataBinding({
     methods,
     binding: {
       sizeBytes: "filesize" as FieldPath<TFieldValues>,
+      width: "media_width" as FieldPath<TFieldValues>,
+      height: "media_height" as FieldPath<TFieldValues>,
+      mimeType: "mimetype" as FieldPath<TFieldValues>,
     },
   });
 
-  const { customFields, filteredDomainJsonFields } = useMediaFieldHandler({
+  const mediaFieldState0 = useMediaFieldHandler({
     domainFields: domainConfig.fields ?? [],
-    targetFieldName: "media",
+    targetFieldName: "main_media",
     baseFields: relationFieldConfigs,
-    onMetadataChange: handleMetadata,
+    onMetadataChange: handleMainMediaMetadata,
   });
+
+  const customFields = mediaFieldState0.customFields;
+  const filteredDomainJsonFields = mediaFieldState0.filteredDomainJsonFields;
 
   return (
     <DomainFieldRenderer

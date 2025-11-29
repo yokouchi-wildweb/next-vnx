@@ -2,9 +2,12 @@
 
 export type Foo = {
   id: string;
-  name: string;
+  name: string | null;
+  main_media: string | null;
   filesize: number | null;
-  media: string | null;
+  media_width: number | null;
+  media_height: string | null;
+  mimetype: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };

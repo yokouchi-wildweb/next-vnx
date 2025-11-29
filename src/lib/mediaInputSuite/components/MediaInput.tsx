@@ -67,9 +67,10 @@ export const MediaInput = ({
   });
 
   useEffect(() => {
+    if (!selectedFile) return;
     onMetadataChange?.({ image: imageMetadata, video: videoMetadata });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imageMetadata, videoMetadata]);
+  }, [imageMetadata, videoMetadata, selectedFile]);
 
   const handleSelect = useCallback(
     (file: File | null) => {
@@ -174,8 +175,14 @@ export const MediaInput = ({
                   file={selectedFile ?? undefined}
                   src={!selectedFile ? previewUrl ?? undefined : undefined}
                   className="h-full w-full"
-                  imageProps={{ onLoad: handleImageLoad, ...previewProps?.imageProps }}
-                  videoProps={{ onLoadedMetadata: handleVideoMetadata, ...previewProps?.videoProps }}
+                  imageProps={{
+                    onLoad: selectedFile ? handleImageLoad : undefined,
+                    ...previewProps?.imageProps,
+                  }}
+                  videoProps={{
+                    onLoadedMetadata: selectedFile ? handleVideoMetadata : undefined,
+                    ...previewProps?.videoProps,
+                  }}
                   unsupportedProps={previewProps?.unsupportedProps}
                 />
                 {statusOverlay}

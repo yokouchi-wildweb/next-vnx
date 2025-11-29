@@ -11,7 +11,15 @@ const baseOptions = {
   useCreatedAt: true,
   useUpdatedAt: true,
   defaultSearchFields: [
-    "name"
+    "name",
+    "main_media",
+    "media_height"
+  ],
+  defaultOrderBy: [
+    [
+      "updatedAt",
+      "DESC"
+    ]
   ],
 } satisfies DrizzleCrudServiceOptions<
   z.infer<typeof FooCreateSchema>

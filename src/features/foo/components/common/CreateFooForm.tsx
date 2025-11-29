@@ -23,8 +23,11 @@ export default function CreateFooForm({ redirectPath = "/" }: Props) {
     shouldUnregister: false,
     defaultValues: {
       name: "",
+      main_media: "",
       filesize: undefined,
-      media: "",
+      media_width: undefined,
+      media_height: "",
+      mimetype: "",
     },
   });
 

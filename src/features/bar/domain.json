@@ -1,0 +1,55 @@
+{
+  "domainConfigVersion": "1.2",
+  "singular": "bar",
+  "plural": "bar",
+  "label": "bar",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [
+
+  ],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "fields": [
+    {
+      "name": "aaa",
+      "label": "aaa",
+      "fieldType": "mediaUploader",
+      "formInput": "mediaUploader",
+      "required": false,
+      "uploadPath": "aaa",
+      "slug": "aaa",
+      "mediaTypePreset": "imagesAndVideos",
+      "accept": "image/*,video/*",
+      "validationRule": {
+        "maxSizeBytes": 104857600
+      },
+      "metadataBinding": {
+        "width": "aaa",
+        "height": "ddd",
+        "aspectRatio": "ggg"
+      }
+    }
+  ],
+  "searchFields": [
+
+  ],
+  "defaultOrderBy": [
+
+  ],
+  "tableFields": [
+
+  ],
+  "useDetailModal": false,
+  "addToAdminDataMenu": false,
+  "generateFiles": {
+    "entities": true,
+    "components": true,
+    "hooks": true,
+    "clientServices": true,
+    "serverServices": true,
+    "fieldConstants": true,
+    "adminRoutes": true,
+    "registry": true
+  }
+}

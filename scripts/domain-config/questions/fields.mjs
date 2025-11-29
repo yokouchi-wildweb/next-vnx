@@ -13,6 +13,17 @@ const MEDIA_ACCEPT_PRESETS = [
 const DEFAULT_MEDIA_PRESET = 'images';
 const DEFAULT_MAX_FILE_SIZE_MB = 100;
 const READONLY_SUPPORTED_FORM_INPUTS = new Set(['textInput', 'numberInput', 'textarea']);
+const MEDIA_METADATA_CHOICES = [
+  { name: 'ファイルサイズ (sizeBytes)', value: 'sizeBytes' },
+  { name: '幅 (width)', value: 'width' },
+  { name: '高さ (height)', value: 'height' },
+  { name: 'アスペクト比 (aspectRatio)', value: 'aspectRatio' },
+  { name: '向き (orientation)', value: 'orientation' },
+  { name: 'MIME タイプ (mimeType)', value: 'mimeType' },
+  { name: '元 URL (src)', value: 'src' },
+  { name: '動画の再生時間 (durationSec)', value: 'durationSec' },
+  { name: '動画の再生時間（書式付き）(durationFormatted)', value: 'durationFormatted' },
+];
 
 function parseOptionValue(input, parseValue) {
   const trimmed = input.trim();
@@ -121,6 +132,7 @@ async function askSingleField(config) {
   let mediaTypePreset;
   let acceptValue;
   let maxSizeBytes;
+  let metadataBinding;
   if (normalizedInput === 'mediaUploader') {
     const domainSlug = toCamelCase(config.singular ?? '') || 'domain';
     const uploadExample = `${domainSlug}/main`;
@@ -184,6 +196,40 @@ async function askSingleField(config) {
     const parsedMax = Number(maxAnswer.maxFileSizeMb);
     if (!Number.isNaN(parsedMax) && parsedMax > 0) {
       maxSizeBytes = Math.round(parsedMax * 1024 * 1024);
+    }
+
+    const { enableMetadataBinding } = await prompt({
+      type: 'confirm',
+      name: 'enableMetadataBinding',
+      message: 'メタデータをフォームの他フィールドへ保存しますか？',
+      default: false,
+    });
+    if (enableMetadataBinding) {
+      const { metadataKeys } = await prompt({
+        type: 'checkbox',
+        name: 'metadataKeys',
+        message: '保存したいメタデータ項目を選択してください（スペースで選択、エンターで確定）:',
+        choices: MEDIA_METADATA_CHOICES,
+      });
+      if (metadataKeys.length) {
+        metadataBinding = {};
+        for (const key of metadataKeys) {
+          while (true) {
+            const { fieldName } = await prompt({
+              type: 'input',
+              name: 'fieldName',
+              message: `${key} を保存するフィールド名（snake_case）:`,
+            });
+            const trimmedFieldName = typeof fieldName === 'string' ? fieldName.trim() : '';
+            if (!trimmedFieldName) {
+              console.log('フィールド名を入力してください。');
+              continue;
+            }
+            metadataBinding[key] = toSnakeCase(trimmedFieldName);
+            break;
+          }
+        }
+      }
     }
   }
 
@@ -250,6 +296,7 @@ async function askSingleField(config) {
     ...(typeof maxSizeBytes === 'number'
       ? { validationRule: { maxSizeBytes } }
       : {}),
+    ...(metadataBinding ? { metadataBinding } : {}),
     ...(options && options.length ? { options } : {}),
   };
 

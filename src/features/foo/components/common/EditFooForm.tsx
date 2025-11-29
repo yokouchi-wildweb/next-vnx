@@ -25,8 +25,11 @@ export default function EditFooForm({ foo, redirectPath = "/" }: Props) {
     shouldUnregister: false,
     defaultValues: {
       name: foo.name ?? "",
+      main_media: foo.main_media ?? "",
       filesize: foo.filesize ?? undefined,
-      media: foo.media ?? "",
+      media_width: foo.media_width ?? undefined,
+      media_height: foo.media_height ?? "",
+      mimetype: foo.mimetype ?? "",
     },
   });
 

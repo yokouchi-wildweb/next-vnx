@@ -35,13 +35,6 @@ export const useMediaMetadataBinding = <TFieldValues extends FieldValues>({
     (metadata: SelectedMediaMetadata) => {
       const target = metadata.video ?? metadata.image;
       if (!target) {
-        Object.values(binding).forEach((name) => {
-          if (!name) return;
-          methods.setValue(name, null as any, {
-            shouldDirty: setValueOptions?.shouldDirty ?? true,
-            shouldValidate: setValueOptions?.shouldValidate ?? false,
-          });
-        });
         return;
       }
       (
@@ -71,4 +64,3 @@ export const useMediaMetadataBinding = <TFieldValues extends FieldValues>({
     [binding, methods, setValueOptions?.shouldDirty, setValueOptions?.shouldValidate],
   );
 };
-

@@ -39,6 +39,13 @@ function generateFieldsFromConfig(config) {
     .map((rel) => buildRelationInfo(rel))
     .filter((info) => info !== null);
 
+  const metadataFields = (config.fields || []).filter(
+    (field) =>
+      field.formInput === "mediaUploader" &&
+      field.metadataBinding &&
+      Object.keys(field.metadataBinding || {}).length > 0,
+  );
+
   const relationEntries = relationInfos;
   const dependencyList = relationEntries.map((entry) => entry.dependency);
   const relationArray = relationEntries.length
@@ -57,6 +64,19 @@ ${relationEntries.map((entry) => entry.config).join(",\n")}
 
   const optionImports = relationEntries.length ? '\nimport type { Options } from "@/types/form";' : "";
 
+  const importItems = [
+    "DomainFieldRenderer",
+    "type DomainFieldRenderConfig",
+    "type DomainMediaState",
+  ];
+  if (metadataFields.length) {
+    importItems.push("useMediaFieldHandler");
+  }
+
+  const metadataHookImport = metadataFields.length
+    ? '\nimport { useMediaMetadataBinding } from "@/lib/mediaInputSuite/hooks";'
+    : "";
+
   const propsBlock = optionProps ? `\n${optionProps}` : "";
   const destructureBlock = destructureOptions ? `\n${destructureOptions}` : "";
 
@@ -65,10 +85,8 @@ ${relationEntries.map((entry) => entry.config).join(",\n")}
 import { useMemo } from "react";
 import type { FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 import {
-  DomainFieldRenderer,
-  type DomainFieldRenderConfig,
-  type DomainMediaState,
-} from "@/components/Form/DomainFieldRenderer";${optionImports}
+  ${importItems.join(",\n  ")},
+} from "@/components/Form/DomainFieldRenderer";${optionImports}${metadataHookImport}
 import domainConfig from "@/features/__domain__/domain.json";
 
 export type __Domain__FieldsProps<TFieldValues extends FieldValues> = {
@@ -85,12 +103,50 @@ export function __Domain__Fields<TFieldValues extends FieldValues>({
     ${dependencyArray},
   );
 
+${metadataFields
+  .map((field, index) => {
+    const handlerName = `handle${toPascalCase(field.name)}Metadata`;
+    const stateVar = `mediaFieldState${index}`;
+    const prevStateVar = index === 0 ? null : `mediaFieldState${index - 1}`;
+    const bindingEntries = Object.entries(field.metadataBinding || {})
+      .map(
+        ([key, value]) =>
+          `      ${key}: "${value}" as FieldPath<TFieldValues>,`,
+      )
+      .join("\n");
+    const domainSource = prevStateVar ? `${prevStateVar}.filteredDomainJsonFields` : "domainConfig.fields ?? []";
+    const baseSource = prevStateVar ? `${prevStateVar}.customFields` : "relationFieldConfigs";
+    return `  const ${handlerName} = useMediaMetadataBinding({
+    methods,
+    binding: {
+${bindingEntries}
+    },
+  });
+
+  const ${stateVar} = useMediaFieldHandler({
+    domainFields: ${domainSource},
+    targetFieldName: "${field.name}",
+    baseFields: ${baseSource},
+    onMetadataChange: ${handlerName},
+  });`;
+  })
+  .join("\n\n")}
+
+  const customFields = ${
+    metadataFields.length ? `mediaFieldState${metadataFields.length - 1}.customFields` : "relationFieldConfigs"
+  };
+  const filteredDomainJsonFields = ${
+    metadataFields.length
+      ? `mediaFieldState${metadataFields.length - 1}.filteredDomainJsonFields`
+      : "domainConfig.fields ?? []"
+  };
+
   return (
     <DomainFieldRenderer
       control={methods.control}
       methods={methods}
-      fields={relationFieldConfigs}
-      domainJsonFields={domainConfig.fields ?? []}
+      fields={customFields}
+      domainJsonFields={filteredDomainJsonFields}
       onMediaStateChange={onMediaStateChange}
     />
   );
