@@ -7,7 +7,7 @@ import type { FileValidationError, FileValidationRule, SelectedMediaMetadata } f
 import { clientUploader, type UploadProgress } from "@/lib/storage/client/clientUploader";
 import { directStorageClient, getPathFromStorageUrl } from "@/lib/storage/client/directStorageClient";
 import { Para } from "@/components/TextBlocks";
-import { Button } from "@/components/Form/Button/Button";
+import { PseudoButton } from "@/components/Form/Button/PseudoButton";
 
 const isStorageCanceledError = (error: unknown): error is { code?: string } => {
   if (typeof error !== "object" || error === null) return false;
@@ -138,7 +138,7 @@ export const MediaUploader = ({
         <div className="h-1.5 w-full overflow-hidden rounded bg-muted">
           <div className="h-full bg-primary" style={{ width: `${progress.percent}%`, transition: "width 120ms linear" }} />
         </div>
-        <Button
+        <PseudoButton
           type="button"
           variant="ghost"
           size="sm"
@@ -149,7 +149,7 @@ export const MediaUploader = ({
           }}
         >
           キャンセル
-        </Button>
+        </PseudoButton>
       </div>
     );
   }, [progress, cancelUpload]);
