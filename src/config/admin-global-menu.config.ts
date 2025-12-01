@@ -27,6 +27,15 @@ export const adminMenu: AdminMenuSection[] = [
     ],
   },
   {
+    title: "UIデモ",
+    href: "/admin/tabs-demo/overview",
+    items: [
+      { title: "タブデモ/概要", href: "/admin/tabs-demo/overview" },
+      { title: "タブデモ/インサイト", href: "/admin/tabs-demo/insights" },
+      { title: "タブデモ/アクション", href: "/admin/tabs-demo/actions" },
+    ],
+  },
+  {
     title: "システム設定",
     href: "/admin/settings",
     items: [],

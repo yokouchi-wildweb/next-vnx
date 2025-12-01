@@ -4,7 +4,7 @@
 
 import { useSearchParams } from "next/navigation";
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
-import Pagination from "@/components/Fanctional/Pagination";
+import Pagination from "@/components/Navigation/Pagination";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 
 type Props = {
