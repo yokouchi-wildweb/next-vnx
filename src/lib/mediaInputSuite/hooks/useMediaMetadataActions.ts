@@ -2,7 +2,12 @@
 
 import { useCallback } from "react";
 
-import type { SelectedMediaMetadata, MediaOrientation } from "../types";
+import type {
+  SelectedMediaMetadata,
+  MediaOrientation,
+  VideoMetadata,
+  ImageMetadata,
+} from "../types";
 
 export type MediaMetadataActions = Partial<{
   sizeBytes: (value: number | null) => void;
@@ -20,15 +25,25 @@ export type UseMediaMetadataActionsOptions = {
   actions: MediaMetadataActions;
 };
 
+const isVideoMetadata = (
+  metadata: ImageMetadata | VideoMetadata,
+): metadata is VideoMetadata =>
+  "durationSec" in metadata &&
+  typeof (metadata as VideoMetadata).durationSec === "number" &&
+  "durationFormatted" in metadata;
+
+type HandlerArg<K extends keyof MediaMetadataActions> =
+  MediaMetadataActions[K] extends ((arg: infer A) => void) | undefined ? A : never;
+
 export const useMediaMetadataActions = ({ actions }: UseMediaMetadataActionsOptions) => {
   return useCallback(
     (metadata: SelectedMediaMetadata) => {
       const target = metadata.video ?? metadata.image;
 
-      const invoke = <K extends keyof MediaMetadataActions>(key: K, value: Parameters<NonNullable<MediaMetadataActions[K]>>[0]) => {
+      const invoke = <K extends keyof MediaMetadataActions>(key: K, value: HandlerArg<K>) => {
         const handler = actions[key];
         if (handler) {
-          handler(value);
+          (handler as (arg: HandlerArg<K>) => void)(value);
         }
       };
 
@@ -45,27 +60,25 @@ export const useMediaMetadataActions = ({ actions }: UseMediaMetadataActionsOpti
         return;
       }
 
-      invoke("sizeBytes", target.sizeBytes ?? null);
-      invoke("width", target.width ?? null);
-      invoke("height", target.height ?? null);
-      invoke("aspectRatio", target.aspectRatio ?? null);
+      const safeNumber = (value?: number | null) =>
+        typeof value === "number" ? value : null;
+
+      invoke("sizeBytes", safeNumber(target.sizeBytes));
+      invoke("width", safeNumber(target.width));
+      invoke("height", safeNumber(target.height));
+      invoke("aspectRatio", safeNumber(target.aspectRatio));
       invoke("orientation", target.orientation ?? null);
       invoke("mimeType", target.mimeType ?? null);
       invoke("src", target.src ?? null);
 
-      if ("durationSec" in target) {
-        invoke("durationSec", target.durationSec ?? null);
-      } else {
-        invoke("durationSec", null);
-      }
-
-      if ("durationFormatted" in target) {
+      if (isVideoMetadata(target)) {
+        invoke("durationSec", safeNumber(target.durationSec));
         invoke("durationFormatted", target.durationFormatted ?? null);
       } else {
+        invoke("durationSec", null);
         invoke("durationFormatted", null);
       }
     },
     [actions],
   );
 };
-

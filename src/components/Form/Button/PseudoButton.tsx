@@ -86,6 +86,7 @@ export const PseudoButton = React.forwardRef<HTMLDivElement, PseudoButtonProps>(
     );
 
     const resolvedTabIndex = isDisabled ? -1 : tabIndex ?? 0;
+    const divCompatibleProps = rest as React.HTMLAttributes<HTMLDivElement>;
 
     return (
       <div
@@ -102,7 +103,7 @@ export const PseudoButton = React.forwardRef<HTMLDivElement, PseudoButtonProps>(
         onClick={handleClick}
         onKeyDown={handleKeyDown}
         onKeyUp={handleKeyUp}
-        {...rest}
+        {...divCompatibleProps}
       />
     );
   },
