@@ -14,7 +14,7 @@ type OptionPrimitive = Options["value"];
 type Props = {
   field: {
     value?: OptionPrimitive | "" | null;
-    onChange: (value: OptionPrimitive | "") => void;
+    onChange: (value: OptionPrimitive | "" | null) => void;
   };
   /**
    * Selectable options. If omitted, an empty list is used so the component can
@@ -22,6 +22,8 @@ type Props = {
    */
   options?: Options[];
   placeholder?: string;
+  includeNullOption?: boolean;
+  nullOptionLabel?: string;
 };
 
 const CLEAR_VALUE = "__EMPTY__";
@@ -33,10 +35,17 @@ const serializeValue = (value: OptionPrimitive | "" | null | undefined) => {
   return String(value);
 };
 
-export function SelectInput({ field, options = [], placeholder, ...rest }: Props) {
+export function SelectInput({
+  field,
+  options = [],
+  placeholder,
+  includeNullOption = false,
+  nullOptionLabel = "未選択（null）",
+  ...rest
+}: Props) {
   const handleChange = (value: string) => {
     if (value === CLEAR_VALUE) {
-      field.onChange("");
+      field.onChange(includeNullOption ? null : "");
       return;
     }
     const matchedOption = options.find((op) => serializeValue(op.value) === value);
@@ -57,7 +66,11 @@ export function SelectInput({ field, options = [], placeholder, ...rest }: Props
         <SelectValue placeholder={placeholder ?? "選択してください"} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value={CLEAR_VALUE}>{placeholder ?? "選択してください"}</SelectItem>
+        {includeNullOption ? (
+          <SelectItem value={CLEAR_VALUE}>{nullOptionLabel}</SelectItem>
+        ) : (
+          <SelectItem value={CLEAR_VALUE}>{placeholder ?? "選択してください"}</SelectItem>
+        )}
         {options.map((op, index) => {
           const serialized = serializeValue(op.value);
           const key = serialized || `option-${index}`;

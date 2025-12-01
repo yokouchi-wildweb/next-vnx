@@ -200,6 +200,8 @@ export default function TablesDemoPage() {
         editorType: "select",
         placeholder: "カテゴリを選択",
         options: SAMPLE_SELECT_OPTIONS,
+        allowNullSelection: true,
+        nullOptionLabel: "未設定（null）",
       },
       {
         field: "switch",

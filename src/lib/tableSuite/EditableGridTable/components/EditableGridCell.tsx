@@ -48,6 +48,7 @@ const inputBaseClassName =
 const displayBaseClassName = "w-full px-2.5 text-sm flex items-center text-foreground truncate";
 
 const POPUP_ATTR = "data-editable-grid-popup";
+const CLEAR_VALUE = "__EMPTY__";
 
 export function EditableGridCell<T>({
   row,
@@ -184,8 +185,17 @@ export function EditableGridCell<T>({
         return <Input type="text" {...sharedInputProps} />;
       case "number":
         return <Input type="number" inputMode="decimal" {...sharedInputProps} />;
-      case "select":
-        const selectValue = inputValue === "" ? undefined : inputValue;
+      case "select": {
+        const allowNullSelection = column.allowNullSelection ?? false;
+        const baseSelectValue =
+          rawValue === null || typeof rawValue === "undefined"
+            ? allowNullSelection
+              ? CLEAR_VALUE
+              : ""
+            : serializeOptionValue(rawValue as OptionPrimitive);
+        const currentSelectValue = draftValue ?? baseSelectValue;
+        const selectValue = currentSelectValue === "" ? undefined : currentSelectValue;
+        const nullLabel = column.nullOptionLabel ?? "未選択（null）";
 
         return (
           <Select
@@ -200,7 +210,8 @@ export function EditableGridCell<T>({
             value={selectValue}
             onValueChange={(value) => {
               setDraftValue(value);
-              handleCommit(value);
+              const nextValue = allowNullSelection && value === CLEAR_VALUE ? null : value;
+              handleCommit(nextValue);
             }}
           >
             <SelectTrigger
@@ -214,13 +225,12 @@ export function EditableGridCell<T>({
               <SelectValue placeholder={fallbackPlaceholder} />
             </SelectTrigger>
             <SelectContent {...{ [POPUP_ATTR]: cellKey }}>
+              {allowNullSelection ? (
+                <SelectItem value={CLEAR_VALUE}>{nullLabel}</SelectItem>
+              ) : null}
               {(column.options ?? []).map((option, index) => {
-                const key = option.value === null || option.value === undefined
-                  ? `option-${index}`
-                  : String(option.value);
-                const serializedValue = option.value === null || option.value === undefined
-                  ? ""
-                  : String(option.value);
+                const serializedValue = serializeOptionValue(option.value as OptionPrimitive);
+                const key = serializedValue || `option-${index}`;
                 return (
                   <SelectItem key={key} value={serializedValue}>
                     {option.label}
@@ -230,6 +240,7 @@ export function EditableGridCell<T>({
             </SelectContent>
           </Select>
         );
+      }
       case "multi-select": {
         const fieldName = `${String(rowKey)}-${column.field}`;
         return (
@@ -310,13 +321,21 @@ export function EditableGridCell<T>({
     if (column.renderDisplay) {
       return column.renderDisplay(rawValue, row);
     }
-    if (column.editorType === "select" && column.options) {
-      const serializedRaw = serializeOptionValue(rawValue as OptionPrimitive | null | undefined);
-      const option = column.options.find(
-        (op) => serializeOptionValue(op.value as OptionPrimitive) === serializedRaw,
-      );
-      if (option) {
-        return option.label;
+    if (column.editorType === "select") {
+      if (
+        (rawValue === null || typeof rawValue === "undefined") &&
+        column.allowNullSelection
+      ) {
+        return column.nullOptionLabel ?? fallbackPlaceholder;
+      }
+      if (column.options) {
+        const serializedRaw = serializeOptionValue(rawValue as OptionPrimitive | null | undefined);
+        const option = column.options.find(
+          (op) => serializeOptionValue(op.value as OptionPrimitive) === serializedRaw,
+        );
+        if (option) {
+          return option.label;
+        }
       }
     }
     if (column.editorType === "multi-select" && column.options) {

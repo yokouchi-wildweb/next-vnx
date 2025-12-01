@@ -22,6 +22,8 @@ export type EditableGridColumn<T> = {
   placeholder?: string;
   width?: string;
   options?: Options[];
+  allowNullSelection?: boolean;
+  nullOptionLabel?: string;
   getValue?: (row: T) => unknown;
   formatValue?: (value: unknown, row: T) => string;
   parseValue?: (value: unknown, row: T) => unknown;
