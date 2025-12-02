@@ -1,25 +1,20 @@
 // src/features/sampleCategory/services/server/drizzleBase.ts
 
+import { getDomainConfig } from "@/features/core/domainConfig/getDomainConfig";
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
 import { SampleCategoryCreateSchema, SampleCategoryUpdateSchema } from "@/features/sampleCategory/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { z } from "zod";
 
+const domainConfig = getDomainConfig("sample_category");
+
 const baseOptions = {
-  idType: "uuid",
-  useCreatedAt: true,
-  useUpdatedAt: true,
-  defaultSearchFields: [
-    "name",
-    "description"
-  ],
-  defaultOrderBy: [
-    [
-      "updatedAt",
-      "DESC"
-    ]
-  ],
+  idType: domainConfig.idType,
+  useCreatedAt: domainConfig.useCreatedAt,
+  useUpdatedAt: domainConfig.useUpdatedAt,
+  defaultSearchFields: domainConfig.searchFields,
+  defaultOrderBy: domainConfig.defaultOrderBy,
 } satisfies DrizzleCrudServiceOptions<
   z.infer<typeof SampleCategoryCreateSchema>
 >;

@@ -1,34 +1,31 @@
 // src/features/sample/services/server/drizzleBase.ts
 
+import { getDomainConfig } from "@/features/core/domainConfig/getDomainConfig";
 import { SampleTable, SampleToSampleTagTable } from "@/features/sample/entities/drizzle";
 import { SampleCreateSchema, SampleUpdateSchema } from "@/features/sample/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { z } from "zod";
 
+const domainConfig = getDomainConfig("sample");
+
 const baseOptions = {
-  idType: "uuid",
-  useCreatedAt: true,
-  useUpdatedAt: true,
-  defaultSearchFields: [
-    "name",
-    "description"
-  ],
-  defaultOrderBy: [
-    [
-      "updatedAt",
-      "DESC"
-    ]
-  ],
+  idType: domainConfig.idType,
+  useCreatedAt: domainConfig.useCreatedAt,
+  useUpdatedAt: domainConfig.useUpdatedAt,
+  defaultSearchFields: domainConfig.searchFields,
+  defaultOrderBy: domainConfig.defaultOrderBy,
   belongsToManyRelations: [
-  {
-    fieldName: "sample_tag_ids",
-    throughTable: SampleToSampleTagTable,
-    sourceColumn: SampleToSampleTagTable.sampleId,
-    targetColumn: SampleToSampleTagTable.sampleTagId,
-    sourceProperty: "sampleId",
-    targetProperty: "sampleTagId",
-  }
+    {
+      fieldName: domainConfig.relations?.find(
+        (relation) => relation.domain === "sample_tag" && relation.relationType === "belongsToMany",
+      )?.fieldName as string,
+      throughTable: SampleToSampleTagTable,
+      sourceColumn: SampleToSampleTagTable.sampleId,
+      targetColumn: SampleToSampleTagTable.sampleTagId,
+      sourceProperty: "sampleId",
+      targetProperty: "sampleTagId",
+    },
   ],
 } satisfies DrizzleCrudServiceOptions<
   z.infer<typeof SampleCreateSchema>
