@@ -57,12 +57,14 @@ const configPath = path.join(camelDir, "domain.json");
 let dbEngine = "";
 let serviceOptionsLiteral = "{}";
 let relationImports = [];
+let belongsToManyLiteral = "";
 if (fs.existsSync(configPath)) {
   const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
   dbEngine = cfg.dbEngine || "";
   const composed = composeServiceOptions(cfg);
   serviceOptionsLiteral = composed.optionsLiteral;
   relationImports = composed.relationTableImports;
+  belongsToManyLiteral = composed.belongsToManyLiteral;
 }
 // コマンドラインで指定された場合は設定より優先
 if (dbEngineArg) dbEngine = dbEngineArg;
@@ -94,7 +96,8 @@ function composeServiceOptions(config) {
   const belongsToMany = buildBelongsToManySnippets(config);
   const optionsLiteral = formatOptionsLiteral(baseOptions, belongsToMany);
   const relationTableImports = belongsToMany.map((item) => item.tableVar);
-  return { optionsLiteral, relationTableImports };
+  const belongsToManyLiteral = formatBelongsToManyLiteral(belongsToMany);
+  return { optionsLiteral, relationTableImports, belongsToManyLiteral };
 }
 
 function buildBelongsToManySnippets(config) {
@@ -140,6 +143,12 @@ function formatOptionsLiteral(baseOptions, belongsToMany) {
   return `{\n${entries.join("\n")}\n}`;
 }
 
+function formatBelongsToManyLiteral(belongsToMany) {
+  if (!belongsToMany.length) return "";
+  const literal = belongsToMany.map((item) => `    ${item.literal}`).join(",\n");
+  return `  belongsToManyRelations: [\n${literal}\n  ],\n`;
+}
+
 function buildEntityImports() {
   const imports = [`${pascal}Table`];
   relationImports.forEach((item) => {
@@ -161,7 +170,8 @@ function replaceTokens(content) {
     .replace(/__Domains__/g, pascalPlural)
     .replace(/__serviceBase__/g, baseFile.replace(/\.ts$/, ""))
     .replace(/__serviceOptions__/g, serviceOptionsLiteral)
-    .replace(/__DrizzleEntityImports__/g, drizzleEntityImports);
+    .replace(/__DrizzleEntityImports__/g, drizzleEntityImports)
+    .replace(/__belongsToManyRelations__/g, belongsToManyLiteral);
 }
 
 for (const file of templates) {

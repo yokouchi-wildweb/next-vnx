@@ -5,16 +5,17 @@ import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle"
 import { SampleCategoryCreateSchema, SampleCategoryUpdateSchema } from "@/features/sampleCategory/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import type { IdType, OrderBySpec } from "@/lib/crud/types";
 import type { z } from "zod";
 
-const domainConfig = getDomainConfig("sample_category");
+const conf = getDomainConfig("sample_category");
 
 const baseOptions = {
-  idType: domainConfig.idType,
-  useCreatedAt: domainConfig.useCreatedAt,
-  useUpdatedAt: domainConfig.useUpdatedAt,
-  defaultSearchFields: domainConfig.searchFields,
-  defaultOrderBy: domainConfig.defaultOrderBy,
+  idType: conf.idType as IdType,
+  useCreatedAt: conf.useCreatedAt,
+  useUpdatedAt: conf.useUpdatedAt,
+  defaultSearchFields: conf.searchFields,
+  defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
 } satisfies DrizzleCrudServiceOptions<
   z.infer<typeof SampleCategoryCreateSchema>
 >;
