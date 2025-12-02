@@ -64,6 +64,7 @@
       "fieldType": "boolean",
       "formInput": "radio",
       "required": false,
+      "displayType": "bookmark",
       "options": [
         { "value": true, "label": "はい" },
         { "value": false, "label": "いいえ" }
@@ -92,6 +93,27 @@
         { "value": "orange", "label": "オレンジ" },
         { "value": "cherry", "label": "さくらんぼ" }
       ]
+    },
+    {
+      "name": "sale_start_at",
+      "label": "販売開始日",
+      "fieldType": "timestamp With Time Zone",
+      "formInput": "datetimeInput",
+      "required": false
+    },
+    {
+      "name": "date",
+      "label": "日付",
+      "fieldType": "date",
+      "formInput": "dateInput",
+      "required": false
+    },
+    {
+      "name": "time",
+      "label": "時間",
+      "fieldType": "time",
+      "formInput": "timeInput",
+      "required": false
     },
     {
       "name": "main_image",

@@ -300,6 +300,12 @@ async function askSingleField(config) {
     ...(options && options.length ? { options } : {}),
   };
 
+  const shouldAssignDisplayType =
+    normalizedInput === 'radio' || (normalizedInput === 'checkbox' && isArrayField);
+  if (shouldAssignDisplayType) {
+    field.displayType = 'standard';
+  }
+
   console.log('\nフィールドを追加しました:', field, '\n');
 
   return field;

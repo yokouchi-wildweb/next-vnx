@@ -8,6 +8,7 @@ export type DomainJsonField = {
   label: string;
   formInput: string;
   fieldType?: string;
+  displayType?: string;
   uploadPath?: string;
   options?: { value: string | number | boolean; label: string }[];
   helperText?: string;
@@ -51,11 +52,24 @@ export const mapDomainFieldToRenderConfig = (
     case "passwordInput":
       return { ...base, type: "password" };
     case "radio": {
-      const options = (field.options ?? []).map((option) => ({
-        value: option.value === true || option.value === "true",
-        label: option.label,
-      }));
-      return { ...base, type: "radioBoolean", options };
+      const options = (field.options ?? []).map((option) => {
+        let normalizedValue: string | number | boolean = option.value as any;
+        if (option.value === true || option.value === "true") {
+          normalizedValue = true;
+        } else if (option.value === false || option.value === "false") {
+          normalizedValue = false;
+        }
+        return {
+          value: normalizedValue,
+          label: option.label,
+        };
+      });
+      return {
+        ...base,
+        type: "radio",
+        options,
+        displayType: field.displayType ?? "standard",
+      };
     }
     case "checkbox": {
       if (field.fieldType === "array") {
@@ -63,7 +77,7 @@ export const mapDomainFieldToRenderConfig = (
           ...base,
           type: "checkGroup",
           options: field.options ?? [],
-          displayType: "checkbox",
+          displayType: field.displayType ?? "standard",
         };
       }
       return { ...base, type: "booleanCheckbox" };

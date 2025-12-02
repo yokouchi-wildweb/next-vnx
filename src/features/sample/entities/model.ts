@@ -11,6 +11,9 @@ export type Sample = {
   radio: boolean | null;
   select: 'apple' | 'orange' | 'berry' | null;
   multi_select: string[];
+  sale_start_at: Date | null;
+  date: string | null;
+  time: string | null;
   main_image: string | null;
   sub_image: string | null;
   description: string | null;

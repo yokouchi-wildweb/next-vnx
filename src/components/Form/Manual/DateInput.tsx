@@ -7,6 +7,7 @@ import {
   useRef,
   type ComponentProps,
   type ChangeEventHandler,
+  type SyntheticEvent,
 } from "react";
 
 import { cn } from "@/lib/cn";
@@ -69,24 +70,38 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
     [forwardedRef],
   );
 
-  const openPicker = useCallback(() => {
+  const openPicker = useCallback((event?: SyntheticEvent) => {
+    if (event && !event.isTrusted) return;
     const el = localRef.current;
     if (el && typeof (el as any).showPicker === "function") {
-      (el as any).showPicker();
+      try {
+        (el as any).showPicker();
+      } catch {
+        // showPicker はユーザー操作でないと失敗するため握りつぶす
+      }
     }
   }, []);
 
+  const hasValueProp = Object.prototype.hasOwnProperty.call(props, "value");
+  const hasDefaultValueProp = Object.prototype.hasOwnProperty.call(props, "defaultValue");
+
   const resolvedValue = useMemo(() => {
-    if (typeof value === "undefined") return undefined;
+    if (!hasValueProp) return undefined;
     return formatDateValue(value);
-  }, [value]);
+  }, [hasValueProp, value]);
 
   const resolvedDefaultValue = useMemo(() => {
-    if (typeof value !== "undefined" || typeof defaultValue === "undefined") {
+    if (hasValueProp || !hasDefaultValueProp) {
       return undefined;
     }
     return formatDateValue(defaultValue);
-  }, [defaultValue, value]);
+  }, [defaultValue, hasDefaultValueProp, hasValueProp]);
+
+  const inputValueProps = hasValueProp
+    ? { value: resolvedValue ?? "" }
+    : hasDefaultValueProp
+      ? { defaultValue: resolvedDefaultValue ?? "" }
+      : {};
 
   return (
     <div className={cn("relative flex h-9 items-center", containerClassName)}>
@@ -95,15 +110,14 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
         ref={assignRef}
         type="date"
         className={cn("pr-8", className)}
-        value={resolvedValue}
-        defaultValue={resolvedValue === undefined ? resolvedDefaultValue : undefined}
+        {...inputValueProps}
         onFocus={(event) => {
           onFocus?.(event);
-          openPicker();
+          openPicker(event);
         }}
         onClick={(event) => {
           onClick?.(event);
-          openPicker();
+          openPicker(event);
         }}
         onChange={(event) => {
           onChange?.(event);

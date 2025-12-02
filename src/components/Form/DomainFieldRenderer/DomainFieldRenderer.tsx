@@ -18,11 +18,10 @@ import { SelectInput } from "@/components/Form/Manual";
 import { CheckGroupInput } from "@/components/Form/Manual";
 import { MultiSelectInput } from "@/components/Form/Manual";
 import StepperInput from "@/components/Form/Manual/StepperInput";
-import { BooleanRadioGroupInput } from "@/components/Form/Manual";
+import { RadioGroupInput } from "@/components/Form/Manual";
 import { SwitchInput } from "@/components/Form/Controlled";
 import { BooleanCheckboxInput } from "@/components/Form/Manual/BooleanCheckboxInput";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";
-import type { Options } from "@/types/form";
 
 import { buildFieldConfigsFromDomainJson, type DomainJsonField } from "./fieldMapper";
 import type {
@@ -33,7 +32,7 @@ import type {
   SelectFieldConfig,
   CheckGroupFieldConfig,
   MultiSelectFieldConfig,
-  RadioBooleanFieldConfig,
+  RadioFieldConfig,
   StepperFieldConfig,
   SwitchFieldConfig,
   MediaUploaderFieldConfig,
@@ -172,8 +171,8 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
       renderInput={(field) => (
         <CheckGroupInput
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
-          options={fieldConfig.options}
-          displayType={fieldConfig.displayType}
+          options={fieldConfig.options ?? []}
+          displayType={fieldConfig.displayType ?? "standard"}
         />
       )}
     />
@@ -198,8 +197,8 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
     />
   );
 
-  const renderRadioBooleanField = (
-    fieldConfig: RadioBooleanFieldConfig<TFieldValues, FieldPath<TFieldValues>>
+  const renderRadioField = (
+    fieldConfig: RadioFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
     <FormFieldItem
       key={fieldConfig.name}
@@ -208,9 +207,10 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
       label={fieldConfig.label}
       description={fieldConfig.description}
       renderInput={(field) => (
-        <BooleanRadioGroupInput
+        <RadioGroupInput
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
-          options={fieldConfig.options}
+          options={fieldConfig.options ?? []}
+          displayType={fieldConfig.displayType ?? "standard"}
         />
       )}
     />
@@ -410,8 +410,8 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
         return renderCheckGroupField(fieldConfig);
       case "multiSelect":
         return renderMultiSelectField(fieldConfig);
-      case "radioBoolean":
-        return renderRadioBooleanField(fieldConfig);
+      case "radio":
+        return renderRadioField(fieldConfig);
       case "stepper":
         return renderStepperField(fieldConfig);
       case "switch":

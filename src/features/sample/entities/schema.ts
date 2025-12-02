@@ -13,6 +13,22 @@ export const SampleBaseSchema = z.object({
   radio: z.coerce.boolean().nullish(),
   select: z.enum(["apple", "orange", "berry"]).nullish(),
   multi_select: z.array(z.string()).default([]),
+  sale_start_at: z.preprocess(
+  (value) => {
+    if (value == null) return undefined;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return undefined;
+      return trimmed;
+    }
+    return value;
+  },
+  z.coerce.date()
+).or(z.literal("").transform(() => undefined)).nullish(),
+  date: z.string().trim().nullish()
+    .transform((value) => emptyToNull(value)),
+  time: z.string().trim().nullish()
+    .transform((value) => emptyToNull(value)),
   main_image: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   sub_image: z.string().trim().nullish()

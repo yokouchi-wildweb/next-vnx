@@ -1,6 +1,6 @@
 // src/features/sample/entities/drizzle.ts
 
-import { boolean, integer, pgEnum, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, integer, pgEnum, pgTable, primaryKey, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
 import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";
 
@@ -17,6 +17,9 @@ export const SampleTable = pgTable("samples", {
   radio: boolean("radio"),
   select: SampleSelectEnum("select"),
   multi_select: text("multi_select").array().notNull(),
+  sale_start_at: timestamp("sale_start_at", { withTimezone: true }),
+  date: date("date"),
+  time: time("time"),
   main_image: text("main_image"),
   sub_image: text("sub_image"),
   description: text("description"),

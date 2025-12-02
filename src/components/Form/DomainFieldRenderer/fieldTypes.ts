@@ -3,6 +3,8 @@ import type { FieldPath, FieldValues } from "react-hook-form";
 import type { Options } from "@/types/form";
 import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 import type { FormFieldItemDescription } from "@/components/Form/FormFieldItem";
+import type { CheckGroupDisplayType } from "@/components/Form/Manual/CheckGroupInput";
+import type { RadioGroupDisplayType } from "@/components/Form/Manual/RadioGroupInput";
 
 type BaseFieldConfig<
   TFieldValues extends FieldValues,
@@ -51,7 +53,7 @@ export type CheckGroupFieldConfig<
 > = BaseFieldConfig<TFieldValues, TName> & {
   type: "checkGroup";
   options?: Options[];
-  displayType?: import("@/components/Form/Manual/CheckGroupInput").CheckGroupDisplayType;
+  displayType?: CheckGroupDisplayType;
 };
 
 export type MultiSelectFieldConfig<
@@ -63,12 +65,13 @@ export type MultiSelectFieldConfig<
   placeholder?: string;
 };
 
-export type RadioBooleanFieldConfig<
+export type RadioFieldConfig<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 > = BaseFieldConfig<TFieldValues, TName> & {
-  type: "radioBoolean";
-  options: { value: boolean; label: string }[];
+  type: "radio";
+  options?: Options[];
+  displayType?: RadioGroupDisplayType;
 };
 
 export type StepperFieldConfig<
@@ -108,7 +111,7 @@ export type DomainFieldRenderConfig<
   | SelectFieldConfig<TFieldValues, TName>
   | CheckGroupFieldConfig<TFieldValues, TName>
   | MultiSelectFieldConfig<TFieldValues, TName>
-  | RadioBooleanFieldConfig<TFieldValues, TName>
+  | RadioFieldConfig<TFieldValues, TName>
   | StepperFieldConfig<TFieldValues, TName>
   | SwitchFieldConfig<TFieldValues, TName>
   | MediaUploaderFieldConfig<TFieldValues, TName>
