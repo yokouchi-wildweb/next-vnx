@@ -14,12 +14,12 @@ export const NumberInput = <
 
   const handleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
     const nextValue = event.target.value;
-    const parsedValue = nextValue === "" ? "" : Number(nextValue);
+    const parsedValue = nextValue === "" ? undefined : Number(nextValue);
     fieldOnChange(parsedValue);
     onChange?.(event);
   };
 
-  const inputValue = (propValue ?? fieldValue ?? "") as string | number;
+  const inputValue = (propValue ?? fieldValue ?? "") as string | number | undefined;
 
   return (
     <Input

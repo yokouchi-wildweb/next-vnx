@@ -16,7 +16,8 @@ import {
 import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
 import { Button } from "@/components/Form/Button/Button";
 import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
-import { walletMetaFieldDefinitions } from "@/features/core/wallet/constants/metaFields";
+import { walletMetaFieldDefinitions, type WalletMetaFieldName } from "@/features/core/wallet/constants/metaFields";
+import type { WalletHistory } from "@/features/core/walletHistory/entities";
 import { walletHistoryBatchClient } from "@/features/core/walletHistory/services/client/walletHistoryBatchClient";
 import type { WalletHistoryBatchSummarySerialized } from "@/features/core/walletHistory/types/batch";
 
@@ -345,7 +346,7 @@ function extractMetaRows(history: WalletHistoryBatchSummarySerialized): DetailMo
 
   return Array.from(metaMap.entries()).map(([key, values]) => [
     {
-      label: metaFieldLabelMap.get(key) ?? key,
+      label: metaFieldLabelMap.get(key as WalletMetaFieldName) ?? key,
       value: renderValueList(Array.from(values)),
     },
   ]);

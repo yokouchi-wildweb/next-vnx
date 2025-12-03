@@ -5,14 +5,8 @@ import { z } from "zod";
 export const WalletAdjustFormSchema = z
   .object({
     walletType: z.enum(["regular_point", "temporary_point"]),
-  changeMethod: z.enum(["INCREMENT", "DECREMENT", "SET"]),
-    amount: z
-      .preprocess(
-        (value) => (value === "" || value === null ? undefined : value),
-        z.coerce.number().int().min(0),
-      )
-      .nullable()
-      .transform((value) => value ?? undefined),
+    changeMethod: z.enum(["INCREMENT", "DECREMENT", "SET"]),
+    amount: z.number().int().min(0).optional(),
     reason: z
       .string()
       .trim()
@@ -24,7 +18,7 @@ export const WalletAdjustFormSchema = z
     notes: z.string().trim().optional(),
   })
   .superRefine((value, ctx) => {
-    if (value.changeMethod !== "SET" && value.amount <= 0) {
+    if (value.changeMethod !== "SET" && (value.amount ?? 0) <= 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "金額は1以上の整数で入力してください。",
@@ -32,7 +26,6 @@ export const WalletAdjustFormSchema = z
       });
     }
   });
-
 export type WalletAdjustFormValues = z.infer<typeof WalletAdjustFormSchema>;
 
 export const WalletAdjustDefaultValues: WalletAdjustFormValues = {
