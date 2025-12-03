@@ -41,7 +41,7 @@ export function MetaFieldsSection({ control }: MetaFieldsSectionProps) {
 }
 
 function resolveDescription(field: WalletMetaFieldDefinition) {
-  if (!("description" in field) || !field.description) {
+  if (!("description" in field) || typeof field.description !== "string" || field.description.trim().length === 0) {
     return undefined;
   }
   return {
