@@ -63,6 +63,7 @@ type DialogContentProps = Omit<
   overlayLayerClassName?: string;
   maxWidth?: number | string;
   minHeight?: number | string;
+  maxHeight?: number | string;
 };
 
 export function DialogOverlay({

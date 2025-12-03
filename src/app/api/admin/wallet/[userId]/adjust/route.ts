@@ -30,14 +30,12 @@ const WalletAdjustPayloadSchema = z
     }
   });
 
-type RouteParams = {
-  params: {
-    userId: string;
-  };
-};
-
-export async function POST(req: NextRequest, { params }: RouteParams) {
-  if (!params.userId) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ userId: string }> },
+) {
+  const { userId } = await params;
+  if (!userId) {
     return NextResponse.json({ message: "ユーザーIDが指定されていません。" }, { status: 400 });
   }
 
@@ -62,15 +60,20 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   }
 
   try {
+    const mergedMeta = {
+      ...(payload.meta ?? {}),
+      adminId: sessionUser.userId,
+    };
+
     const result = await walletService.adjustBalance({
-      userId: params.userId,
+      userId,
       walletType: payload.walletType,
       changeMethod: payload.changeMethod,
       amount: payload.amount,
       sourceType: "admin_action",
       requestBatchId: payload.requestBatchId,
       reason: payload.reason,
-      meta: payload.meta ?? undefined,
+      meta: mergedMeta,
     });
 
     return NextResponse.json(result);

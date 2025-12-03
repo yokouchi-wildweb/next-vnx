@@ -2,18 +2,21 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
+
 import DataTable, {
   TableCellAction,
   type DataTableColumn,
 } from "@/lib/tableSuite/DataTable";
 import DeleteButton from "@/components/Fanctional/DeleteButton";
 import EditButton from "@/components/Fanctional/EditButton";
+import { Button } from "@/components/Form/Button/Button";
 import { useDeleteUser } from "@/features/core/user/hooks/useDeleteUser";
 import type { User } from "@/features/core/user/entities";
 import { formatDateJa } from "@/utils/date";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
 import { formatUserStatusLabel } from "@/features/core/user/constants/status";
+import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
 
 type Props = {
   users: User[];
@@ -28,7 +31,10 @@ const formatDateCell = (date: Date | string | null | undefined) => {
   return formatted;
 };
 
-const createColumns = (editBasePath: string): DataTableColumn<User>[] => [
+const createColumns = (
+  editBasePath: string,
+  onAdjust: (user: User) => void,
+): DataTableColumn<User>[] => [
   {
     header: "ステータス",
     render: (user) => formatUserStatusLabel(user.status, user.status),
@@ -53,6 +59,14 @@ const createColumns = (editBasePath: string): DataTableColumn<User>[] => [
     header: "操作",
     render: (user) => (
       <TableCellAction>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() => onAdjust(user)}
+        >
+          ポイント操作
+        </Button>
         <EditButton href={`${editBasePath}/${user.id}/edit`} />
         <DeleteButton id={user.id} useDelete={useDeleteUser} title="ユーザー削除" />
       </TableCellAction>
@@ -61,14 +75,27 @@ const createColumns = (editBasePath: string): DataTableColumn<User>[] => [
 ];
 
 export default function GeneralUserListTable({ users, editBasePath }: Props) {
-  const columns = useMemo(() => createColumns(editBasePath), [editBasePath]);
+  const [adjustTarget, setAdjustTarget] = useState<User | null>(null);
+
+  const handleOpenAdjust = useCallback((user: User) => {
+    setAdjustTarget(user);
+  }, []);
+
+  const handleCloseAdjust = useCallback(() => {
+    setAdjustTarget(null);
+  }, []);
+
+  const columns = useMemo(() => createColumns(editBasePath, handleOpenAdjust), [editBasePath, handleOpenAdjust]);
 
   return (
-    <DataTable
-      items={users}
-      columns={columns}
-      getKey={(user) => user.id}
-      emptyValueFallback={adminDataTableFallback}
-    />
+    <>
+      <DataTable
+        items={users}
+        columns={columns}
+        getKey={(user) => user.id}
+        emptyValueFallback={adminDataTableFallback}
+      />
+      <AdminWalletAdjustModal open={Boolean(adjustTarget)} user={adjustTarget} onClose={handleCloseAdjust} />
+    </>
   );
 }

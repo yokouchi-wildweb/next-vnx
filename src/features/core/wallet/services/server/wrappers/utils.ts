@@ -9,7 +9,17 @@ import { db } from "@/lib/drizzle";
 import { and, eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
-type TransactionClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type TransactionClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export async function runWithTransaction<T>(
+  tx: TransactionClient | undefined,
+  handler: (tx: TransactionClient) => Promise<T>,
+): Promise<T> {
+  if (tx) {
+    return handler(tx);
+  }
+  return db.transaction(async (innerTx) => handler(innerTx));
+}
 
 export async function getOrCreateWallet(
   tx: TransactionClient,

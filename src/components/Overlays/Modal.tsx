@@ -19,6 +19,7 @@ export type ModalProps = {
   className?: string;
   maxWidth?: number | string;
   minHeight?: number | string;
+  maxHeight?: number | string;
 };
 
 export default function Modal({
@@ -30,6 +31,7 @@ export default function Modal({
   className,
   maxWidth = 640,
   minHeight,
+  maxHeight,
 }: ModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -44,7 +46,13 @@ export default function Modal({
             <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
         )}
-        {children}
+        {maxHeight ? (
+          <div className="overflow-y-auto" style={{ maxHeight }}>
+            {children}
+          </div>
+        ) : (
+          children
+        )}
       </DialogContent>
     </Dialog>
   );

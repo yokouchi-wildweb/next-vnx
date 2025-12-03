@@ -3,7 +3,6 @@
 import type { AdjustWalletParams, WalletAdjustmentResult } from "@/features/core/wallet/services/types";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
-import { db } from "@/lib/drizzle";
 import { eq } from "drizzle-orm";
 import { DomainError } from "@/lib/errors/domainError";
 import {
@@ -13,11 +12,16 @@ import {
   normalizeAmount,
   resolveRequestBatchId,
   sanitizeMeta,
+  runWithTransaction,
+  type TransactionClient,
 } from "./utils";
 
-export async function adjustBalance(params: AdjustWalletParams): Promise<WalletAdjustmentResult> {
-  return db.transaction(async (tx) => {
-    const wallet = await getOrCreateWallet(tx, params.userId, params.walletType);
+export async function adjustBalance(
+  params: AdjustWalletParams,
+  tx?: TransactionClient,
+): Promise<WalletAdjustmentResult> {
+  return runWithTransaction(tx, async (trx) => {
+    const wallet = await getOrCreateWallet(trx, params.userId, params.walletType);
     const amount =
       params.changeMethod === "SET"
         ? normalizeAmount(params.amount, { allowZero: true })
@@ -37,7 +41,7 @@ export async function adjustBalance(params: AdjustWalletParams): Promise<WalletA
 
     ensureNotBelowLockedBalance(wallet, nextBalance);
 
-    const [updated] = await tx
+    const [updated] = await trx
       .update(WalletTable)
       .set({
         balance: nextBalance,
@@ -52,7 +56,7 @@ export async function adjustBalance(params: AdjustWalletParams): Promise<WalletA
 
     const historyMeta = sanitizeMeta(params.meta);
 
-    const [history] = await tx
+    const [history] = await trx
       .insert(WalletHistoryTable)
       .values({
         user_id: params.userId,

@@ -2,18 +2,23 @@
 
 import type { ReleaseReservationParams } from "@/features/core/wallet/services/types";
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
-import { db } from "@/lib/drizzle";
 import { eq } from "drizzle-orm";
-import { ensureLockedAmount, getOrCreateWallet, normalizeAmount } from "./utils";
+import {
+  ensureLockedAmount,
+  getOrCreateWallet,
+  normalizeAmount,
+  runWithTransaction,
+  type TransactionClient,
+} from "./utils";
 
-export async function releaseReservation(params: ReleaseReservationParams) {
+export async function releaseReservation(params: ReleaseReservationParams, tx?: TransactionClient) {
   const amount = normalizeAmount(params.amount);
 
-  return db.transaction(async (tx) => {
-    const wallet = await getOrCreateWallet(tx, params.userId, params.walletType);
+  return runWithTransaction(tx, async (trx) => {
+    const wallet = await getOrCreateWallet(trx, params.userId, params.walletType);
     ensureLockedAmount(wallet, amount);
 
-    const [updated] = await tx
+    const [updated] = await trx
       .update(WalletTable)
       .set({
         locked_balance: wallet.locked_balance - amount,

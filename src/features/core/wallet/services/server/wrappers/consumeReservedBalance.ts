@@ -3,7 +3,6 @@
 import type { ConsumeReservationParams, WalletAdjustmentResult } from "@/features/core/wallet/services/types";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
-import { db } from "@/lib/drizzle";
 import { eq } from "drizzle-orm";
 import { DomainError } from "@/lib/errors/domainError";
 import {
@@ -12,19 +11,24 @@ import {
   normalizeAmount,
   resolveRequestBatchId,
   sanitizeMeta,
+  runWithTransaction,
+  type TransactionClient,
 } from "./utils";
 
-export async function consumeReservedBalance(params: ConsumeReservationParams): Promise<WalletAdjustmentResult> {
+export async function consumeReservedBalance(
+  params: ConsumeReservationParams,
+  tx?: TransactionClient,
+): Promise<WalletAdjustmentResult> {
   const amount = normalizeAmount(params.amount);
 
-  return db.transaction(async (tx) => {
-    const wallet = await getOrCreateWallet(tx, params.userId, params.walletType);
+  return runWithTransaction(tx, async (trx) => {
+    const wallet = await getOrCreateWallet(trx, params.userId, params.walletType);
     ensureLockedAmount(wallet, amount);
     if (wallet.balance < amount) {
       throw new DomainError("残高が不足しているため確定できません。", { status: 409 });
     }
 
-    const [updated] = await tx
+    const [updated] = await trx
       .update(WalletTable)
       .set({
         balance: wallet.balance - amount,
@@ -40,7 +44,7 @@ export async function consumeReservedBalance(params: ConsumeReservationParams): 
 
     const historyMeta = sanitizeMeta(params.meta);
 
-    const [history] = await tx
+    const [history] = await trx
       .insert(WalletHistoryTable)
       .values({
         user_id: params.userId,
