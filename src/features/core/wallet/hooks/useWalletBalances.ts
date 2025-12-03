@@ -5,6 +5,7 @@
 import useSWR from "swr";
 import axios from "axios";
 
+import type { PaginatedResult } from "@/lib/crud/types";
 import type { Wallet } from "@/features/core/wallet/entities";
 
 type WalletBalanceResult = {
@@ -18,11 +19,11 @@ export const useWalletBalances = (userId?: string | null) =>
       if (!userId) {
         return { wallets: [] };
       }
-      const response = await axios.get<Wallet[]>(`/api/wallet`, {
+      const response = await axios.get<PaginatedResult<Wallet>>(`/api/wallet/search`, {
         params: {
           where: JSON.stringify({ field: "user_id", op: "eq", value: userId }),
         },
       });
-      return { wallets: response.data ?? [] };
+      return { wallets: response.data?.results ?? [] };
     },
   );
