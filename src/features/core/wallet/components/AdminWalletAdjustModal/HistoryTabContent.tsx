@@ -218,6 +218,42 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
       }}
       title="ポイント変更の詳細"
       rows={detailRows}
+      footer={
+        detailHistory ? (
+          <div className="space-y-4">
+            <Para size="sm" weight="medium">
+              関連するバッチ処理
+            </Para>
+            <div className="rounded-md border border-border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 text-left">日時</th>
+                    <th className="px-3 py-2 text-left">操作</th>
+                    <th className="px-3 py-2 text-left">残高遷移</th>
+                    <th className="px-3 py-2 text-left">理由</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detailHistory.records.map((record) => (
+                    <tr key={record.id} className="border-t border-border/60">
+                      <td className="px-3 py-2">{formatDate(record.createdAt)}</td>
+                      <td className="px-3 py-2">
+                        {methodLabelMap.get(record.change_method) ?? record.change_method} /{" "}
+                        {formatDeltaRecord(record)}
+                      </td>
+                      <td className="px-3 py-2">
+                        {formatNumber(record.balance_before)} → {formatNumber(record.balance_after)}
+                      </td>
+                      <td className="px-3 py-2">{record.reason ?? "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null
+      }
     />
     </>
   );
@@ -323,6 +359,14 @@ function renderValueList(values: string[]) {
       ))}
     </div>
   );
+}
+
+function formatDeltaRecord(record: WalletHistory) {
+  if (record.change_method === "SET") {
+    return `残高を ${formatNumber(record.balance_after)} に設定`;
+  }
+  const sign = record.change_method === "DECREMENT" ? "-" : "+";
+  return `${sign}${formatNumber(record.points_delta)} pt`;
 }
 
 function formatMetaValue(value: unknown) {

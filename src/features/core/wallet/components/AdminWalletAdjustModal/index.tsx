@@ -233,7 +233,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
         }
       }}
       title="ポイント操作"
-      maxWidth={640}
+      maxWidth={720}
       height="60vh"
       tabs={[
         { value: "adjust", label: "ポイント操作", content: adjustTabContent },
