@@ -4,6 +4,7 @@ import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import generate from "./generate.mjs";
+import askGenerateFiles from "./questions/generate-files.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,6 +48,19 @@ export default async function generateAllDomains() {
     console.log(`  - ${domain}`);
   });
 
+  const { manualSelection } = await prompt({
+    type: "confirm",
+    name: "manualSelection",
+    message: "生成するファイル種別を手動で選択しますか？（いいえの場合は各 domain.json の設定を使用）",
+    default: false,
+  });
+
+  let manualGenerate = null;
+  if (manualSelection) {
+    const selection = await askGenerateFiles();
+    manualGenerate = selection.generateFiles;
+  }
+
   const { confirmGenerateAll } = await prompt({
     type: "confirm",
     name: "confirmGenerateAll",
@@ -62,7 +76,8 @@ export default async function generateAllDomains() {
   for (const domain of selectedDomains) {
     console.log(`\n[${domain}] の生成を開始します。`);
     await generate(domain, {
-      mode: "config",
+      mode: manualGenerate ? "manual" : "config",
+      manualGenerate: manualGenerate ?? undefined,
       interactive: false,
       shouldGenerate: true,
     });
