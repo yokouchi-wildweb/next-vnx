@@ -3,10 +3,9 @@
 "use client";
 
 import useSWR from "swr";
-import axios from "axios";
 
-import type { PaginatedResult } from "@/lib/crud/types";
 import type { Wallet } from "@/features/core/wallet/entities";
+import { walletClient } from "@/features/core/wallet/services/client/walletClient";
 
 type WalletBalanceResult = {
   wallets: Wallet[];
@@ -19,11 +18,15 @@ export const useWalletBalances = (userId?: string | null) =>
       if (!userId) {
         return { wallets: [] };
       }
-      const response = await axios.get<PaginatedResult<Wallet>>(`/api/wallet/search`, {
-        params: {
-          where: JSON.stringify({ field: "user_id", op: "eq", value: userId }),
-        },
+      const search = walletClient.search;
+
+      if (!search) {
+        throw new Error("ウォレット情報の検索機能が利用できません");
+      }
+
+      const response = await search({
+        where: { field: "user_id", op: "eq", value: userId },
       });
-      return { wallets: response.data?.results ?? [] };
+      return { wallets: response.results ?? [] };
     },
   );
