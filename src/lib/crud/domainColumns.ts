@@ -2,6 +2,7 @@ import React from "react";
 import type { DataTableColumn } from "@/lib/tableSuite/DataTable";
 import { formatDateJa } from "@/utils/date";
 import { truncateJapanese } from "@/utils/string";
+import type { FieldPresenter } from "./presenters";
 
 type FieldOption = {
   value: string | number | boolean;
@@ -32,6 +33,7 @@ type BuildDomainColumnsParams<T> = {
   config: DomainJsonConfig;
   actionColumn?: DataTableColumn<T>;
   truncateLength?: number;
+  presenters?: Record<string, FieldPresenter<T>>;
 };
 
 function buildLabelMap(config: DomainJsonConfig): {
@@ -122,6 +124,7 @@ export function buildDomainColumns<T>({
   config,
   actionColumn,
   truncateLength = 30,
+  presenters,
 }: BuildDomainColumnsParams<T>): DataTableColumn<T>[] {
   const tableFields = Array.isArray(config.tableFields) ? (config.tableFields as string[]) : [];
   const { labelMap, inputMap, optionLabelMap } = buildLabelMap(config);
@@ -132,6 +135,10 @@ export function buildDomainColumns<T>({
       const record = item as Record<string, unknown>;
       const value = record[field];
       const inputType = inputMap[field];
+      const presenter = presenters?.[field];
+      if (presenter) {
+        return presenter({ value, field, record: item });
+      }
       return renderValue({
         value,
         field,
