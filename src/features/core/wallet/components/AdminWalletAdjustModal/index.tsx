@@ -24,6 +24,7 @@ import { useAdjustWallet } from "@/features/core/wallet/hooks/useAdjustWallet";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
 import type { WalletAdjustRequestPayload } from "@/features/core/wallet/services/types";
 import { walletMetaFieldDefinitions, type WalletMetaFieldName } from "@/features/core/wallet/constants/metaFields";
+import { formatBalance } from "@/features/core/wallet/utils/formatters";
 
 import {
   WalletAdjustDefaultValues,
@@ -246,13 +247,6 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
       ]}
     />
   );
-}
-
-function formatBalance(balance: number | null) {
-  if (typeof balance === "number") {
-    return balance.toLocaleString();
-  }
-  return "-";
 }
 
 function createMeta(values: WalletAdjustFormValues) {

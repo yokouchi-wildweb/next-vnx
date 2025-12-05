@@ -8,33 +8,32 @@ import { Block } from "@/components/Layout/Block";
 import { Para } from "@/components/TextBlocks/Para";
 import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
-import {
-  WalletHistoryChangeMethodOptions,
-  WalletHistorySourceTypeOptions,
-  WalletHistoryTypeOptions,
-} from "@/features/core/walletHistory/constants/field";
+import { WalletHistoryTypeOptions } from "@/features/core/walletHistory/constants/field";
 import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
 import { Button } from "@/components/Form/Button/Button";
 import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
-import { walletMetaFieldDefinitions, type WalletMetaFieldName } from "@/features/core/wallet/constants/metaFields";
-import type { WalletHistory } from "@/features/core/walletHistory/entities";
 import { walletHistoryBatchClient } from "@/features/core/walletHistory/services/client/walletHistoryBatchClient";
 import type { WalletHistoryBatchSummarySerialized } from "@/features/core/walletHistory/types/batch";
+import { formatDate, formatNumber } from "@/features/core/wallet/utils/formatters";
+import {
+  formatDeltaSummary,
+  formatBalanceClass,
+  formatChangeMethodLabel,
+  formatSourceTypes,
+  formatDeltaRecord,
+  extractReasons,
+  extractMetaRows,
+  renderValueList,
+  getMethodLabelMap,
+} from "@/features/core/wallet/utils/historyDisplay";
 
 type WalletHistoryTabContentProps = {
   userId: string;
 };
 
 const HISTORY_PAGE_SIZE = 20;
-const metaFieldLabelMap = new Map(walletMetaFieldDefinitions.map((field) => [field.name, field.label]));
 
 const typeLabelMap = new Map(WalletHistoryTypeOptions.map((option) => [option.value, option.label]));
-const methodLabelMap = new Map(
-  WalletHistoryChangeMethodOptions.map((option) => [option.value, option.label]),
-);
-const sourceLabelMap = new Map(
-  WalletHistorySourceTypeOptions.map((option) => [option.value, option.label]),
-);
 
 export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps) {
   const fetcher = useCallback(
@@ -240,7 +239,7 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
                     <tr key={record.id} className="border-t border-border/60">
                       <td className="px-3 py-2">{formatDate(record.createdAt)}</td>
                       <td className="px-3 py-2">
-                        {methodLabelMap.get(record.change_method) ?? record.change_method} /{" "}
+                        {getMethodLabelMap().get(record.change_method) ?? record.change_method} /{" "}
                         {formatDeltaRecord(record)}
                       </td>
                       <td className="px-3 py-2">
@@ -258,128 +257,4 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
     />
     </>
   );
-}
-
-function formatDate(value: Date | string | null | undefined) {
-  if (!value) {
-    return "-";
-  }
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
-  return new Intl.DateTimeFormat("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(date);
-}
-
-function formatNumber(value: number | null | undefined) {
-  if (typeof value !== "number") {
-    return "-";
-  }
-  return value.toLocaleString();
-}
-
-function formatDeltaSummary(history: WalletHistoryBatchSummarySerialized) {
-  if (history.changeMethods.length === 1 && history.changeMethods[0] === "SET") {
-    return `残高を ${formatNumber(history.balanceAfter)} に設定`;
-  }
-  const sign = history.totalDelta < 0 ? "-" : "+";
-  return `${sign}${formatNumber(Math.abs(history.totalDelta))} pt`;
-}
-
-function formatBalanceClass(history: WalletHistoryBatchSummarySerialized) {
-  if (history.changeMethods.includes("SET")) {
-    return "text-blue-600";
-  }
-  if (history.totalDelta < 0) {
-    return "text-red-600";
-  }
-  return "text-emerald-600";
-}
-
-function formatChangeMethodLabel(history: WalletHistoryBatchSummarySerialized) {
-  if (history.changeMethods.length === 1) {
-    const method = history.changeMethods[0]!;
-    return methodLabelMap.get(method) ?? method;
-  }
-  return "複数の操作";
-}
-
-function formatSourceTypes(history: WalletHistoryBatchSummarySerialized) {
-  if (history.sourceTypes.length === 1) {
-    const source = history.sourceTypes[0]!;
-    return sourceLabelMap.get(source) ?? source;
-  }
-  return "複数";
-}
-
-function extractReasons(history: WalletHistoryBatchSummarySerialized) {
-  const reasons = history.records
-    .map((record) => record.reason?.trim())
-    .filter((reason): reason is string => Boolean(reason));
-  return Array.from(new Set(reasons));
-}
-
-function extractMetaRows(history: WalletHistoryBatchSummarySerialized): DetailModalRow[] {
-  const metaMap = new Map<string, Set<string>>();
-
-  history.records.forEach((record) => {
-    const meta = record.meta;
-    if (!meta) return;
-    Object.entries(meta).forEach(([key, value]) => {
-      if (!metaMap.has(key)) {
-        metaMap.set(key, new Set());
-      }
-      metaMap.get(key)!.add(formatMetaValue(value));
-    });
-  });
-
-  if (!metaMap.size) {
-    return [[{ label: "メタ情報", value: "メタ情報は設定されていません" }]];
-  }
-
-  return Array.from(metaMap.entries()).map(([key, values]) => [
-    {
-      label: metaFieldLabelMap.get(key as WalletMetaFieldName) ?? key,
-      value: renderValueList(Array.from(values)),
-    },
-  ]);
-}
-
-function renderValueList(values: string[]) {
-  return (
-    <div className="flex flex-col gap-1">
-      {values.map((value) => (
-        <span key={value}>{value}</span>
-      ))}
-    </div>
-  );
-}
-
-function formatDeltaRecord(record: WalletHistory) {
-  if (record.change_method === "SET") {
-    return `残高を ${formatNumber(record.balance_after)} に設定`;
-  }
-  const sign = record.change_method === "DECREMENT" ? "-" : "+";
-  return `${sign}${formatNumber(record.points_delta)} pt`;
-}
-
-function formatMetaValue(value: unknown) {
-  if (value === null || value === undefined) {
-    return "-";
-  }
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
 }
