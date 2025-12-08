@@ -57,6 +57,7 @@ next-env.d.ts
 # etc
 AGENTS.md
 CLAUDE.md
+GEMINI.md
 .claude
 TODO.ts
 .input-image
