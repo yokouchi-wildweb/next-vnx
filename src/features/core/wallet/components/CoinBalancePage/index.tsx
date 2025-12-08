@@ -2,7 +2,6 @@
 
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
@@ -14,17 +13,12 @@ import { BalanceCard } from "../UserBalance/BalanceCard";
 import { PurchaseList } from "../UserBalance/PurchaseList";
 
 export function CoinBalancePage() {
-  const router = useRouter();
   const { user } = useAuthSession();
   const { data, isLoading, error } = useWalletBalances(user?.userId);
 
   const handleHistoryClick = () => {
     // TODO: 履歴ページへの遷移
     console.log("履歴ボタンがクリックされました");
-  };
-
-  const handlePurchaseClick = () => {
-    router.push("/coins/purchase");
   };
 
   // ローディング中
@@ -59,7 +53,7 @@ export function CoinBalancePage() {
         </Button>
       </Flex>
       <BalanceCard balance={currentBalance} label="コイン" />
-      <PurchaseList label="コイン" onPurchase={handlePurchaseClick} />
+      <PurchaseList label="コイン" />
     </Block>
   );
 }

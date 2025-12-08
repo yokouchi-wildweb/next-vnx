@@ -12,13 +12,11 @@ import { PurchaseList } from "./PurchaseList";
 type UserBalanceProps = {
   balance?: number;
   label?: string;
-  onPurchase?: () => void;
 };
 
 export function UserBalance({
   balance = 1000,
   label = "コイン",
-  onPurchase,
 }: UserBalanceProps) {
   const handleHistoryClick = () => {
     // ダミー: 履歴ページへの遷移は後で実装
@@ -33,7 +31,7 @@ export function UserBalance({
         </Button>
       </Flex>
       <BalanceCard balance={balance} label={label} />
-      <PurchaseList label={label} onPurchase={onPurchase} />
+      <PurchaseList label={label} />
     </Block>
   );
 }

@@ -10,26 +10,27 @@ import { Section } from "@/components/Layout/Section";
 import { SecTitle, Span } from "@/components/TextBlocks";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 
-/** 購入パッケージプレビュー */
-const PREVIEW_PACKAGES: { amount: number; price: number; bonus?: string }[] = [
+/** 購入パッケージ定義 */
+const PURCHASE_PACKAGES = [
   { amount: 100, price: 100 },
   { amount: 500, price: 480, bonus: "4%お得" },
   { amount: 1000, price: 900, bonus: "10%お得" },
+  { amount: 3000, price: 2500, bonus: "17%お得" },
+  { amount: 5000, price: 4000, bonus: "20%お得" },
 ];
 
 type PurchaseListProps = {
-  label: string;
-  onPurchase?: () => void;
+  label?: string;
 };
 
-export function PurchaseList({ label, onPurchase }: PurchaseListProps) {
+export function PurchaseList({ label = "コイン" }: PurchaseListProps) {
   return (
     <Section space="sm">
       <SecTitle as="h2" size="lg">
         {label}購入
       </SecTitle>
       <Block space="none">
-        {PREVIEW_PACKAGES.map((pkg) => (
+        {PURCHASE_PACKAGES.map((pkg) => (
           <Flex
             key={pkg.amount}
             justify="between"
@@ -47,29 +48,17 @@ export function PurchaseList({ label, onPurchase }: PurchaseListProps) {
                 </Span>
               )}
             </Flex>
-            <Span weight="bold">¥{pkg.price.toLocaleString()}</Span>
+            <LinkButton
+              href={`/coins/purchase?amount=${pkg.amount}&price=${pkg.price}`}
+              variant="default"
+              size="sm"
+              className="min-w-24 rounded-full"
+            >
+              ¥{pkg.price.toLocaleString()}
+            </LinkButton>
           </Flex>
         ))}
       </Block>
-      <Flex justify="center" className="mt-4">
-        {onPurchase ? (
-          <button
-            onClick={onPurchase}
-            className="w-full max-w-xs rounded-lg bg-primary px-6 py-3 font-bold text-white transition-colors hover:bg-primary/90"
-          >
-            {label}を購入する
-          </button>
-        ) : (
-          <LinkButton
-            href="/coins/purchase"
-            variant="default"
-            size="lg"
-            className="w-full max-w-xs"
-          >
-            {label}を購入する
-          </LinkButton>
-        )}
-      </Flex>
     </Section>
   );
 }

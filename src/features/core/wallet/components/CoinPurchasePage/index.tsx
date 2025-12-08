@@ -2,29 +2,58 @@
 
 "use client";
 
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
 import { CurrencyPurchase } from "../CurrencyPurchase";
-import { PurchasePackageSelector } from "./PurchasePackageSelector";
-
-/** 購入パッケージ定義 */
-const PURCHASE_PACKAGES = [
-  { id: "100", amount: 100, price: 100, label: "100コイン" },
-  { id: "500", amount: 500, price: 480, label: "500コイン", bonus: "4%お得" },
-  { id: "1000", amount: 1000, price: 900, label: "1,000コイン", bonus: "10%お得" },
-  { id: "3000", amount: 3000, price: 2500, label: "3,000コイン", bonus: "17%お得" },
-  { id: "5000", amount: 5000, price: 4000, label: "5,000コイン", bonus: "20%お得" },
-] as const;
 
 export function CoinPurchasePage() {
+  const searchParams = useSearchParams();
+  const amountParam = searchParams.get("amount");
+  const priceParam = searchParams.get("price");
+
   const { user } = useAuthSession();
   const { data, isLoading, error } = useWalletBalances(user?.userId);
-  const [selectedPackage, setSelectedPackage] = useState("100");
+
+  // パラメータ不足チェック
+  if (!amountParam || !priceParam) {
+    return (
+      <Block space="lg">
+        <Para tone="danger" align="center">
+          購入情報が指定されていません。
+        </Para>
+        <Flex justify="center">
+          <LinkButton href="/coins" variant="outline">
+            コイン管理ページへ戻る
+          </LinkButton>
+        </Flex>
+      </Block>
+    );
+  }
+
+  const purchaseAmount = Number(amountParam);
+  const paymentAmount = Number(priceParam);
+
+  // 数値バリデーション
+  if (isNaN(purchaseAmount) || isNaN(paymentAmount) || purchaseAmount <= 0 || paymentAmount <= 0) {
+    return (
+      <Block space="lg">
+        <Para tone="danger" align="center">
+          無効な購入情報です。
+        </Para>
+        <Flex justify="center">
+          <LinkButton href="/coins" variant="outline">
+            コイン管理ページへ戻る
+          </LinkButton>
+        </Flex>
+      </Block>
+    );
+  }
 
   // ローディング中
   if (isLoading) {
@@ -50,19 +79,11 @@ export function CoinPurchasePage() {
   const coinWallet = data?.wallets.find((w) => w.type === "regular_coin");
   const currentBalance = coinWallet?.balance ?? 0;
 
-  // 選択中のパッケージ
-  const pkg = PURCHASE_PACKAGES.find((p) => p.id === selectedPackage) ?? PURCHASE_PACKAGES[0];
-
   return (
     <Block space="md">
-      <PurchasePackageSelector
-        packages={PURCHASE_PACKAGES}
-        selectedId={selectedPackage}
-        onSelect={setSelectedPackage}
-      />
       <CurrencyPurchase
-        purchaseAmount={pkg.amount}
-        paymentAmount={pkg.price}
+        purchaseAmount={purchaseAmount}
+        paymentAmount={paymentAmount}
         currentBalance={currentBalance}
         label="コイン"
         walletType="regular_coin"
