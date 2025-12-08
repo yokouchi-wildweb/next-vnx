@@ -3,7 +3,7 @@
 import { integer, pgEnum, pgTable, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 
-export const WalletTypeEnum = pgEnum("wallet_type_enum", ["regular_point", "temporary_point"]);
+export const WalletTypeEnum = pgEnum("wallet_type_enum", ["regular_point", "temporary_point", "regular_coin"]);
 
 export const WalletTable = pgTable(
   "wallets",

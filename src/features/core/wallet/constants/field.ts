@@ -5,5 +5,6 @@
 
 export const WalletTypeOptions = [
   { value: "regular_point", label: "通常ポイント" },
-  { value: "temporary_point", label: "期間限定ポイント" }
+  { value: "temporary_point", label: "期間限定ポイント" },
+  { value: "regular_coin", label: "通常コイン" }
 ] as const;
