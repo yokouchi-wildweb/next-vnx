@@ -1,4 +1,4 @@
-// src/features/core/wallet/components/CoinPurchasePage/index.tsx
+// src/features/core/wallet/components/WalletPurchasePage/index.tsx
 
 "use client";
 
@@ -10,15 +10,35 @@ import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
+import { getCurrencyConfigBySlug } from "@/features/core/wallet/config/currencyConfig";
 import { CurrencyPurchase } from "../CurrencyPurchase";
 
-export function CoinPurchasePage() {
+type WalletPurchasePageProps = {
+  /** URLスラッグ */
+  slug: string;
+};
+
+export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
   const searchParams = useSearchParams();
   const amountParam = searchParams.get("amount");
   const priceParam = searchParams.get("price");
 
+  const config = getCurrencyConfigBySlug(slug);
   const { user } = useAuthSession();
   const { data, isLoading, error } = useWalletBalances(user?.userId);
+
+  // 無効なスラッグ
+  if (!config) {
+    return (
+      <Block padding="lg">
+        <Para tone="danger" align="center">
+          無効な通貨タイプです。
+        </Para>
+      </Block>
+    );
+  }
+
+  const backUrl = `/wallet/${slug}`;
 
   // パラメータ不足チェック
   if (!amountParam || !priceParam) {
@@ -28,8 +48,8 @@ export function CoinPurchasePage() {
           購入情報が指定されていません。
         </Para>
         <Flex justify="center">
-          <LinkButton href="/coins" variant="outline">
-            コイン管理ページへ戻る
+          <LinkButton href={backUrl} variant="outline">
+            {config.label}管理へ戻る
           </LinkButton>
         </Flex>
       </Block>
@@ -47,8 +67,8 @@ export function CoinPurchasePage() {
           無効な購入情報です。
         </Para>
         <Flex justify="center">
-          <LinkButton href="/coins" variant="outline">
-            コイン管理ページへ戻る
+          <LinkButton href={backUrl} variant="outline">
+            {config.label}管理へ戻る
           </LinkButton>
         </Flex>
       </Block>
@@ -75,9 +95,9 @@ export function CoinPurchasePage() {
     );
   }
 
-  // regular_coin の残高を取得
-  const coinWallet = data?.wallets.find((w) => w.type === "regular_coin");
-  const currentBalance = coinWallet?.balance ?? 0;
+  // 該当ウォレットの残高を取得
+  const wallet = data?.wallets.find((w) => w.type === config.walletType);
+  const currentBalance = wallet?.balance ?? 0;
 
   return (
     <Block space="md">
@@ -85,8 +105,7 @@ export function CoinPurchasePage() {
         purchaseAmount={purchaseAmount}
         paymentAmount={paymentAmount}
         currentBalance={currentBalance}
-        label="コイン"
-        walletType="regular_coin"
+        walletType={config.walletType}
       />
     </Block>
   );

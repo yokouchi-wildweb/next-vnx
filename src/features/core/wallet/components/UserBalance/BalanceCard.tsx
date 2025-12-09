@@ -1,43 +1,42 @@
 // src/features/core/wallet/components/UserBalance/BalanceCard.tsx
 
-import { CircleDollarSign } from "lucide-react";
-
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Span } from "@/components/TextBlocks";
+import type { CurrencyConfig, WalletType } from "@/features/core/wallet/config/currencyConfig";
+import { CurrencyDisplay } from "../CurrencyDisplay";
 
 type BalanceCardProps = {
   balance: number;
-  label: string;
+  config: CurrencyConfig & { walletType: WalletType };
 };
 
-export function BalanceCard({ balance, label }: BalanceCardProps) {
+export function BalanceCard({ balance, config }: BalanceCardProps) {
   return (
     <Section className="-mx-4 bg-gray-100 px-4 py-4">
       <Block className="rounded-lg bg-white" padding="lg">
         <Flex direction="column" align="center" gap="xs">
           <Span size="sm" tone="muted">
-            保有{label}
+            保有{config.label}
           </Span>
-          <Flex align="center" gap="xs">
-            <CircleDollarSign className="size-8 text-coin" />
-            <Span size="xxxl" weight="bold" className="text-coin">
-              {balance.toLocaleString()}
-            </Span>
-          </Flex>
+          <CurrencyDisplay
+            walletType={config.walletType}
+            amount={balance}
+            size="xl"
+            bold
+          />
         </Flex>
         <Block className="mt-4 border-t border-gray-200 pt-4">
           <Flex justify="between" align="center">
             <Span size="sm" tone="muted">
-              通常{label}
+              {config.label}
             </Span>
-            <Flex align="center" gap="xs">
-              <CircleDollarSign className="size-5 text-coin" />
-              <Span size="lg" weight="medium" className="text-coin">
-                {balance.toLocaleString()}
-              </Span>
-            </Flex>
+            <CurrencyDisplay
+              walletType={config.walletType}
+              amount={balance}
+              size="lg"
+            />
           </Flex>
         </Block>
       </Block>

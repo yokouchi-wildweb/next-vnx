@@ -1,4 +1,4 @@
-// src/features/core/wallet/components/CoinBalancePage/index.tsx
+// src/features/core/wallet/components/WalletBalancePage/index.tsx
 
 "use client";
 
@@ -9,10 +9,18 @@ import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { Button } from "@/components/Form/Button/Button";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
-import { BalanceCard } from "../UserBalance/BalanceCard";
-import { PurchaseList } from "../UserBalance/PurchaseList";
+import { getCurrencyConfigBySlug } from "@/features/core/wallet/config/currencyConfig";
 
-export function CoinBalancePage() {
+import { BalanceCard } from "../UserBalance/BalanceCard";
+import { PurchaseList } from "./PurchaseList";
+
+type WalletBalancePageProps = {
+  /** URLスラッグ */
+  slug: string;
+};
+
+export function WalletBalancePage({ slug }: WalletBalancePageProps) {
+  const config = getCurrencyConfigBySlug(slug);
   const { user } = useAuthSession();
   const { data, isLoading, error } = useWalletBalances(user?.userId);
 
@@ -20,6 +28,17 @@ export function CoinBalancePage() {
     // TODO: 履歴ページへの遷移
     console.log("履歴ボタンがクリックされました");
   };
+
+  // 無効なスラッグ
+  if (!config) {
+    return (
+      <Block padding="lg">
+        <Para tone="danger" align="center">
+          無効な通貨タイプです。
+        </Para>
+      </Block>
+    );
+  }
 
   // ローディング中
   if (isLoading) {
@@ -41,9 +60,9 @@ export function CoinBalancePage() {
     );
   }
 
-  // regular_coin の残高を取得
-  const coinWallet = data?.wallets.find((w) => w.type === "regular_coin");
-  const currentBalance = coinWallet?.balance ?? 0;
+  // 該当ウォレットの残高を取得
+  const wallet = data?.wallets.find((w) => w.type === config.walletType);
+  const currentBalance = wallet?.balance ?? 0;
 
   return (
     <Block space="md">
@@ -52,8 +71,8 @@ export function CoinBalancePage() {
           履歴
         </Button>
       </Flex>
-      <BalanceCard balance={currentBalance} label="コイン" />
-      <PurchaseList label="コイン" />
+      <BalanceCard balance={currentBalance} config={config} />
+      <PurchaseList slug={slug} config={config} />
     </Block>
   );
 }

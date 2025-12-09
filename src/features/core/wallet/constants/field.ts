@@ -1,10 +1,4 @@
-// src/features/wallet/constants/field.ts
+// src/features/core/wallet/constants/field.ts
 
-// このファイルは domain-config スクリプトによって自動生成されています。
-// 手動での編集は変更が上書きされる可能性があるため推奨されません。
-
-export const WalletTypeOptions = [
-  { value: "regular_point", label: "通常ポイント" },
-  { value: "temporary_point", label: "期間限定ポイント" },
-  { value: "regular_coin", label: "通常コイン" }
-] as const;
+// WalletTypeOptions は currencyConfig から自動生成されるため、再エクスポート
+export { WalletTypeOptions } from "../config/currencyConfig";

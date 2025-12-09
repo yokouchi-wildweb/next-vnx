@@ -4,29 +4,27 @@
 
 import { Block } from "@/components/Layout/Block";
 import { useCoinPurchase } from "@/features/core/purchaseRequest/hooks/useCoinPurchase";
+import type { WalletType } from "@/features/core/wallet/config/currencyConfig";
 
 import { PaymentMethodForm } from "./PaymentMethodForm";
 import { PurchaseSummaryCard } from "./PurchaseSummaryCard";
 
 type CurrencyPurchaseProps = {
-  /** 購入するコイン数 */
+  /** 購入する数量 */
   purchaseAmount: number;
   /** 支払い金額（円） */
   paymentAmount: number;
   /** 現在の残高 */
   currentBalance: number;
-  /** ラベル（コイン等） */
-  label?: string;
   /** ウォレット種別 */
-  walletType?: string;
+  walletType: WalletType;
 };
 
 export function CurrencyPurchase({
   purchaseAmount,
   paymentAmount,
   currentBalance,
-  label = "コイン",
-  walletType = "regular_coin",
+  walletType,
 }: CurrencyPurchaseProps) {
   const { purchase, isLoading, error } = useCoinPurchase({
     walletType,
@@ -40,7 +38,7 @@ export function CurrencyPurchase({
         purchaseAmount={purchaseAmount}
         paymentAmount={paymentAmount}
         currentBalance={currentBalance}
-        label={label}
+        walletType={walletType}
       />
       <PaymentMethodForm
         onPurchase={purchase}
