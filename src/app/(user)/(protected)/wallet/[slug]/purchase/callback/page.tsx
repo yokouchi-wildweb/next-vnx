@@ -18,7 +18,7 @@ export default async function WalletPurchaseCallbackPageRoute({ params }: PagePr
 
   return (
     <UserPage containerType="narrowStack" space="md">
-      <PurchaseCallback />
+      <PurchaseCallback slug={slug} />
     </UserPage>
   );
 }

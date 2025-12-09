@@ -23,6 +23,8 @@ export type CurrencyConfig = {
   slug: string;
   /** 表示ラベル */
   label: string;
+  /** 単位（サフィックス） */
+  unit: string;
   /** テーマカラー（HEX） */
   color: string;
   /** アイコンコンポーネント */
@@ -43,7 +45,8 @@ export type WalletType = keyof typeof CURRENCY_CONFIG;
 export const CURRENCY_CONFIG = {
   regular_coin: {
     slug: "coin",
-    label: "通常コイン",
+    label: "コイン",
+    unit: "コイン",
     color: "#F59E0B", // amber-500
     icon: CircleDollarSign,
     packages: [
@@ -56,7 +59,8 @@ export const CURRENCY_CONFIG = {
   },
   regular_point: {
     slug: "point",
-    label: "通常ポイント",
+    label: "ポイント",
+    unit: "pt",
     color: "#3B82F6", // blue-500
     icon: Coins,
     packages: [
@@ -70,6 +74,7 @@ export const CURRENCY_CONFIG = {
   temporary_point: {
     slug: "temporary-point",
     label: "期間限定ポイント",
+    unit: "pt",
     color: "#EC4899", // pink-500
     icon: Gift,
     packages: [
@@ -137,4 +142,11 @@ export function getCurrencyConfig(
     ...CURRENCY_CONFIG[walletType],
     walletType,
   };
+}
+
+/**
+ * walletType から slug を取得
+ */
+export function getSlugByWalletType(walletType: WalletType): string {
+  return CURRENCY_CONFIG[walletType].slug;
 }

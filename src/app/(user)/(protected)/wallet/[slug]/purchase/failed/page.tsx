@@ -20,7 +20,7 @@ export default async function WalletPurchaseFailedPageRoute({ params }: PageProp
   return (
     <UserPage containerType="narrowStack" space="md">
       <UserPageTitle>購入エラー</UserPageTitle>
-      <PurchaseFailed />
+      <PurchaseFailed slug={slug} />
     </UserPage>
   );
 }

@@ -26,6 +26,8 @@ type CurrencyDisplayProps = {
   showIcon?: boolean;
   /** ラベルを表示するか（例: "1,000 コイン"） */
   showLabel?: boolean;
+  /** 単位を表示するか（例: "1,000 コイン" or "1,000 pt"） */
+  showUnit?: boolean;
   /** 太字にするか */
   bold?: boolean;
 };
@@ -40,11 +42,15 @@ export function CurrencyDisplay({
   size = "md",
   showIcon = true,
   showLabel = false,
+  showUnit = false,
   bold = false,
 }: CurrencyDisplayProps) {
   const config = getCurrencyConfig(walletType);
   const Icon = config.icon;
   const sizeConfig = SIZE_CONFIG[size];
+
+  // サフィックスの決定: showLabel > showUnit の優先度
+  const suffix = showLabel ? config.label : showUnit ? config.unit : "";
 
   return (
     <Flex
@@ -64,7 +70,7 @@ export function CurrencyDisplay({
         style={{ color: config.color }}
       >
         {amount.toLocaleString()}
-        {showLabel && ` ${config.label}`}
+        {suffix && ` ${suffix}`}
       </Span>
     </Flex>
   );

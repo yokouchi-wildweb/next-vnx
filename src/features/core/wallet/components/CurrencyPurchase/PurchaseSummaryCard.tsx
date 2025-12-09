@@ -5,6 +5,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Span } from "@/components/TextBlocks";
 import { getCurrencyConfig, type WalletType } from "@/features/core/wallet/config/currencyConfig";
+import { CurrencyDisplay } from "../CurrencyDisplay";
 
 type PurchaseSummaryCardProps = {
   purchaseAmount: number;
@@ -27,9 +28,13 @@ export function PurchaseSummaryCard({
       <Block className="rounded-lg bg-white" padding="lg" space="sm">
         <Flex justify="between" align="center" className="py-2">
           <Span tone="muted">ご購入{config.label}</Span>
-          <Span weight="bold" style={{ color: config.color }}>
-            {purchaseAmount.toLocaleString()} {config.label}
-          </Span>
+          <CurrencyDisplay
+            walletType={walletType}
+            amount={purchaseAmount}
+            size="md"
+            showUnit
+            bold
+          />
         </Flex>
         <Flex justify="between" align="center" className="border-t border-gray-200 py-2">
           <Span tone="muted">お支払い金額</Span>
@@ -39,9 +44,13 @@ export function PurchaseSummaryCard({
         </Flex>
         <Flex justify="between" align="center" className="border-t border-gray-200 py-2">
           <Span tone="muted">購入後の{config.label}残高</Span>
-          <Span weight="bold" style={{ color: config.color }}>
-            {balanceAfterPurchase.toLocaleString()} {config.label}
-          </Span>
+          <CurrencyDisplay
+            walletType={walletType}
+            amount={balanceAfterPurchase}
+            size="md"
+            showUnit
+            bold
+          />
         </Flex>
       </Block>
     </Section>

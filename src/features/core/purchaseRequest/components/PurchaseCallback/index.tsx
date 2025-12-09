@@ -10,11 +10,16 @@ import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { usePurchaseStatusPolling } from "../../hooks/usePurchaseStatusPolling";
 
-export function PurchaseCallback() {
+type PurchaseCallbackProps = {
+  /** URLスラッグ */
+  slug: string;
+};
+
+export function PurchaseCallback({ slug }: PurchaseCallbackProps) {
   const searchParams = useSearchParams();
   const requestId = searchParams.get("request_id");
 
-  const { error } = usePurchaseStatusPolling(requestId);
+  const { error } = usePurchaseStatusPolling({ requestId, slug });
 
   if (error) {
     return (
@@ -23,8 +28,8 @@ export function PurchaseCallback() {
           {error}
         </Para>
         <Flex justify="center">
-          <LinkButton href="/coins" variant="outline">
-            コイン管理ページへ戻る
+          <LinkButton href={`/wallet/${slug}`} variant="outline">
+            戻る
           </LinkButton>
         </Flex>
       </Block>

@@ -14,8 +14,16 @@ import {
   getPurchaseStatus,
   type PurchaseStatusResponse,
 } from "../../services/client/purchaseRequestClient";
+import { getCurrencyConfigBySlug } from "@/features/core/wallet/config/currencyConfig";
+import { CurrencyDisplay } from "@/features/core/wallet/components/CurrencyDisplay";
 
-export function PurchaseComplete() {
+type PurchaseCompleteProps = {
+  /** URLスラッグ */
+  slug: string;
+};
+
+export function PurchaseComplete({ slug }: PurchaseCompleteProps) {
+  const currencyConfig = getCurrencyConfigBySlug(slug);
   const searchParams = useSearchParams();
   const requestId = searchParams.get("request_id");
 
@@ -60,8 +68,8 @@ export function PurchaseComplete() {
           {error}
         </Para>
         <Flex justify="center">
-          <LinkButton href="/coins" variant="outline">
-            コイン管理ページへ戻る
+          <LinkButton href={`/wallet/${slug}`} variant="outline">
+            {currencyConfig?.label ?? "ウォレット"}管理ページへ戻る
           </LinkButton>
         </Flex>
       </Block>
@@ -80,11 +88,17 @@ export function PurchaseComplete() {
         {purchaseInfo && (
           <Block appearance="surface" padding="md" space="sm" className="rounded-lg">
             <Flex direction="column" gap="xs">
-              <Flex justify="between" gap="md">
+              <Flex justify="between" gap="md" align="center">
                 <Para tone="muted" size="sm">購入数量</Para>
-                <Para size="sm" weight="bold">
-                  {purchaseInfo.amount.toLocaleString()} コイン
-                </Para>
+                {currencyConfig && (
+                  <CurrencyDisplay
+                    walletType={currencyConfig.walletType}
+                    amount={purchaseInfo.amount}
+                    size="sm"
+                    showUnit
+                    bold
+                  />
+                )}
               </Flex>
               <Flex justify="between" gap="md">
                 <Para tone="muted" size="sm">お支払い金額</Para>
@@ -100,12 +114,9 @@ export function PurchaseComplete() {
           ご購入いただきありがとうございます。
         </Para>
 
-        <Flex gap="sm" wrap="wrap" justify="center">
-          <LinkButton href="/coins" variant="default">
-            残高を確認する
-          </LinkButton>
-          <LinkButton href="/coins/purchase" variant="outline">
-            続けて購入する
+        <Flex justify="center">
+          <LinkButton href={`/wallet/${slug}`} variant="default">
+            {currencyConfig?.label ?? "ウォレット"}管理へ戻る
           </LinkButton>
         </Flex>
       </Flex>

@@ -12,6 +12,7 @@ import {
 } from "../payment";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
+import { getSlugByWalletType, type WalletType } from "@/features/core/wallet/config/currencyConfig";
 import { DomainError } from "@/lib/errors/domainError";
 
 // トランザクションクライアント型
@@ -115,13 +116,14 @@ export async function initiatePurchase(
   console.log("Purchase request created:", purchaseRequest.id);
 
   // 3. 決済プロバイダでセッション作成
+  const slug = getSlugByWalletType(walletType as WalletType);
   const provider = getPaymentProvider(paymentProvider);
   const session = await provider.createSession({
     purchaseRequestId: purchaseRequest.id,
     amount: paymentAmount,
     userId,
-    successUrl: `${baseUrl}/coins/purchase/callback?request_id=${purchaseRequest.id}`,
-    cancelUrl: `${baseUrl}/coins/purchase/failed?request_id=${purchaseRequest.id}&reason=cancelled`,
+    successUrl: `${baseUrl}/wallet/${slug}/purchase/callback?request_id=${purchaseRequest.id}`,
+    cancelUrl: `${baseUrl}/wallet/${slug}/purchase/failed?request_id=${purchaseRequest.id}&reason=cancelled`,
   });
 
   // 4. セッション情報を記録（status: processing）
@@ -398,18 +400,20 @@ async function findByPaymentSessionId(
 function handleExistingRequest(
   existing: PurchaseRequest
 ): InitiatePurchaseResult {
+  const slug = getSlugByWalletType(existing.wallet_type as WalletType);
+
   switch (existing.status) {
     case "completed":
       return {
         purchaseRequest: existing,
-        redirectUrl: `/coins/purchase/complete?request_id=${existing.id}`,
+        redirectUrl: `/wallet/${slug}/purchase/complete?request_id=${existing.id}`,
         alreadyCompleted: true,
       };
 
     case "processing":
       return {
         purchaseRequest: existing,
-        redirectUrl: existing.redirect_url ?? `/coins/purchase/callback?request_id=${existing.id}`,
+        redirectUrl: existing.redirect_url ?? `/wallet/${slug}/purchase/callback?request_id=${existing.id}`,
         alreadyProcessing: true,
       };
 
@@ -417,7 +421,7 @@ function handleExistingRequest(
       // pending の場合は続行（リダイレクトURLがあればそれを使う）
       return {
         purchaseRequest: existing,
-        redirectUrl: existing.redirect_url ?? `/coins/purchase/failed?request_id=${existing.id}&reason=invalid_state`,
+        redirectUrl: existing.redirect_url ?? `/wallet/${slug}/purchase/failed?request_id=${existing.id}&reason=invalid_state`,
         alreadyProcessing: true,
       };
 

@@ -24,6 +24,7 @@ export function BalanceCard({ balance, config }: BalanceCardProps) {
             walletType={config.walletType}
             amount={balance}
             size="xl"
+            showUnit
             bold
           />
         </Flex>
@@ -36,6 +37,7 @@ export function BalanceCard({ balance, config }: BalanceCardProps) {
               walletType={config.walletType}
               amount={balance}
               size="lg"
+              showUnit
             />
           </Flex>
         </Block>

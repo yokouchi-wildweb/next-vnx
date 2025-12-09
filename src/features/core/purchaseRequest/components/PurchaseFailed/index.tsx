@@ -8,6 +8,7 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
+import { getCurrencyConfigBySlug } from "@/features/core/wallet/config/currencyConfig";
 
 /**
  * エラー理由からユーザー向けメッセージを生成
@@ -41,7 +42,13 @@ function getErrorMessage(reason: string | null, errorCode: string | null): strin
   return "購入処理中にエラーが発生しました。";
 }
 
-export function PurchaseFailed() {
+type PurchaseFailedProps = {
+  /** URLスラッグ */
+  slug: string;
+};
+
+export function PurchaseFailed({ slug }: PurchaseFailedProps) {
+  const currencyConfig = getCurrencyConfigBySlug(slug);
   const searchParams = useSearchParams();
   const requestId = searchParams.get("request_id");
   const reason = searchParams.get("reason");
@@ -68,12 +75,9 @@ export function PurchaseFailed() {
           </Para>
         )}
 
-        <Flex gap="sm" wrap="wrap" justify="center">
-          <LinkButton href="/coins/purchase" variant="default">
-            もう一度購入する
-          </LinkButton>
-          <LinkButton href="/coins" variant="outline">
-            コイン管理へ戻る
+        <Flex justify="center">
+          <LinkButton href={`/wallet/${slug}`} variant="default">
+            {currencyConfig?.label ?? "ウォレット"}管理へ戻る
           </LinkButton>
         </Flex>
       </Flex>

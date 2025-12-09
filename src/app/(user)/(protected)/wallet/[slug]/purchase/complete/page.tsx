@@ -20,7 +20,7 @@ export default async function WalletPurchaseCompletePageRoute({ params }: PagePr
   return (
     <UserPage containerType="narrowStack" space="md">
       <UserPageTitle>購入完了</UserPageTitle>
-      <PurchaseComplete />
+      <PurchaseComplete slug={slug} />
     </UserPage>
   );
 }

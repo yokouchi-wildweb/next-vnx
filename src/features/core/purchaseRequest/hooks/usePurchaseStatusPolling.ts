@@ -14,13 +14,23 @@ type PollingState = {
   isPolling: boolean;
 };
 
+type UsePurchaseStatusPollingParams = {
+  /** 購入リクエストID */
+  requestId: string | null;
+  /** URLスラッグ（リダイレクト先のパス用） */
+  slug: string;
+};
+
 /**
  * 購入ステータスをポーリングし、結果に応じてリダイレクトするフック
  *
- * @param requestId 購入リクエストID
+ * @param params パラメータ
  * @returns ポーリング状態
  */
-export function usePurchaseStatusPolling(requestId: string | null): PollingState {
+export function usePurchaseStatusPolling({
+  requestId,
+  slug,
+}: UsePurchaseStatusPollingParams): PollingState {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(true);
@@ -31,9 +41,9 @@ export function usePurchaseStatusPolling(requestId: string | null): PollingState
 
   const redirectToComplete = useCallback(
     (id: string) => {
-      router.replace(`/coins/purchase/complete?request_id=${id}`);
+      router.replace(`/wallet/${slug}/purchase/complete?request_id=${id}`);
     },
-    [router]
+    [router, slug]
   );
 
   const redirectToFailed = useCallback(
@@ -41,9 +51,9 @@ export function usePurchaseStatusPolling(requestId: string | null): PollingState
       const searchParams = new URLSearchParams({ request_id: id });
       if (params.errorCode) searchParams.set("error_code", params.errorCode);
       if (params.reason) searchParams.set("reason", params.reason);
-      router.replace(`/coins/purchase/failed?${searchParams.toString()}`);
+      router.replace(`/wallet/${slug}/purchase/failed?${searchParams.toString()}`);
     },
-    [router]
+    [router, slug]
   );
 
   useEffect(() => {

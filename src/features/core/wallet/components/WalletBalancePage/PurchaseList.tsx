@@ -36,6 +36,7 @@ export function PurchaseList({ slug, config }: PurchaseListProps) {
                 walletType={config.walletType}
                 amount={pkg.amount}
                 size="lg"
+                showUnit
               />
               {pkg.bonus && (
                 <Span size="sm" tone="success">
