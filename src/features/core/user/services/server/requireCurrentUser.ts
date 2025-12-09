@@ -8,8 +8,13 @@ import type { User } from "@/features/core/user/entities/model";
 
 import { userService } from "./userService";
 
+type RequireCurrentUserNotFoundOptions = {
+  behavior: "notFound";
+};
+
 type RequireCurrentUserThrowOptions = {
   behavior?: "throw";
+  message?: string;
 };
 
 type RequireCurrentUserRedirectOptions = {
@@ -18,10 +23,11 @@ type RequireCurrentUserRedirectOptions = {
 };
 
 type RequireCurrentUserReturnNullOptions = {
-  behavior: "return-null";
+  behavior: "returnNull";
 };
 
 export type RequireCurrentUserOptions =
+  | RequireCurrentUserNotFoundOptions
   | RequireCurrentUserThrowOptions
   | RequireCurrentUserRedirectOptions
   | RequireCurrentUserReturnNullOptions;
@@ -44,6 +50,9 @@ const fetchCurrentUser = cache(async (): Promise<User | null> => {
 
 export async function requireCurrentUser(): Promise<User>;
 export async function requireCurrentUser(
+  options: RequireCurrentUserNotFoundOptions,
+): Promise<User>;
+export async function requireCurrentUser(
   options: RequireCurrentUserThrowOptions,
 ): Promise<User>;
 export async function requireCurrentUser(
@@ -61,7 +70,7 @@ export async function requireCurrentUser(
     return user;
   }
 
-  if (options.behavior === "return-null") {
+  if (options.behavior === "returnNull") {
     return null;
   }
 
@@ -69,5 +78,14 @@ export async function requireCurrentUser(
     redirect(options.redirectTo);
   }
 
-  notFound();
+  if (options.behavior === "notFound") {
+    notFound();
+  }
+
+  // デフォルト: throw
+  throw new Error(
+    "message" in options && options.message
+      ? options.message
+      : "ユーザー情報が見つかりません",
+  );
 }
