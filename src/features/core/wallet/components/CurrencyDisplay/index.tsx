@@ -5,7 +5,7 @@ import { Span } from "@/components/TextBlocks";
 import {
   getCurrencyConfig,
   type WalletType,
-} from "@/features/core/wallet/config/currencyConfig";
+} from "@/features/core/wallet/currencyConfig";
 
 const SIZE_CONFIG = {
   xs: { icon: "size-3", text: "xs", gap: "xs" },

@@ -12,7 +12,7 @@ import {
 } from "../payment";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
-import { getSlugByWalletType, type WalletType } from "@/features/core/wallet/config/currencyConfig";
+import { getSlugByWalletType, type WalletType } from "@/features/core/wallet/currencyConfig";
 import { DomainError } from "@/lib/errors/domainError";
 
 // トランザクションクライアント型

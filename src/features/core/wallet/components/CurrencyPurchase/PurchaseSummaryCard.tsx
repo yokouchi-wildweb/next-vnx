@@ -4,7 +4,7 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Span } from "@/components/TextBlocks";
-import { getCurrencyConfig, type WalletType } from "@/features/core/wallet/config/currencyConfig";
+import { getCurrencyConfig, type WalletType } from "@/features/core/wallet/currencyConfig";
 import { CurrencyDisplay } from "../CurrencyDisplay";
 
 type PurchaseSummaryCardProps = {

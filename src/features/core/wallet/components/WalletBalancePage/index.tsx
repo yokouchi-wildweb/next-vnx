@@ -9,7 +9,7 @@ import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
-import { getCurrencyConfigBySlug } from "@/features/core/wallet/config/currencyConfig";
+import { getCurrencyConfigBySlug } from "@/features/core/wallet/currencyConfig";
 
 import { BalanceCard } from "../UserBalance/BalanceCard";
 import { PurchaseList } from "./PurchaseList";

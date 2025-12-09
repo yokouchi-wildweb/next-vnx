@@ -7,7 +7,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { SecTitle, Span } from "@/components/TextBlocks";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
-import type { CurrencyConfig, WalletType } from "@/features/core/wallet/config/currencyConfig";
+import type { CurrencyConfig, WalletType } from "@/features/core/wallet/currencyConfig";
 import { CurrencyDisplay } from "../CurrencyDisplay";
 
 type PurchaseListProps = {

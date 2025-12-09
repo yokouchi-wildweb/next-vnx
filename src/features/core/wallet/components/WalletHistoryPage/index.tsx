@@ -14,7 +14,7 @@ import type { WalletHistoryBatchSummarySerialized } from "@/features/core/wallet
 import {
   getCurrencyConfigBySlug,
   type WalletType,
-} from "@/features/core/wallet/config/currencyConfig";
+} from "@/features/core/wallet/currencyConfig";
 import { HistoryListItem } from "./HistoryListItem";
 
 type WalletHistoryPageProps = {
