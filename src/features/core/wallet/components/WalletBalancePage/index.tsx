@@ -6,7 +6,7 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
-import { Button } from "@/components/Form/Button/Button";
+import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/config/currencyConfig";
@@ -23,11 +23,6 @@ export function WalletBalancePage({ slug }: WalletBalancePageProps) {
   const config = getCurrencyConfigBySlug(slug);
   const { user } = useAuthSession();
   const { data, isLoading, error } = useWalletBalances(user?.userId);
-
-  const handleHistoryClick = () => {
-    // TODO: 履歴ページへの遷移
-    console.log("履歴ボタンがクリックされました");
-  };
 
   // 無効なスラッグ
   if (!config) {
@@ -67,9 +62,9 @@ export function WalletBalancePage({ slug }: WalletBalancePageProps) {
   return (
     <Block space="md">
       <Flex justify="end">
-        <Button variant="outline" size="sm" onClick={handleHistoryClick}>
+        <LinkButton href={`/wallet/${slug}/history`} variant="outline" size="sm">
           履歴
-        </Button>
+        </LinkButton>
       </Flex>
       <BalanceCard balance={currentBalance} config={config} />
       <PurchaseList slug={slug} config={config} />
