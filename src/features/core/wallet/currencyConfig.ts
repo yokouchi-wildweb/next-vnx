@@ -50,11 +50,13 @@ export const CURRENCY_CONFIG = {
     color: "#F59E0B", // amber-500
     icon: CircleDollarSign,
     packages: [
-      { amount: 100, price: 100 },
-      { amount: 500, price: 480, bonus: "4%お得" },
-      { amount: 1000, price: 900, bonus: "10%お得" },
-      { amount: 3000, price: 2500, bonus: "17%お得" },
-      { amount: 5000, price: 4000, bonus: "20%お得" },
+      { amount: 500, price: 500 },
+      { amount: 1000, price: 1000, },
+      { amount: 2000, price: 2000, },
+      { amount: 3000, price: 2940, bonus: "2%お得" },
+      { amount: 4000, price: 3840, bonus: "4%お得" },
+      { amount: 5000, price: 4700, bonus: "6%お得" },
+      { amount: 10000, price: 8800, bonus: "12%お得" },
     ],
   },
   regular_point: {
