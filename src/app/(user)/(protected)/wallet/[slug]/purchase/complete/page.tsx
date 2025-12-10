@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { PurchaseComplete } from "@/features/core/purchaseRequest/components/PurchaseComplete";
-import { isValidSlug } from "@/features/core/wallet/currencyConfig";
+import { isValidSlug } from "@/features/core/wallet";
 
 type PageProps = {
   params: Promise<{ slug: string }>;

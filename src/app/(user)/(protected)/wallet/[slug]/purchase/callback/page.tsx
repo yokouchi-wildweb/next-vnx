@@ -3,7 +3,7 @@
 import { notFound } from "next/navigation";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { PurchaseCallback } from "@/features/core/purchaseRequest/components/PurchaseCallback";
-import { isValidSlug } from "@/features/core/wallet/currencyConfig";
+import { isValidSlug } from "@/features/core/wallet";
 
 type PageProps = {
   params: Promise<{ slug: string }>;

@@ -8,7 +8,7 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
-import { getCurrencyConfigBySlug } from "@/features/core/wallet/currencyConfig";
+import { getCurrencyConfigBySlug } from "@/features/core/wallet";
 
 /**
  * エラー理由からユーザー向けメッセージを生成

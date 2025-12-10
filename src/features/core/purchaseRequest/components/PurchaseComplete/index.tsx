@@ -14,8 +14,7 @@ import {
   getPurchaseStatus,
   type PurchaseStatusResponse,
 } from "../../services/client/purchaseRequestClient";
-import { getCurrencyConfigBySlug } from "@/features/core/wallet/currencyConfig";
-import { CurrencyDisplay } from "@/features/core/wallet/components/CurrencyDisplay";
+import { CurrencyDisplay, getCurrencyConfigBySlug } from "@/features/core/wallet";
 
 type PurchaseCompleteProps = {
   /** URLスラッグ */
