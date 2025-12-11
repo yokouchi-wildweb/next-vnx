@@ -10,6 +10,7 @@ import { type SpinnerVariant } from "@/components/Overlays/Loading/Spinner";
 import Modal from "@/components/Overlays/Modal";
 import TabbedModal, { type TabbedModalTab } from "@/components/Overlays/TabbedModal";
 import { ConfirmDialog } from "@/components/Overlays/ConfirmDialog";
+import { ImageViewerProvider, ZoomableImage } from "@/components/Overlays/ImageViewer";
 import { Checkbox } from "@/components/_shadcn/checkbox";
 import {
   Select,
@@ -237,6 +238,7 @@ export default function OverlayDemoPage() {
   }, []);
 
   return (
+    <ImageViewerProvider>
     <div className="px-6 py-10">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
         <Section as="header" className="my-0 flex flex-col gap-2">
@@ -277,6 +279,30 @@ export default function OverlayDemoPage() {
             <Button variant="destructive" onClick={() => handleShowToast("error")}>
               エラートースト
             </Button>
+          </div>
+        </Section>
+
+        <Section
+          as="section"
+          className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm"
+        >
+          <div className="flex flex-col gap-2">
+            <SecTitle as="h2">画像ビューアー</SecTitle>
+            <Para tone="muted" size="sm" className="mt-0">
+              画像をクリックすると拡大表示されます。ImageViewerProvider でラップされた領域内で動作します。
+            </Para>
+          </div>
+          <div className="flex flex-wrap gap-4">
+            <ZoomableImage
+              src="/imgs/logos/nextjs.png"
+              alt="Next.js ロゴ"
+              className="h-24 w-24 rounded border object-contain p-2"
+            />
+            <ZoomableImage
+              src="/imgs/logos/nextjs.png"
+              alt="Next.js ロゴ (大)"
+              className="h-32 w-32 rounded border object-contain p-2"
+            />
           </div>
         </Section>
 
@@ -468,5 +494,6 @@ export default function OverlayDemoPage() {
         confirmDisabled={isConfirmProcessing}
       />
     </div>
+    </ImageViewerProvider>
   );
 }
