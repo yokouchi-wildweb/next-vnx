@@ -46,7 +46,7 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
               <img
                 src={imageSrc}
                 alt={imageAlt}
-                className="max-w-full max-h-[90vh] object-contain"
+                className="block max-w-full max-h-[90vh] object-contain"
               />
               <DialogClose className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 rounded-full bg-black/70 p-1.5 text-white hover:bg-black/90 transition-colors cursor-pointer">
                 <XIcon className="size-5" />
