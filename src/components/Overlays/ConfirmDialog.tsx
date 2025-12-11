@@ -17,6 +17,7 @@ export type ConfirmDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title?: ReactNode;
+  titleSrOnly?: boolean;
   description?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
@@ -28,6 +29,7 @@ export function ConfirmDialog({
   open,
   onOpenChange,
   title,
+  titleSrOnly,
   description,
   confirmLabel = "OK",
   cancelLabel = "Cancel",
@@ -39,7 +41,7 @@ export function ConfirmDialog({
       <DialogContent showCloseButton={false}>
         {(title || description) && (
           <DialogHeader>
-            {title && <DialogTitle>{title}</DialogTitle>}
+            {title && <DialogTitle srOnly={titleSrOnly}>{title}</DialogTitle>}
             {description && <DialogDescription>{description}</DialogDescription>}
           </DialogHeader>
         )}

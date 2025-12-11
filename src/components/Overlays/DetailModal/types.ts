@@ -25,6 +25,7 @@ export type DetailModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title?: string;
+  titleSrOnly?: boolean;
   badge?: DetailModalBadge;
   media?: DetailModalMedia;
   rows?: DetailModalRow[];

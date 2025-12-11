@@ -25,6 +25,7 @@ export default function DetailModal({
   open,
   onOpenChange,
   title,
+  titleSrOnly,
   badge,
   media,
   rows,
@@ -79,6 +80,7 @@ export default function DetailModal({
       open={open}
       onOpenChange={onOpenChange}
       title={modalTitle}
+      titleSrOnly={titleSrOnly}
       className={cn("animate-[fade-in-scale] fill-both", className)}
     >
       <Block>

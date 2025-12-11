@@ -14,6 +14,7 @@ export type ModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title?: ReactNode;
+  titleSrOnly?: boolean;
   headerContent?: ReactNode;
   children?: ReactNode;
   showCloseButton?: boolean;
@@ -28,6 +29,7 @@ export default function Modal({
   open,
   onOpenChange,
   title,
+  titleSrOnly,
   headerContent,
   children,
   showCloseButton = true,
@@ -63,7 +65,7 @@ export default function Modal({
       >
         {(title || headerContent) && (
           <DialogHeader>
-            {title ? <DialogTitle>{title}</DialogTitle> : null}
+            {title ? <DialogTitle srOnly={titleSrOnly}>{title}</DialogTitle> : null}
             {headerContent}
           </DialogHeader>
         )}

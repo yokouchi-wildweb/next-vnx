@@ -3,6 +3,7 @@ import "@/styles/global.css";
 import { Toaster } from "sonner";
 
 import { RouteTransitionOverlay } from "@/components/Overlays/Loading/RouteTransition";
+import { ImageViewerProvider } from "@/components/Overlays/ImageViewer/Provider";
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
 import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";
 import { RedirectToastProvider } from "@/lib/redirectToast";
@@ -24,8 +25,10 @@ export default function RootLayout({
       <body suppressHydrationWarning className="antialiased font-sans">
         <ViewportHeightWatcher />
         <AuthSessionProvider>
-          <RouteTransitionOverlay />
-          {children}
+          <ImageViewerProvider>
+            <RouteTransitionOverlay />
+            {children}
+          </ImageViewerProvider>
         </AuthSessionProvider>
         <Toaster position="bottom-center" richColors />
         <RedirectToastProvider />

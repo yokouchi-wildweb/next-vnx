@@ -13,7 +13,7 @@ import {
   DialogContent as BaseDialogContent,
   DialogHeader,
   DialogFooter,
-  DialogTitle,
+  DialogTitle as BaseDialogTitle,
   DialogDescription,
 } from "@/components/_shadcn/dialog";
 import { cn } from "@/lib/cn";
@@ -126,9 +126,22 @@ export function DialogContent({
   );
 }
 
+type DialogTitleProps = ComponentProps<typeof BaseDialogTitle> & {
+  srOnly?: boolean;
+};
+
+export function DialogTitle({ srOnly, className, ...props }: DialogTitleProps) {
+  return (
+    <BaseDialogTitle
+      className={cn(srOnly && "sr-only", className)}
+      {...props}
+    />
+  );
+}
+
 export const Dialog = BaseDialog;
 export const DialogPortal = BaseDialogPortal;
 export const DialogTrigger = BaseDialogTrigger;
 export const DialogClose = BaseDialogClose;
 
-export { DialogHeader, DialogFooter, DialogTitle, DialogDescription };
+export { DialogHeader, DialogFooter, DialogDescription };
