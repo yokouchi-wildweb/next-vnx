@@ -69,6 +69,10 @@ if (domainConfig?.useDetailModal) {
   templates.push("use__Domain__ViewModal.ts");
 }
 
+if (domainConfig?.useDuplicateButton) {
+  templates.push("useDuplicate__Domain__.ts");
+}
+
 // テンプレート文字列のトークンをドメイン名で置換
 function replaceTokens(content) {
   return content

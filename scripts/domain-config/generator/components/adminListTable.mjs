@@ -4,6 +4,34 @@ import { templateDir, replaceTokens } from "./utils/template.mjs";
 
 // 一覧テーブルコンポーネントを生成する
 
+// 複製ボタン関連のプレースホルダーを置換
+function replaceDuplicatePlaceholders(content, config, tokens) {
+  const useDuplicate = config?.useDuplicateButton ?? false;
+  const useDetailModal = config?.useDetailModal ?? false;
+
+  if (useDuplicate) {
+    // DuplicateButtonのimport
+    const duplicateImport = `import DuplicateButton from "@/components/Fanctional/DuplicateButton";\n`;
+    // useDuplicateフックのimport
+    const duplicateHookImport = `import { useDuplicate${tokens.pascal} } from "@/features/${tokens.camel}/hooks/useDuplicate${tokens.pascal}";\n`;
+    // DuplicateButtonコンポーネント（詳細モーダル使用時はstopPropagation付き）
+    const duplicateButton = useDetailModal
+      ? `<DuplicateButton id={d.id} useDuplicate={useDuplicate${tokens.pascal}} stopPropagation />\n        `
+      : `<DuplicateButton id={d.id} useDuplicate={useDuplicate${tokens.pascal}} />\n        `;
+
+    return content
+      .replace(/__DUPLICATE_IMPORT__/g, duplicateImport)
+      .replace(/__DUPLICATE_HOOK_IMPORT__/g, duplicateHookImport)
+      .replace(/__DUPLICATE_BUTTON__/g, duplicateButton);
+  } else {
+    // 複製ボタン不要の場合はプレースホルダーを空文字で置換
+    return content
+      .replace(/__DUPLICATE_IMPORT__/g, "")
+      .replace(/__DUPLICATE_HOOK_IMPORT__/g, "")
+      .replace(/__DUPLICATE_BUTTON__/g, "");
+  }
+}
+
 export default function generate({ config, ...tokens }) {
   const { camel } = tokens;
   const templateFile = config?.useDetailModal
@@ -31,7 +59,10 @@ export default function generate({ config, ...tokens }) {
   // 出力ディレクトリが無ければ作成
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
   const template = fs.readFileSync(templatePath, "utf8");
-  const content = replaceTokens(template, tokens);
+  // まず複製ボタン関連のプレースホルダーを置換
+  const withDuplicate = replaceDuplicatePlaceholders(template, config, tokens);
+  // 次に標準のトークンを置換
+  const content = replaceTokens(withDuplicate, tokens);
   fs.writeFileSync(outputFile, content);
   console.log(`コンポーネントを生成しました: ${outputFile}`);
 }

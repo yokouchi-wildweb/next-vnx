@@ -58,6 +58,7 @@ let dbEngine = "";
 let serviceOptionsLiteral = "{}";
 let relationImports = [];
 let belongsToManyLiteral = "";
+let hasMediaUploader = false;
 if (fs.existsSync(configPath)) {
   const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
   dbEngine = cfg.dbEngine || "";
@@ -65,6 +66,8 @@ if (fs.existsSync(configPath)) {
   serviceOptionsLiteral = composed.optionsLiteral;
   relationImports = composed.relationTableImports;
   belongsToManyLiteral = composed.belongsToManyLiteral;
+  // mediaUploaderフィールドの有無を判定
+  hasMediaUploader = Array.isArray(cfg.fields) && cfg.fields.some((f) => f.fieldType === "mediaUploader");
 }
 // コマンドラインで指定された場合は設定より優先
 if (dbEngineArg) dbEngine = dbEngineArg;
@@ -74,7 +77,9 @@ const outputDir = path.join(camelDir, "services", "server");
 const wrapperDir = path.join(outputDir, "wrappers");
 
 const baseFile = dbEngine === "Firestore" ? "firestoreBase.ts" : "drizzleBase.ts";
-const templates = [baseFile, "__domain__Service.ts"];
+// mediaUploaderがある場合はストレージ連携版のサービステンプレートを使用
+const serviceTemplate = hasMediaUploader ? "__domain__Service.withStorage.ts" : "__domain__Service.ts";
+const templates = [baseFile, serviceTemplate];
 
 function collectBaseServiceOptions(config) {
   if (!config) return {};
@@ -196,9 +201,24 @@ function replaceTokens(content) {
     .replace(/__belongsToManyRelations__/g, belongsToManyLiteral);
 }
 
+// 出力先ディレクトリが無ければ作成
+if (!fs.existsSync(outputDir)) {
+  fs.mkdirSync(outputDir, { recursive: true });
+}
+
+// wrappers ディレクトリが無ければ作成し .gitkeep を追加
+if (!fs.existsSync(wrapperDir)) {
+  fs.mkdirSync(wrapperDir, { recursive: true });
+  const keepFile = path.join(wrapperDir, ".gitkeep");
+  fs.writeFileSync(keepFile, "");
+}
+
 for (const file of templates) {
   const templatePath = path.join(templateDir, file);
-  const outputFileName = replaceTokens(file);
+  // サービステンプレートの出力ファイル名は常に __domain__Service.ts にする
+  const outputFileName = file.includes("__domain__Service")
+    ? replaceTokens("__domain__Service.ts")
+    : replaceTokens(file);
   const outputFile = path.join(outputDir, outputFileName);
 
   // テンプレートファイルが無い場合はエラー終了
@@ -207,21 +227,35 @@ for (const file of templates) {
     process.exit(1);
   }
 
-  // 出力先ディレクトリが無ければ作成
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
-
-  // wrappers ディレクトリが無ければ作成し .gitkeep を追加
-  if (!fs.existsSync(wrapperDir)) {
-    fs.mkdirSync(wrapperDir, { recursive: true });
-    const keepFile = path.join(wrapperDir, ".gitkeep");
-    fs.writeFileSync(keepFile, "");
-  }
-
   const template = fs.readFileSync(templatePath, "utf8");
   const content = replaceTokens(template);
 
   fs.writeFileSync(outputFile, content);
   console.log(`サーバーサービスを生成しました: ${outputFile}`);
+}
+
+// mediaUploaderがある場合はwrappersも生成
+if (hasMediaUploader) {
+  const wrapperTemplates = ["wrappers/remove.ts", "wrappers/duplicate.ts"];
+  for (const wrapperFile of wrapperTemplates) {
+    const templatePath = path.join(templateDir, wrapperFile);
+    const outputFile = path.join(outputDir, wrapperFile);
+
+    if (!fs.existsSync(templatePath)) {
+      console.error(`テンプレートが見つかりません: ${templatePath}`);
+      process.exit(1);
+    }
+
+    const template = fs.readFileSync(templatePath, "utf8");
+    const content = replaceTokens(template);
+
+    fs.writeFileSync(outputFile, content);
+    console.log(`ラッパーを生成しました: ${outputFile}`);
+  }
+
+  // .gitkeep があれば削除
+  const keepFile = path.join(wrapperDir, ".gitkeep");
+  if (fs.existsSync(keepFile)) {
+    fs.unlinkSync(keepFile);
+  }
 }

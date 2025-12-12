@@ -92,6 +92,14 @@ export default async function askViewConfig(config) {
   });
   result.useDetailModal = useDetailModal;
 
+  const { useDuplicateButton } = await prompt({
+    type: 'confirm',
+    name: 'useDuplicateButton',
+    message: '一覧に複製ボタンを表示しますか?',
+    default: false,
+  });
+  result.useDuplicateButton = useDuplicateButton;
+
   const { addToAdminDataMenu } = await prompt({
     type: 'confirm',
     name: 'addToAdminDataMenu',

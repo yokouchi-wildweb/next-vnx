@@ -182,10 +182,17 @@ function generateClientService(tokens) {
   console.log(`  生成: ${outputFile}`);
 }
 
+// mediaUploaderフィールドの有無を判定
+function hasMediaUploaderField(config) {
+  return Array.isArray(config?.fields) && config.fields.some((f) => f.fieldType === "mediaUploader");
+}
+
 // サーバーサービス生成
 function generateServerService(tokens) {
-  const { domainPath, camel, pascal, dbEngine } = tokens;
-  const templatePath = path.join(templateDir, "server", "__domain__Service.ts");
+  const { domainPath, camel, pascal, dbEngine, config } = tokens;
+  const hasMediaUploader = hasMediaUploaderField(config);
+  const serviceTemplateFile = hasMediaUploader ? "__domain__Service.withStorage.ts" : "__domain__Service.ts";
+  const templatePath = path.join(templateDir, "server", serviceTemplateFile);
   const outputDir = path.join(featuresDir, domainPath, "services", "server");
   const outputFile = path.join(outputDir, `${camel}Service.ts`);
 
@@ -214,6 +221,38 @@ function generateServerService(tokens) {
     fs.mkdirSync(wrapperDir, { recursive: true });
     const keepFile = path.join(wrapperDir, ".gitkeep");
     fs.writeFileSync(keepFile, "");
+  }
+
+  // mediaUploaderがある場合はwrappersも生成
+  if (hasMediaUploader) {
+    const wrapperTemplates = [
+      { src: "wrappers/remove.ts", dest: "wrappers/remove.ts" },
+      { src: "wrappers/duplicate.ts", dest: "wrappers/duplicate.ts" },
+    ];
+    for (const wrapper of wrapperTemplates) {
+      const wrapperTemplatePath = path.join(templateDir, "server", wrapper.src);
+      const wrapperOutputFile = path.join(outputDir, wrapper.dest);
+
+      if (!fs.existsSync(wrapperTemplatePath)) {
+        console.error(`  テンプレートが見つかりません: ${wrapperTemplatePath}`);
+        continue;
+      }
+
+      const wrapperTemplate = fs.readFileSync(wrapperTemplatePath, "utf8");
+      const wrapperContent = wrapperTemplate
+        .replace(/__domain__/g, camel)
+        .replace(/__Domain__/g, pascal)
+        .replace(/__serviceBase__/g, baseFile);
+
+      fs.writeFileSync(wrapperOutputFile, wrapperContent);
+      console.log(`  生成: ${wrapperOutputFile}`);
+    }
+
+    // .gitkeep があれば削除
+    const keepFile = path.join(wrapperDir, ".gitkeep");
+    if (fs.existsSync(keepFile)) {
+      fs.unlinkSync(keepFile);
+    }
   }
 }
 

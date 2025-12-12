@@ -6,8 +6,8 @@ import type { __Domain__ } from "@/features/__domain__/entities";
 import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
 import EditButton from "@/components/Fanctional/EditButton";
 import DeleteButton from "@/components/Fanctional/DeleteButton";
-import { useDelete__Domain__ } from "@/features/__domain__/hooks/useDelete__Domain__";
-import config from "@/features/__domain__/domain.json";
+__DUPLICATE_IMPORT__import { useDelete__Domain__ } from "@/features/__domain__/hooks/useDelete__Domain__";
+__DUPLICATE_HOOK_IMPORT__import config from "@/features/__domain__/domain.json";
 import presenters from "@/features/__domain__/presenters";
 import { useState } from "react";
 import __Domain__DetailModal from "../common/__Domain__DetailModal";
@@ -33,7 +33,7 @@ const columns: DataTableColumn<__Domain__>[] = buildDomainColumns<__Domain__>({
     render: (d: __Domain__) => (
       <TableCellAction>
         <EditButton href={`/admin/__domainsSlug__/${d.id}/edit`} stopPropagation />
-        <span onClick={(e) => e.stopPropagation()}>
+        __DUPLICATE_BUTTON__<span onClick={(e) => e.stopPropagation()}>
           <DeleteButton id={d.id} useDelete={useDelete__Domain__} title="__DomainLabel__削除" />
         </span>
       </TableCellAction>
