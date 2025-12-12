@@ -24,9 +24,12 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"],
+      "@/features/user/*": ["./src/features/core/user/*"],
+      "@/features/wallet/*": ["./src/features/core/wallet/*"],
+      "@/features/walletHistory/*": ["./src/features/core/walletHistory/*"],
+      "@/features/purchaseRequest/*": ["./src/features/core/purchaseRequest/*"],
+      "@/features/setting/*": ["./src/features/core/setting/*"]
     }
   },
   "include": [
