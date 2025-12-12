@@ -3,10 +3,13 @@
 import { getDomainConfig } from "@/features/core/domainConfig/getDomainConfig";
 import { extractStorageFields } from "./extractStorageFields";
 import { cleanupStorageFiles } from "./cleanupFiles";
+import { duplicateStorageFiles } from "./duplicateFiles";
 
 type BaseService = {
   get: (id: string) => Promise<Record<string, unknown> | undefined>;
+  create: (data: any) => Promise<Record<string, unknown>>;
   remove: (id: string) => Promise<void>;
+  duplicate?: (id: string) => Promise<Record<string, unknown>>;
   bulkDeleteByIds?: (ids: string[]) => Promise<void>;
 };
 
@@ -61,5 +64,44 @@ export function createStorageAwareBulkDeleteByIds<T extends BaseService>(
       );
     }
     await base.bulkDeleteByIds?.(ids);
+  };
+}
+
+/**
+ * ストレージ連携対応のduplicateを作成
+ *
+ * @example
+ * // wrappers/duplicate.ts
+ * import { createStorageAwareDuplicate } from "@/lib/storage/domainIntegration";
+ * import { base } from "../drizzleBase";
+ * export const duplicate = createStorageAwareDuplicate(base, "sample");
+ */
+export function createStorageAwareDuplicate<T extends BaseService>(
+  base: T,
+  domainKey: string
+): (id: string) => Promise<Record<string, unknown>> {
+  const storageFields = extractStorageFields(getDomainConfig(domainKey));
+
+  return async (id: string): Promise<Record<string, unknown>> => {
+    const record = await base.get(id);
+    if (!record) {
+      throw new Error(`Record not found: ${id}`);
+    }
+
+    const {
+      id: _id,
+      createdAt: _createdAt,
+      updatedAt: _updatedAt,
+      ...rest
+    } = record;
+
+    let newData = rest;
+
+    if (storageFields.length) {
+      const newUrls = await duplicateStorageFiles(record, storageFields);
+      newData = { ...rest, ...newUrls };
+    }
+
+    return base.create(newData);
   };
 }

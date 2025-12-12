@@ -7,3 +7,4 @@ export * from "./useSearchDomain";
 export * from "./useBulkDeleteByIdsDomain";
 export * from "./useBulkDeleteByQueryDomain";
 export * from "./useUpsertDomain";
+export * from "./useDuplicateDomain";

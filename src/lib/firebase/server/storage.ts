@@ -23,6 +23,22 @@ export async function deleteFileServer(path: string): Promise<void> {
   await file.delete();
 }
 
+/**
+ * Firebase Storage のファイルを複製する（サーバー用）
+ *
+ * @param sourcePath - コピー元のパス
+ * @param destPath - コピー先のパス
+ * @returns コピー後の公開 URL
+ */
+export async function copyFileServer(sourcePath: string, destPath: string): Promise<string> {
+  const bucket = getServerStorage().bucket();
+  const sourceFile = bucket.file(sourcePath);
+  const destFile = bucket.file(destPath);
+  await sourceFile.copy(destFile);
+  await destFile.makePublic();
+  return destFile.publicUrl();
+}
+
 export function getPathFromStorageUrl(url: string): string | undefined {
   try {
     const bucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;

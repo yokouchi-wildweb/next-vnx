@@ -2,4 +2,9 @@
 
 export { extractStorageFields } from "./extractStorageFields";
 export { cleanupStorageFiles } from "./cleanupFiles";
-export { createStorageAwareRemove, createStorageAwareBulkDeleteByIds } from "./wrappers";
+export { duplicateStorageFiles } from "./duplicateFiles";
+export {
+  createStorageAwareRemove,
+  createStorageAwareBulkDeleteByIds,
+  createStorageAwareDuplicate,
+} from "./wrappers";

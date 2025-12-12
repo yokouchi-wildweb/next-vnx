@@ -254,5 +254,21 @@ export function createCrudService<
         return upserted;
       });
     },
+
+    async duplicate(id: string): Promise<Select> {
+      const record = await this.get(id);
+      if (!record) {
+        throw new Error(`Record not found: ${id}`);
+      }
+
+      const {
+        id: _id,
+        createdAt: _createdAt,
+        updatedAt: _updatedAt,
+        ...rest
+      } = record as Select & { id: unknown; createdAt?: unknown; updatedAt?: unknown };
+
+      return this.create(rest as unknown as Insert);
+    },
   };
 }

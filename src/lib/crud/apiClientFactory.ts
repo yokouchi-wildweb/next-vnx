@@ -79,5 +79,10 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
         "upsert",
         async () => (await axios.put<T>(`${baseUrl}/upsert`, { data, options })).data,
       ),
+    duplicate: (id: string) =>
+      handleRequest(
+        "duplicate",
+        async () => (await axios.post<T>(`${baseUrl}/${id}/duplicate`)).data,
+      ),
   };
 }
