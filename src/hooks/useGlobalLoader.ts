@@ -2,7 +2,8 @@
 
 "use client";
 
-import { useGlobalLoaderStore } from "@/stores/useGlobalLoaderStore";
+import { useCallback } from "react";
+import { useGlobalLoaderStore, type LoaderOptions } from "@/stores/useGlobalLoaderStore";
 
 /**
  * グローバルローダーを制御するフック。
@@ -22,7 +23,23 @@ import { useGlobalLoaderStore } from "@/stores/useGlobalLoaderStore";
  * });
  */
 export function useGlobalLoader() {
-  const showLoader = useGlobalLoaderStore((s) => s.showLoader);
-  const hideLoader = useGlobalLoaderStore((s) => s.hideLoader);
+  const setVisible = useGlobalLoaderStore((s) => s.setVisible);
+  const setOptions = useGlobalLoaderStore((s) => s.setOptions);
+
+  const showLoader = useCallback(
+    (options?: string | LoaderOptions) => {
+      const resolved: LoaderOptions =
+        typeof options === "string" ? { message: options } : options ?? {};
+      setOptions(resolved);
+      setVisible(true);
+    },
+    [setVisible, setOptions],
+  );
+
+  const hideLoader = useCallback(() => {
+    setVisible(false);
+    setOptions({});
+  }, [setVisible, setOptions]);
+
   return { showLoader, hideLoader };
 }

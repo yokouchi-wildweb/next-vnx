@@ -6,7 +6,7 @@ import { create } from "zustand";
 import type { ReactNode } from "react";
 import type { SpinnerVariant } from "@/components/Overlays/Loading/Spinner";
 
-type LoaderOptions = {
+export type LoaderOptions = {
   message?: ReactNode;
   spinnerVariant?: SpinnerVariant;
   spinnerClassName?: string;
@@ -18,17 +18,13 @@ type LoaderOptions = {
 type GlobalLoaderState = {
   isVisible: boolean;
   options: LoaderOptions;
-  showLoader: (options?: string | LoaderOptions) => void;
-  hideLoader: () => void;
+  setVisible: (visible: boolean) => void;
+  setOptions: (options: LoaderOptions) => void;
 };
 
 export const useGlobalLoaderStore = create<GlobalLoaderState>((set) => ({
   isVisible: false,
   options: {},
-  showLoader: (options) => {
-    const resolved: LoaderOptions =
-      typeof options === "string" ? { message: options } : options ?? {};
-    set({ isVisible: true, options: resolved });
-  },
-  hideLoader: () => set({ isVisible: false, options: {} }),
+  setVisible: (visible) => set({ isVisible: visible }),
+  setOptions: (options) => set({ options }),
 }));
