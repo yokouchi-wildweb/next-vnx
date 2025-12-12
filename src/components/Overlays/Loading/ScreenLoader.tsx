@@ -18,6 +18,10 @@ type LoadingOverlayProps = {
    */
   className?: string;
   /**
+   * オーバーレイ全体に追加するインラインスタイル。
+   */
+  style?: React.CSSProperties;
+  /**
    * スピナーに追加するクラス名。
    */
   spinnerClassName?: string;
@@ -43,6 +47,7 @@ const MODE_CLASS: Record<LoadingOverlayMode, string> = {
 export function ScreenLoader({
   mode = "fullscreen",
   className,
+  style,
   spinnerClassName,
   spinnerVariant,
   message,
@@ -55,6 +60,7 @@ export function ScreenLoader({
         MODE_CLASS[mode],
         className,
       )}
+      style={style}
       role="status"
       aria-live="polite"
       aria-busy

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "@/styles/global.css";
 import { Toaster } from "sonner";
 
+import { GlobalScreenLoader } from "@/components/Overlays/Loading/GlobalScreenLoader";
 import { RouteTransitionOverlay } from "@/components/Overlays/Loading/RouteTransition";
 import { ImageViewerProvider } from "@/components/Overlays/ImageViewer/Provider";
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
@@ -24,6 +25,7 @@ export default function RootLayout({
 
       <body suppressHydrationWarning className="antialiased font-sans">
         <ViewportHeightWatcher />
+        <GlobalScreenLoader />
         <AuthSessionProvider>
           <ImageViewerProvider>
             <RouteTransitionOverlay />
