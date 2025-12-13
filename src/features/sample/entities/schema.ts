@@ -35,8 +35,9 @@ export const SampleBaseSchema = z.object({
     .transform((value) => emptyToNull(value)),
   description: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
+  deletedAt: z.date().nullish(),
 });
 
-export const SampleCreateSchema = SampleBaseSchema;
+export const SampleCreateSchema = SampleBaseSchema.omit({ deletedAt: true });
 
-export const SampleUpdateSchema = SampleBaseSchema.partial();
+export const SampleUpdateSchema = SampleBaseSchema.partial().omit({ deletedAt: true });

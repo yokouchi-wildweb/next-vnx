@@ -25,6 +25,7 @@ export const SampleTable = pgTable("samples", {
   description: text("description"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export const SampleToSampleTagTable = pgTable(
