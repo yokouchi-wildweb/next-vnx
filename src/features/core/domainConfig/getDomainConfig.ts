@@ -2,6 +2,8 @@
 // ドメイン設定 (domain.json) を取得するユーティリティ。
 
 import { domainConfigMap, type DomainConfig, type DomainKey } from "@/registry/domainConfigRegistry";
+
+export type { DomainConfig };
 import { toSnakeCase } from "@/utils/stringCase.mjs";
 
 const normalizeDomainKey = (domain: string) => {

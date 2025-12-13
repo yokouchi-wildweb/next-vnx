@@ -1,6 +1,6 @@
 // src/features/sampleCategory/services/server/drizzleBase.ts
 
-import { getDomainConfig } from "@/features/core/domainConfig/getDomainConfig";
+import { getDomainConfig, type DomainConfig } from "@/features/core/domainConfig/getDomainConfig";
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
 import { SampleCategoryCreateSchema, SampleCategoryUpdateSchema } from "@/features/sampleCategory/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
@@ -8,7 +8,7 @@ import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { IdType, OrderBySpec } from "@/lib/crud/types";
 import type { z } from "zod";
 
-const conf = getDomainConfig("sampleCategory");
+const conf = getDomainConfig("sampleCategory") as DomainConfig & { useSoftDelete?: boolean };
 
 export const baseOptions = {
   idType: conf.idType as IdType,
