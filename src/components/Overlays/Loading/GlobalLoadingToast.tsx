@@ -23,9 +23,9 @@ const POSITION_CLASSES: Record<LoadingToastPosition, string> = {
 };
 
 const SIZE_CLASSES: Record<LoadingToastSize, { container: string; spinner: string; text: string }> = {
-  sm: { container: "gap-2 px-3 py-2", spinner: "h-4 w-4", text: "text-xs" },
-  md: { container: "gap-3 px-4 py-3", spinner: "h-5 w-5", text: "text-sm" },
-  lg: { container: "gap-5 px-6 py-5", spinner: "h-8 w-8", text: "text-lg" },
+  sm: { container: "gap-2 p-3 w-[320px]", spinner: "h-4 w-4", text: "text-xs" },
+  md: { container: "gap-3 p-4 w-[356px]", spinner: "h-5 w-5", text: "text-sm" },
+  lg: { container: "gap-4 p-5 w-[400px]", spinner: "h-6 w-6", text: "text-base" },
 };
 
 /**
@@ -63,7 +63,7 @@ export function GlobalLoadingToast() {
       className={cn(
         "fixed alert-layer",
         "flex items-center",
-        "bg-background border border-border rounded-lg shadow-lg",
+        "bg-background border border-border rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.1)]",
         "duration-300",
         sizeClasses.container,
         POSITION_CLASSES[position],

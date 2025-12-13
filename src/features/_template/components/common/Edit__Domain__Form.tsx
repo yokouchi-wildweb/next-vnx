@@ -11,6 +11,7 @@ import { useUpdate__Domain__ } from "@/features/__domain__/hooks/useUpdate__Doma
 import { __Domain__Form } from "./__Domain__Form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useLoadingToast } from "@/hooks/useLoadingToast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
 import domainConfig from "@/features/__domain__/domain.json";
@@ -29,15 +30,17 @@ export default function Edit__Domain__Form({ __domain__, redirectPath = "/" }: P
   });
 
   const router = useRouter();
-
+  const { showLoadingToast, hideLoadingToast } = useLoadingToast();
   const { trigger, isMutating } = useUpdate__Domain__();
 
   const submit = async (data: __Domain__UpdateFields) => {
+    showLoadingToast("更新中です…");
     try {
       await trigger({ id: __domain__.id, data });
       toast.success("更新しました");
       router.push(redirectPath);
     } catch (error) {
+      hideLoadingToast();
       toast.error(err(error, "更新に失敗しました"));
     }
   };

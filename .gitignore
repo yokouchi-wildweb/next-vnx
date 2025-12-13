@@ -25,6 +25,7 @@
 firebase-service-acount.json
 .firebaserc
 firebase.json
+firebase-debug.log
 firestore.indexes.json
 apphosting.yaml
 storage.rules
