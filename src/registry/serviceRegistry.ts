@@ -14,12 +14,12 @@ export const serviceRegistry: Record<string, any> = {
   // --- AUTO-GENERATED-START ---
   user: userService,
   setting: settingService,
-  sampleCategory: sampleCategoryService,
-  sampleTag: sampleTagService,
   wallet: walletService,
   walletHistory: walletHistoryService,
   purchaseRequest: purchaseRequestService,
   sample: sampleService,
+  sampleCategory: sampleCategoryService,
+  sampleTag: sampleTagService,
   // --- AUTO-GENERATED-END ---
 
 };
