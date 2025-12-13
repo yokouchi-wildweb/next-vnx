@@ -8,6 +8,7 @@ import { RouteTransitionOverlay } from "@/components/Overlays/Loading/RouteTrans
 import { ImageViewerProvider } from "@/components/Overlays/ImageViewer/Provider";
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
 import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";
+import { AdminCommandProvider } from "@/lib/adminCommand";
 import { RedirectToastProvider } from "@/lib/redirectToast";
 
 export const metadata: Metadata = {
@@ -29,10 +30,12 @@ export default function RootLayout({
         <GlobalScreenLoader />
         <GlobalLoadingToast />
         <AuthSessionProvider>
-          <ImageViewerProvider>
-            <RouteTransitionOverlay />
-            {children}
-          </ImageViewerProvider>
+          <AdminCommandProvider>
+            <ImageViewerProvider>
+              <RouteTransitionOverlay />
+              {children}
+            </ImageViewerProvider>
+          </AdminCommandProvider>
         </AuthSessionProvider>
         <Toaster position="bottom-center" richColors />
         <RedirectToastProvider />
