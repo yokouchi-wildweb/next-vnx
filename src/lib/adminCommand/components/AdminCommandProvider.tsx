@@ -3,6 +3,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { AdminCommandPalette } from "./AdminCommandPalette";
@@ -43,14 +44,13 @@ type AdminCommandProviderProps = {
  */
 export function AdminCommandProvider({ children }: AdminCommandProviderProps) {
   const { user } = useAuthSession();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
   const isAdmin = user?.role === "admin";
 
   // ショートカットキーの監視
   useEffect(() => {
-    if (!isAdmin) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl + Shift + Alt + A (Windows/Linux)
       // Cmd + Shift + Option + A (Mac)
@@ -59,13 +59,20 @@ export function AdminCommandProvider({ children }: AdminCommandProviderProps) {
 
       if (modifierKey && e.shiftKey && e.altKey && e.key.toLowerCase() === "a") {
         e.preventDefault();
-        setIsOpen((prev) => !prev);
+
+        if (isAdmin) {
+          // 管理者の場合はパレットを開く
+          setIsOpen((prev) => !prev);
+        } else {
+          // 管理者でない場合はログインページに遷移
+          router.push("/admin/login");
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isAdmin]);
+  }, [isAdmin, router]);
 
   const openPalette = useCallback(() => setIsOpen(true), []);
   const closePalette = useCallback(() => setIsOpen(false), []);
