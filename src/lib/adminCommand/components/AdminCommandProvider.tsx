@@ -5,7 +5,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
-import { registerDefaultCommands } from "../commands";
 import { AdminCommandPalette } from "./AdminCommandPalette";
 
 type AdminCommandContextValue = {
@@ -45,17 +44,8 @@ type AdminCommandProviderProps = {
 export function AdminCommandProvider({ children }: AdminCommandProviderProps) {
   const { user } = useAuthSession();
   const [isOpen, setIsOpen] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
 
   const isAdmin = user?.role === "admin";
-
-  // デフォルトコマンドの登録（初回のみ）
-  useEffect(() => {
-    if (!isInitialized) {
-      registerDefaultCommands();
-      setIsInitialized(true);
-    }
-  }, [isInitialized]);
 
   // ショートカットキーの監視
   useEffect(() => {
@@ -64,7 +54,7 @@ export function AdminCommandProvider({ children }: AdminCommandProviderProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl + Shift + Alt + A (Windows/Linux)
       // Cmd + Shift + Option + A (Mac)
-      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+      const isMac = /mac/i.test(navigator.userAgent);
       const modifierKey = isMac ? e.metaKey : e.ctrlKey;
 
       if (modifierKey && e.shiftKey && e.altKey && e.key.toLowerCase() === "a") {

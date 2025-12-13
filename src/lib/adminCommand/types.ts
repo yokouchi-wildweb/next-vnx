@@ -4,59 +4,66 @@ import type { ReactNode } from "react";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 
 /**
- * コマンド実行時に渡されるコンテキスト
+ * カテゴリレンダラーが受け取る共通Props
  */
-export type CommandContext = {
+export type CategoryRendererProps = {
+  /** パレットを閉じる */
+  onClose: () => void;
+  /** 第1メニュー（ルート）に戻る */
+  onBack: () => void;
   /** 現在のユーザー情報 */
   user: SessionUser;
-  /** 現在のパス */
-  pathname: string;
-  /** パレットを閉じる関数 */
-  closePalette: () => void;
 };
 
 /**
- * コマンドのカテゴリ
+ * パレットの表示状態
  */
-export type CommandCategory = "navigation" | "action" | "system";
+export type PaletteView =
+  | { type: "root" }
+  | { type: "category"; categoryId: string };
 
 /**
- * コマンドの実行結果（非同期処理用）
+ * ナビゲーション項目の定義
  */
-export type CommandResult = {
-  success: boolean;
-  message?: string;
-};
-
-/**
- * 管理者コマンドの定義
- */
-export type AdminCommand = {
-  /** コマンドの一意識別子 */
+export type NavigationItem = {
+  /** 一意識別子 */
   id: string;
   /** 表示ラベル */
   label: string;
-  /** 説明文（検索対象にもなる） */
+  /** 説明文 */
   description?: string;
   /** アイコン */
   icon?: ReactNode;
-  /** カテゴリ */
-  category: CommandCategory;
-  /** コマンド実行関数 */
-  execute: (context: CommandContext) => void | Promise<void | CommandResult>;
-  /** 非同期処理フラグ（ローディング表示に使用） */
-  isAsync?: boolean;
-  /** キーワード（検索用の追加キーワード） */
+  /** 遷移先URL */
+  href: string;
+  /** キーワード（検索用） */
   keywords?: string[];
-  /** コマンドが利用可能かどうかを判定する関数 */
-  isAvailable?: (context: Omit<CommandContext, "closePalette">) => boolean;
 };
 
 /**
- * カテゴリの表示情報
+ * 設定項目の入力タイプ
  */
-export const CATEGORY_LABELS: Record<CommandCategory, string> = {
-  navigation: "ナビゲーション",
-  action: "アクション",
-  system: "システム",
+export type SettingInputType = "text" | "number";
+
+/**
+ * 設定項目の定義
+ */
+export type SettingFieldConfig = {
+  /** 設定キー（Setting モデルのフィールド名） */
+  key: string;
+  /** 表示ラベル */
+  label: string;
+  /** 説明文 */
+  description?: string;
+  /** 入力タイプ */
+  type: SettingInputType;
+  /** プレースホルダー */
+  placeholder?: string;
+  /** バリデーション設定 */
+  validation?: {
+    min?: number;
+    max?: number;
+    minLength?: number;
+    maxLength?: number;
+  };
 };

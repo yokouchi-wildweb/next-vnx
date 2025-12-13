@@ -2,23 +2,19 @@
 
 // Types
 export type {
-  AdminCommand,
-  CommandCategory,
-  CommandContext,
-  CommandResult,
+  CategoryRendererProps,
+  NavigationItem,
+  SettingFieldConfig,
+  SettingInputType,
+  PaletteView,
 } from "./types";
-export { CATEGORY_LABELS } from "./types";
 
-// Registry
-export {
-  adminCommandRegistry,
-  registerAdminCommand,
-  registerAdminCommands,
-} from "./registry";
+// Categories
+export { categories, type CategoryConfig } from "./categories";
+
+// Definitions
+export { navigationItems, settingFields } from "./definitions";
 
 // Components
 export { AdminCommandProvider, useAdminCommand } from "./components/AdminCommandProvider";
 export { AdminCommandPalette } from "./components/AdminCommandPalette";
-
-// Commands
-export { registerDefaultCommands, navigationCommands } from "./commands";

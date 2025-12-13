@@ -2,21 +2,22 @@
 
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
-import { Loader2Icon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronRightIcon } from "lucide-react";
 
 import {
-  CommandDialog,
+  Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
 } from "@/components/_shadcn/command";
+import { Dialog, DialogContent, DialogTitle } from "@/components/Overlays/Dialog";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
-import { adminCommandRegistry } from "../registry";
-import { CATEGORY_LABELS, type AdminCommand, type CommandCategory, type CommandContext } from "../types";
+import { categories } from "../categories";
+import type { PaletteView } from "../types";
+import { filterSearchInput } from "../utils";
 
 type AdminCommandPaletteProps = {
   open: boolean;
@@ -25,91 +26,103 @@ type AdminCommandPaletteProps = {
 
 export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteProps) {
   const { user } = useAuthSession();
-  const pathname = usePathname();
-  const [executingCommandId, setExecutingCommandId] = useState<string | null>(null);
+  const [view, setView] = useState<PaletteView>({ type: "root" });
+  const [searchValue, setSearchValue] = useState("");
+
+  // ダイアログが閉じたら状態をリセット
+  useEffect(() => {
+    if (!open) {
+      setView({ type: "root" });
+      setSearchValue("");
+    }
+  }, [open]);
+
+  // 検索入力のハンドラ（半角英数字のみに変換）
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchValue(filterSearchInput(value));
+  }, []);
 
   const closePalette = useCallback(() => {
     onOpenChange(false);
   }, [onOpenChange]);
 
-  const context: Omit<CommandContext, "closePalette"> | null = useMemo(() => {
-    if (!user) return null;
-    return { user, pathname };
-  }, [user, pathname]);
+  const goBack = useCallback(() => {
+    setView({ type: "root" });
+  }, []);
 
-  const availableCommands = useMemo(() => {
-    if (!context) return [];
-    return adminCommandRegistry.getAvailable(context);
-  }, [context]);
+  const handleCategorySelect = useCallback((categoryId: string) => {
+    setView({ type: "category", categoryId });
+  }, []);
 
-  const commandsByCategory = useMemo(() => {
-    const grouped = new Map<CommandCategory, AdminCommand[]>();
-    for (const cmd of availableCommands) {
-      const list = grouped.get(cmd.category) || [];
-      list.push(cmd);
-      grouped.set(cmd.category, list);
-    }
-    return grouped;
-  }, [availableCommands]);
-
-  const handleSelect = useCallback(
-    async (command: AdminCommand) => {
-      if (!context) return;
-
-      const fullContext: CommandContext = {
-        ...context,
-        closePalette,
-      };
-
-      if (command.isAsync) {
-        setExecutingCommandId(command.id);
-        try {
-          await command.execute(fullContext);
-        } finally {
-          setExecutingCommandId(null);
-        }
-      } else {
-        command.execute(fullContext);
-      }
-    },
-    [context, closePalette]
-  );
+  // 現在選択中のカテゴリを取得
+  const selectedCategory = useMemo(() => {
+    if (view.type !== "category") return null;
+    return categories.find((c) => c.id === view.categoryId) ?? null;
+  }, [view]);
 
   if (!user || user.role !== "admin") {
     return null;
   }
 
   return (
-    <CommandDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title="管理者コマンド"
-      description="コマンドを検索して実行"
-      showCloseButton={false}
-    >
-      <CommandInput placeholder="コマンドを検索..." />
-      <CommandList>
-        <CommandEmpty>コマンドが見つかりません</CommandEmpty>
-        {Array.from(commandsByCategory.entries()).map(([category, commands]) => (
-          <CommandGroup key={category} heading={CATEGORY_LABELS[category]}>
-            {commands.map((cmd) => (
-              <CommandItem
-                key={cmd.id}
-                value={`${cmd.label} ${cmd.description || ""} ${cmd.keywords?.join(" ") || ""}`}
-                onSelect={() => handleSelect(cmd)}
-                disabled={executingCommandId !== null}
-              >
-                {cmd.icon && <span className="mr-2">{cmd.icon}</span>}
-                <span>{cmd.label}</span>
-                {cmd.description && (
-                  <span className="ml-2 text-muted-foreground text-xs">{cmd.description}</span>
-                )}
-                {executingCommandId === cmd.id && <Loader2Icon className="ml-auto size-4 animate-spin" />}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        ))}
-      </CommandList>
-    </CommandDialog>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="overflow-hidden p-0"
+        showCloseButton={false}
+        layer="super"
+        overlayLayer="super"
+      >
+        <DialogTitle srOnly>管理者コマンド</DialogTitle>
+
+        {/* ルート: カテゴリ一覧 */}
+        {view.type === "root" && (
+          <Command
+            key="root"
+            className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
+          >
+            <div className="flex items-center gap-2 border-b">
+              <CommandInput
+                placeholder="コマンドを検索..."
+                value={searchValue}
+                onValueChange={handleSearchChange}
+                inputMode="email"
+                autoFocus
+              />
+            </div>
+            <CommandList>
+              <CommandEmpty>項目が見つかりません</CommandEmpty>
+              <CommandGroup heading="カテゴリ">
+                {categories.map((category) => (
+                  <CommandItem
+                    key={category.id}
+                    className="group"
+                    value={`${category.label} ${category.description ?? ""}`}
+                    onSelect={() => handleCategorySelect(category.id)}
+                  >
+                    {category.icon && <span className="mr-2">{category.icon}</span>}
+                    <span>{category.label}</span>
+                    {category.description && (
+                      <span className="ml-2 text-muted-foreground text-xs group-data-[selected=true]:text-accent-foreground">
+                        {category.description}
+                      </span>
+                    )}
+                    <ChevronRightIcon className="ml-auto size-4 text-muted-foreground group-data-[selected=true]:text-accent-foreground" />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        )}
+
+        {/* カテゴリ選択後: カスタムレンダラーを表示 */}
+        {view.type === "category" && selectedCategory && (
+          <selectedCategory.Renderer
+            onClose={closePalette}
+            onBack={goBack}
+            user={user}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
