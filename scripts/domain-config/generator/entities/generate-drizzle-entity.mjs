@@ -92,6 +92,8 @@ const relationImports = new Map();
 let usesPrimaryKey = false;
 const enumDefs = [];
 const fields = [];
+// ユニーク制約を持つフィールドを追跡（ソフトデリート時は部分インデックスに変換）
+const uniqueFields = [];
 
 // ID field
 switch (config.idType) {
@@ -163,7 +165,17 @@ switch (config.idType) {
     const columnName = toSnakeCase(f.name);
     const column = buildColumn(typeFn, columnName);
     const notNull = f.required ? '.notNull()' : '';
-    fields.push(`  ${f.name}: ${column}${notNull}${defaultSuffix},`);
+    // ユニーク制約の処理
+    let uniqueSuffix = '';
+    if (f.unique) {
+      if (config.useSoftDelete) {
+        // ソフトデリート時は部分インデックスを使用するため、ここでは.unique()を付けない
+        uniqueFields.push({ name: f.name, columnName });
+      } else {
+        uniqueSuffix = '.unique()';
+      }
+    }
+    fields.push(`  ${f.name}: ${column}${notNull}${uniqueSuffix}${defaultSuffix},`);
   }
 });
 
@@ -174,6 +186,10 @@ if (config.useCreatedAt) {
 if (config.useUpdatedAt) {
   imports.add('timestamp');
   fields.push('  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),');
+}
+if (config.useSoftDelete) {
+  imports.add('timestamp');
+  fields.push('  deletedAt: timestamp("deleted_at", { withTimezone: true }),');
 }
 
 const relationTables = [];
@@ -198,10 +214,19 @@ const relationTables = [];
 });
 
 if (usesPrimaryKey) imports.add('primaryKey');
+// ソフトデリート + ユニーク制約がある場合は部分インデックス用のimportを追加
+const needsPartialIndex = config.useSoftDelete && uniqueFields.length > 0;
+if (needsPartialIndex) {
+  imports.add('uniqueIndex');
+}
 
 const importLine = `import { ${Array.from(imports).sort().join(', ')} } from "drizzle-orm/pg-core";`;
 let content = `// src/features/${camel}/entities/drizzle.ts\n\n`;
 content += `${importLine}\n`;
+// ソフトデリート + ユニーク制約がある場合は sql を drizzle-orm からインポート
+if (needsPartialIndex) {
+  content += `import { sql } from "drizzle-orm";\n`;
+}
 relationImports.forEach((domainPascal, domainCamel) => {
   content += `import { ${domainPascal}Table } from "@/features/${domainCamel}/entities/drizzle";\n`;
 });
@@ -217,6 +242,18 @@ relationTables.forEach((t) => {
   const relationColumn = buildColumn(t.typeFn, relationColumnName);
   content += `\nexport const ${t.tableVar} = pgTable(\n  "${t.tableName}",\n  {\n    ${camel}Id: ${baseColumn}\n      .notNull()\n      .references(() => ${pascal}Table.id, { onDelete: "cascade" }),\n    ${t.domainCamel}Id: ${relationColumn}\n      .notNull()\n      .references(() => ${t.domainPascal}Table.id, { onDelete: "cascade" }),\n  },\n  (table) => {\n    return { pk: primaryKey({ columns: [table.${camel}Id, table.${t.domainCamel}Id] }) };\n  },\n);\n`;
 });
+
+// ソフトデリート + ユニーク制約がある場合は部分インデックスを生成
+if (needsPartialIndex) {
+  uniqueFields.forEach((uf) => {
+    const indexName = `${tableName}_${uf.columnName}_unique_active`;
+    const indexVar = `${camel}${toPascalCase(uf.name)}UniqueActiveIndex`;
+    content += `\n// ${uf.name} のユニーク制約（アクティブなレコードのみ）\n`;
+    content += `export const ${indexVar} = uniqueIndex("${indexName}")\n`;
+    content += `  .on(${pascal}Table.${uf.name})\n`;
+    content += `  .where(sql\`deleted_at IS NULL\`);\n`;
+  });
+}
 
 if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 fs.writeFileSync(outputFile, content);

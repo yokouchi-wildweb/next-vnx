@@ -87,6 +87,7 @@ function collectBaseServiceOptions(config) {
   if (config.idType) options.idType = config.idType;
   if (config.useCreatedAt) options.useCreatedAt = true;
   if (config.useUpdatedAt) options.useUpdatedAt = true;
+  if (config.useSoftDelete) options.useSoftDelete = true;
   if (Array.isArray(config.searchFields) && config.searchFields.length) {
     options.defaultSearchFields = config.searchFields;
   }

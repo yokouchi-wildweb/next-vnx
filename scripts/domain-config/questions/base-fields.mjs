@@ -16,8 +16,16 @@ export default async function askBaseFields() {
     default: true,
   });
 
+  const { useSoftDelete } = await prompt({
+    type: 'confirm',
+    name: 'useSoftDelete',
+    message: '論理削除（ソフトデリート）を使用しますか?',
+    default: false,
+  });
+
   return {
     useCreatedAt,
     useUpdatedAt,
+    useSoftDelete,
   };
 }

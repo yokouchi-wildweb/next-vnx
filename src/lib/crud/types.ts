@@ -59,6 +59,12 @@ export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   bulkDeleteByQuery?(where: WhereExpr): Promise<void>;
   upsert?(data: CreateData, options?: UpsertOptions<CreateData>): Promise<T>;
   duplicate?(id: string): Promise<T>;
+  // ソフトデリート用メソッド
+  restore?(id: string): Promise<T>;
+  hardDelete?(id: string): Promise<void>;
+  getAllWithDeleted?(): Promise<T[]>;
+  getByIdWithDeleted?(id: string): Promise<T>;
+  searchWithDeleted?(params: SearchParams): Promise<PaginatedResult<T>>;
 };
 
 export type IdType = "uuid" | "db" | "manual";
@@ -101,6 +107,12 @@ type BaseCrudServiceOptions = {
    * 自動的に `updatedAt` を現在時刻で補完するかどうか。
    */
   useUpdatedAt?: boolean;
+  /**
+   * 論理削除（ソフトデリート）を使用するかどうか。
+   * true の場合、remove() は物理削除ではなく deletedAt を設定する。
+   * list(), get(), search() は deletedAt IS NULL のレコードのみ返す。
+   */
+  useSoftDelete?: boolean;
 };
 
 type MaybePromise<T> = T | Promise<T>;

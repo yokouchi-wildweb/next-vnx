@@ -2,9 +2,9 @@
 
 import { db } from "@/lib/drizzle";
 import { omitUndefined } from "@/utils/object";
-import { eq, inArray, SQL, ilike, and, or, sql } from "drizzle-orm";
+import { eq, inArray, SQL, ilike, and, or, sql, isNull } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
-import type { PgTable, AnyPgColumn, PgUpdateSetSource } from "drizzle-orm/pg-core";
+import type { PgTable, AnyPgColumn, PgUpdateSetSource, PgTimestampString } from "drizzle-orm/pg-core";
 import type { SearchParams, PaginatedResult, UpsertOptions, WhereExpr } from "../types";
 import { buildOrderBy, buildWhere, runQuery } from "./query";
 import { applyInsertDefaults, resolveConflictTarget } from "./utils";
@@ -36,6 +36,17 @@ export function createCrudService<
   type Insert = TCreate;
   const idColumn = table.id;
   const belongsToManyRelations = serviceOptions.belongsToManyRelations ?? [];
+  const useSoftDelete = serviceOptions.useSoftDelete ?? false;
+  // ソフトデリート用カラム（テーブルに deletedAt がある場合のみ）
+  const deletedAtColumn = useSoftDelete
+    ? ((table as any).deletedAt as AnyPgColumn | undefined)
+    : undefined;
+
+  // ソフトデリート用のフィルター条件を生成
+  const buildSoftDeleteFilter = (): SQL | undefined => {
+    if (!deletedAtColumn) return undefined;
+    return isNull(deletedAtColumn);
+  };
 
   return {
     async create(data: Insert): Promise<Select> {
@@ -68,6 +79,17 @@ export function createCrudService<
 
     async list(): Promise<Select[]> {
       let query: any = db.select().from(table as any);
+      const softDeleteFilter = buildSoftDeleteFilter();
+      if (softDeleteFilter) query = query.where(softDeleteFilter);
+      const orderClauses = buildOrderBy(table, serviceOptions.defaultOrderBy);
+      if (orderClauses.length) query = query.orderBy(...orderClauses);
+      const results = (await query) as Select[];
+      if (!belongsToManyRelations.length) return results;
+      return hydrateBelongsToManyRelations(results, belongsToManyRelations);
+    },
+
+    async listWithDeleted(): Promise<Select[]> {
+      let query: any = db.select().from(table as any);
       const orderClauses = buildOrderBy(table, serviceOptions.defaultOrderBy);
       if (orderClauses.length) query = query.orderBy(...orderClauses);
       const results = (await query) as Select[];
@@ -76,6 +98,21 @@ export function createCrudService<
     },
 
     async get(id: string): Promise<Select | undefined> {
+      const softDeleteFilter = buildSoftDeleteFilter();
+      const whereCondition = softDeleteFilter
+        ? and(eq(idColumn, id), softDeleteFilter)
+        : eq(idColumn, id);
+      const rows = (await db
+        .select()
+        .from(table as any)
+        .where(whereCondition)) as Select[];
+      const record = rows[0] as Select | undefined;
+      if (!record || !belongsToManyRelations.length) return record;
+      await hydrateBelongsToManyRelations([record], belongsToManyRelations);
+      return record;
+    },
+
+    async getWithDeleted(id: string): Promise<Select | undefined> {
       const rows = (await db
         .select()
         .from(table as any)
@@ -125,10 +162,98 @@ export function createCrudService<
     },
 
     async remove(id: string): Promise<void> {
+      if (deletedAtColumn) {
+        // ソフトデリート: deletedAt を現在時刻に設定
+        await db
+          .update(table)
+          .set({ deletedAt: new Date() } as PgUpdateSetSource<TTable>)
+          .where(eq(idColumn, id));
+      } else {
+        // 物理削除
+        await db.delete(table).where(eq(idColumn, id));
+      }
+    },
+
+    async restore(id: string): Promise<Select> {
+      if (!deletedAtColumn) {
+        throw new Error("restore() is only available when useSoftDelete is enabled.");
+      }
+      const rows = await db
+        .update(table)
+        .set({ deletedAt: null } as PgUpdateSetSource<TTable>)
+        .where(eq(idColumn, id))
+        .returning();
+      const record = rows[0] as Select;
+      if (!record) {
+        throw new Error(`Record not found: ${id}`);
+      }
+      if (belongsToManyRelations.length) {
+        await hydrateBelongsToManyRelations([record], belongsToManyRelations);
+      }
+      return record;
+    },
+
+    async hardDelete(id: string): Promise<void> {
       await db.delete(table).where(eq(idColumn, id));
     },
 
     async search(params: SearchParams = {}): Promise<PaginatedResult<Select>> {
+      const {
+        page = 1,
+        limit = 100,
+        orderBy = serviceOptions.defaultOrderBy,
+        searchQuery,
+        searchFields = serviceOptions.defaultSearchFields,
+        where,
+      } = params;
+
+      const searchPriorityFields = params.searchPriorityFields ?? serviceOptions.defaultSearchPriorityFields;
+      const prioritizeSearchHits =
+        params.prioritizeSearchHits ?? serviceOptions.prioritizeSearchHitsByDefault ?? false;
+
+      let finalWhere = buildWhere(table, where);
+      // ソフトデリートフィルターを追加
+      const softDeleteFilter = buildSoftDeleteFilter();
+      if (softDeleteFilter) {
+        finalWhere = finalWhere ? and(finalWhere, softDeleteFilter) as SQL : softDeleteFilter;
+      }
+
+      let priorityOrderClauses: SQL[] = [];
+      if (searchQuery && searchFields && searchFields.length) {
+        const pattern = `%${searchQuery}%`;
+        const searchConds = searchFields.map((field) => ilike((table as any)[field], pattern));
+        const searchWhere = or(...(searchConds as any[]));
+        finalWhere = and(finalWhere, searchWhere) as SQL;
+
+        const priorityFields = (searchPriorityFields ?? searchFields).filter((field, index, array) => {
+          const exists = searchFields.includes(field);
+          return exists && array.indexOf(field) === index;
+        });
+
+        priorityOrderClauses = priorityFields.map((field) => {
+          const column = (table as any)[field];
+          if (!column) return undefined;
+          return sql`CASE WHEN ${column}::text ILIKE ${pattern} THEN 0 ELSE 1 END` as SQL;
+        }).filter((clause): clause is SQL => clause !== undefined);
+      }
+
+      const baseQuery = db.select().from(table as any);
+      const orderByClauses = buildOrderBy(table, orderBy);
+      const orderClauses = prioritizeSearchHits
+        ? [...priorityOrderClauses, ...orderByClauses]
+        : [...orderByClauses, ...priorityOrderClauses];
+      const result = await runQuery<Select>(table, baseQuery, {
+        page,
+        limit,
+        orderBy: orderClauses,
+        where: finalWhere,
+      });
+      if (!belongsToManyRelations.length) return result;
+      await hydrateBelongsToManyRelations(result.results, belongsToManyRelations);
+      return result;
+    },
+
+    async searchWithDeleted(params: SearchParams = {}): Promise<PaginatedResult<Select>> {
       const {
         page = 1,
         limit = 100,
@@ -190,7 +315,15 @@ export function createCrudService<
     },
 
     async bulkDeleteByIds(ids: string[]): Promise<void> {
-      await db.delete(table).where(inArray(idColumn, ids));
+      if (deletedAtColumn) {
+        // ソフトデリート
+        await db
+          .update(table)
+          .set({ deletedAt: new Date() } as PgUpdateSetSource<TTable>)
+          .where(inArray(idColumn, ids));
+      } else {
+        await db.delete(table).where(inArray(idColumn, ids));
+      }
     },
 
     async bulkDeleteByQuery(where: WhereExpr): Promise<void> {
@@ -198,7 +331,19 @@ export function createCrudService<
         throw new Error("bulkDeleteByQuery requires a where condition.");
       }
       const condition = buildWhere(table, where);
-      await db.delete(table).where(condition);
+      if (deletedAtColumn) {
+        // ソフトデリート
+        await db
+          .update(table)
+          .set({ deletedAt: new Date() } as PgUpdateSetSource<TTable>)
+          .where(condition);
+      } else {
+        await db.delete(table).where(condition);
+      }
+    },
+
+    async bulkHardDeleteByIds(ids: string[]): Promise<void> {
+      await db.delete(table).where(inArray(idColumn, ids));
     },
 
     async upsert(data: Insert & { id?: string }, upsertOptions?: UpsertOptions<Insert>): Promise<Select> {
@@ -265,8 +410,9 @@ export function createCrudService<
         id: _id,
         createdAt: _createdAt,
         updatedAt: _updatedAt,
+        deletedAt: _deletedAt,
         ...rest
-      } = record as Select & { id: unknown; createdAt?: unknown; updatedAt?: unknown };
+      } = record as Select & { id: unknown; createdAt?: unknown; updatedAt?: unknown; deletedAt?: unknown };
 
       const newData = rest as Record<string, unknown>;
       if (typeof newData.name === "string") {

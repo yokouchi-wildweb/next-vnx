@@ -217,9 +217,20 @@ importStatements.push('import { z } from "zod";');
 let content = `${header}\n\n${importStatements.join('\n')}\n\n`;
 content += `export const ${pascal}BaseSchema = z.object({\n`;
 content += lines.join('\n');
+// ソフトデリート用の deletedAt フィールド
+if (config.useSoftDelete) {
+  content += `\n  deletedAt: z.date().nullish(),`;
+}
 content += `\n});\n\n`;
-content += `export const ${pascal}CreateSchema = ${pascal}BaseSchema;\n\n`;
-content += `export const ${pascal}UpdateSchema = ${pascal}BaseSchema.partial();\n`;
+
+// CreateSchema と UpdateSchema では deletedAt を除外（サーバー側で管理）
+if (config.useSoftDelete) {
+  content += `export const ${pascal}CreateSchema = ${pascal}BaseSchema.omit({ deletedAt: true });\n\n`;
+  content += `export const ${pascal}UpdateSchema = ${pascal}BaseSchema.partial().omit({ deletedAt: true });\n`;
+} else {
+  content += `export const ${pascal}CreateSchema = ${pascal}BaseSchema;\n\n`;
+  content += `export const ${pascal}UpdateSchema = ${pascal}BaseSchema.partial();\n`;
+}
 
 if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 fs.writeFileSync(outputFile, content);
