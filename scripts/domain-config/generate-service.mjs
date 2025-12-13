@@ -301,9 +301,16 @@ function generateBaseService(tokens) {
   console.log(`  生成: ${outputFile}`);
 }
 
-// ラッパー生成
+// ラッパー生成（mediaUploaderフィールドがある場合のみ）
 function generateWrapper(tokens, wrapperName) {
-  const { domainPath, camel, pascal, dbEngine } = tokens;
+  const { domainPath, camel, pascal, dbEngine, config } = tokens;
+
+  // mediaUploaderフィールドがない場合はスキップ
+  if (!hasMediaUploaderField(config)) {
+    console.log(`  スキップ: ${wrapperName}.ts（mediaUploaderフィールドがありません）`);
+    return;
+  }
+
   const templatePath = path.join(templateDir, "server", "wrappers", `${wrapperName}.ts`);
   const outputDir = path.join(featuresDir, domainPath, "services", "server", "wrappers");
   const outputFile = path.join(outputDir, `${wrapperName}.ts`);
