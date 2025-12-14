@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { ACTIVE_COLOR_TYPE } from "@/config/user-bottom-menu.config";
 import { cn } from "@/lib/cn";
 
 import type { BottomNavItem as BottomNavItemType } from "./types";
@@ -10,6 +11,13 @@ import type { BottomNavItem as BottomNavItemType } from "./types";
 type BottomNavItemProps = {
   readonly item: BottomNavItemType;
 };
+
+/** カレントアイテムの色クラスマッピング */
+const ACTIVE_COLOR_CLASS_MAP = {
+  primary: "text-primary",
+  secondary: "text-secondary",
+  accent: "text-accent",
+} as const;
 
 /**
  * カレントページかどうかを判定
@@ -29,13 +37,14 @@ const useIsActive = (item: BottomNavItemType): boolean => {
 export const BottomNavItem = ({ item }: BottomNavItemProps) => {
   const isActive = useIsActive(item);
   const Icon = item.icon;
+  const activeColorClass = ACTIVE_COLOR_CLASS_MAP[ACTIVE_COLOR_TYPE];
 
   return (
     <Link
       href={item.href}
       className={cn(
         "flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors",
-        isActive ? "text-primary" : "text-muted-foreground",
+        isActive ? activeColorClass : "text-muted-foreground",
       )}
     >
       <Icon className="size-6" />

@@ -18,6 +18,9 @@ export const BOTTOM_NAV_ENABLED = true;
 /** ボトムナビの高さ（px） */
 export const BOTTOM_NAV_HEIGHT = 64;
 
+/** カレントアイテムの色（primary / secondary / accent） */
+export const ACTIVE_COLOR_TYPE: "primary" | "secondary" | "accent" = "accent";
+
 // ============================================
 // メニューアイテム設定
 // ============================================
@@ -25,9 +28,9 @@ export const BOTTOM_NAV_HEIGHT = 64;
 /** 認証済みユーザー用メニュー */
 export const AUTHENTICATED_MENU_ITEMS: BottomNavItem[] = [
   {
-    key: "gacha",
-    label: "オリパガチャ",
-    href: "/gacha",
+    key: "game",
+    label: "ゲームプレイ",
+    href: "/game",
     icon: Dices,
   },
   {
@@ -38,7 +41,7 @@ export const AUTHENTICATED_MENU_ITEMS: BottomNavItem[] = [
   },
   {
     key: "history",
-    label: "当選履歴",
+    label: "購入履歴",
     href: "/history",
     icon: History,
   },
@@ -53,9 +56,9 @@ export const AUTHENTICATED_MENU_ITEMS: BottomNavItem[] = [
 /** 未認証ユーザー用メニュー */
 export const GUEST_MENU_ITEMS: BottomNavItem[] = [
   {
-    key: "gacha",
-    label: "オリパガチャ",
-    href: "/gacha",
+    key: "game",
+    label: "ゲームプレイ",
+    href: "/game",
     icon: Dices,
   },
   {
