@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { CURRENCY_CONFIG, type WalletType } from "@/features/core/wallet/currencyConfig";
 
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
@@ -7,9 +8,11 @@ import type { WalletAdjustRequestPayload } from "@/features/core/wallet/services
 import { WalletHistoryMetaSchema } from "@/features/core/walletHistory/entities/schema";
 import { isDomainError } from "@/lib/errors";
 
+const walletTypeValues = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
+
 const WalletAdjustPayloadSchema = z
   .object({
-    walletType: z.enum(["regular_point", "temporary_point"]),
+    walletType: z.enum(walletTypeValues),
     changeMethod: z.enum(["INCREMENT", "DECREMENT", "SET"]),
     amount: z.coerce.number().int().min(0),
     reason: z
