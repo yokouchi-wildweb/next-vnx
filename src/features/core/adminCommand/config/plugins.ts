@@ -23,7 +23,7 @@
  * ```
  */
 
-import type { AdminCommandPlugin } from "../core/types";
+import type { AdminCommandPlugin } from "@/features/core/adminCommand/base/types";
 
 /**
  * プラグイン一覧

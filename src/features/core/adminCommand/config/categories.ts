@@ -11,7 +11,7 @@
  * 3. このファイルの categories 配列に登録
  */
 
-import type { CategoryConfig } from "../core/types";
+import type { CategoryConfig } from "@/features/core/adminCommand/base/types";
 import { NavigationRenderer } from "../definitions/navigation/NavigationRenderer";
 import { SettingsRenderer } from "../definitions/settings/SettingsRenderer";
 

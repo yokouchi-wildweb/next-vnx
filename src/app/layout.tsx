@@ -8,7 +8,7 @@ import { RouteTransitionOverlay } from "@/components/Overlays/Loading/RouteTrans
 import { ImageViewerProvider } from "@/components/Overlays/ImageViewer/Provider";
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
 import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";
-import { AdminCommandProvider } from "@/lib/adminCommand";
+import { AdminCommandProvider } from "src/features/core/adminCommand";
 import { RedirectToastProvider } from "@/lib/redirectToast";
 
 export const metadata: Metadata = {

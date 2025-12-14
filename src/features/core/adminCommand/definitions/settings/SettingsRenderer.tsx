@@ -14,10 +14,10 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/_shadcn/command";
-import { useSetting } from "@/features/core/setting/hooks/useSetting";
-import { useUpdateSetting } from "@/features/core/setting/hooks/useUpdateSetting";
-import type { Setting } from "@/features/core/setting/entities";
-import type { CategoryRendererProps } from "../../core/types";
+import { useSetting } from "@/features/setting/hooks/useSetting";
+import { useUpdateSetting } from "@/features/setting/hooks/useUpdateSetting";
+import type { Setting } from "@/features/setting/entities";
+import type { CategoryRendererProps } from "@/features/core/adminCommand/base/types";
 import type { SettingFieldConfig } from "../../types";
 import { filterSearchInput } from "../../utils";
 import { settingFields } from "./items";
