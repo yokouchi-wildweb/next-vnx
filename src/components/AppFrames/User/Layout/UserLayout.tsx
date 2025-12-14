@@ -5,8 +5,11 @@ import { type CSSProperties, type ReactNode } from "react";
 import { Flex } from "@/components/Layout/Flex";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 
+import { BottomNavVisibilityProvider } from "../contexts/BottomNavVisibilityContext";
 import { FooterVisibilityProvider } from "../contexts/FooterVisibilityContext";
 import { HeaderVisibilityProvider } from "../contexts/HeaderVisibilityContext";
+import { UserBottomNav } from "../Sections/BottomNav";
+import { BottomNavSpacer } from "../Sections/BottomNav/BottomNavSpacer";
 import { UserFooter } from "../Sections/Footer";
 import { UserNavigation } from "../Sections/Header";
 
@@ -29,17 +32,21 @@ export const UserAppLayout = ({ children, footerText }: UserAppLayoutProps) => {
   return (
     <HeaderVisibilityProvider>
       <FooterVisibilityProvider>
-        <Flex
-          direction="column"
-          className="my-0 min-h-[var(--viewport-height,100dvh)] bg-background text-foreground"
-          style={layoutStyle}
-        >
-          <UserNavigation />
-          <div className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">
-            {children}
-          </div>
-          <UserFooter text={footerText} />
-        </Flex>
+        <BottomNavVisibilityProvider>
+          <Flex
+            direction="column"
+            className="my-0 min-h-[var(--viewport-height,100dvh)] bg-background text-foreground"
+            style={layoutStyle}
+          >
+            <UserNavigation />
+            <div className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">
+              {children}
+            </div>
+            <UserFooter text={footerText} />
+            <BottomNavSpacer />
+            <UserBottomNav />
+          </Flex>
+        </BottomNavVisibilityProvider>
       </FooterVisibilityProvider>
     </HeaderVisibilityProvider>
   );

@@ -1,0 +1,45 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+import { cn } from "@/lib/cn";
+
+import type { BottomNavItem as BottomNavItemType } from "./types";
+
+type BottomNavItemProps = {
+  readonly item: BottomNavItemType;
+};
+
+/**
+ * カレントページかどうかを判定
+ */
+const useIsActive = (item: BottomNavItemType): boolean => {
+  const pathname = usePathname();
+
+  // matchPathsが指定されている場合は前方一致で判定
+  if (item.matchPaths && item.matchPaths.length > 0) {
+    return item.matchPaths.some((path) => pathname.startsWith(path));
+  }
+
+  // matchPathsが未指定の場合はhrefと完全一致で判定
+  return pathname === item.href;
+};
+
+export const BottomNavItem = ({ item }: BottomNavItemProps) => {
+  const isActive = useIsActive(item);
+  const Icon = item.icon;
+
+  return (
+    <Link
+      href={item.href}
+      className={cn(
+        "flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors",
+        isActive ? "text-primary" : "text-muted-foreground",
+      )}
+    >
+      <Icon className="size-6" />
+      <span className="text-[10px] font-medium leading-tight">{item.label}</span>
+    </Link>
+  );
+};

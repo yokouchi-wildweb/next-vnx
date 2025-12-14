@@ -14,8 +14,8 @@ export type HideFooterProps = {
  * ページ単位でフッターの表示/非表示を制御するコンポーネント
  *
  * @example
- * // 両方非表示
- * <HideFooter sp pc />
+ * // 両方非表示（props未指定で両方非表示）
+ * <HideFooter />
  *
  * @example
  * // スマホのみ非表示
@@ -25,13 +25,18 @@ export type HideFooterProps = {
  * // PCのみ非表示
  * <HideFooter pc />
  */
-export const HideFooter = ({ sp = false, pc = false }: HideFooterProps) => {
+export const HideFooter = ({ sp, pc }: HideFooterProps) => {
   const { setVisibility, reset } = useFooterVisibility();
 
   useEffect(() => {
+    // 両方未指定の場合は両方非表示
+    const hideAll = sp === undefined && pc === undefined;
+    const hideSp = hideAll || sp === true;
+    const hidePc = hideAll || pc === true;
+
     setVisibility({
-      sp: !sp,
-      pc: !pc,
+      sp: !hideSp,
+      pc: !hidePc,
     });
 
     return () => {

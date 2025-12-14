@@ -14,8 +14,8 @@ export type HideHeaderProps = {
  * ページ単位でヘッダーの表示/非表示を制御するコンポーネント
  *
  * @example
- * // 両方非表示
- * <HideHeader sp pc />
+ * // 両方非表示（props未指定で両方非表示）
+ * <HideHeader />
  *
  * @example
  * // スマホのみ非表示
@@ -25,13 +25,18 @@ export type HideHeaderProps = {
  * // PCのみ非表示
  * <HideHeader pc />
  */
-export const HideHeader = ({ sp = false, pc = false }: HideHeaderProps) => {
+export const HideHeader = ({ sp, pc }: HideHeaderProps) => {
   const { setVisibility, reset } = useHeaderVisibility();
 
   useEffect(() => {
+    // 両方未指定の場合は両方非表示
+    const hideAll = sp === undefined && pc === undefined;
+    const hideSp = hideAll || sp === true;
+    const hidePc = hideAll || pc === true;
+
     setVisibility({
-      sp: !sp,
-      pc: !pc,
+      sp: !hideSp,
+      pc: !hidePc,
     });
 
     return () => {

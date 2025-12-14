@@ -17,8 +17,13 @@ export const UserNavigation = () => {
   const [headerOffset, setHeaderOffset] = useState(0);
   const headerRef = useRef<HTMLElement | null>(null);
   const pathname = usePathname();
-  const { navItems } = useUserMenuItems();
+  const { navItems, enabled } = useUserMenuItems();
   const { visibility } = useHeaderVisibility();
+
+  // 機能が無効の場合は何も表示しない
+  if (!enabled) {
+    return null;
+  }
 
   // 表示/非表示のクラスを決定
   const visibilityClass = (() => {
