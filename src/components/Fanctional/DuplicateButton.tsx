@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Form/Button/Button";
 import ConfirmDialog from "@/components/Overlays/ConfirmDialog";
-import { useLoadingToast } from "@/hooks/useLoadingToast";
+import { useAppToast } from "@/hooks/useAppToast";
 import { toast } from "sonner";
 
 export type DuplicateButtonProps = {
@@ -31,17 +31,17 @@ export default function DuplicateButton({
   const { trigger, isMutating } = useDuplicate();
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const { showLoadingToast, hideLoadingToast } = useLoadingToast();
+  const { showAppToast, hideAppToast } = useAppToast();
 
   const handleDuplicate = async () => {
     setOpen(false);
-    showLoadingToast("複製を実行中です…");
+    showAppToast({ message: "複製を実行中です…", mode: "persistent" });
     try {
       await trigger(id);
       toast.success("複製が完了しました。");
       router.refresh();
     } finally {
-      hideLoadingToast();
+      hideAppToast();
     }
   };
 

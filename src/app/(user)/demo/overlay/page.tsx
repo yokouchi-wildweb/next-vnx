@@ -11,8 +11,14 @@ import Modal from "@/components/Overlays/Modal";
 import TabbedModal, { type TabbedModalTab } from "@/components/Overlays/TabbedModal";
 import { ConfirmDialog } from "@/components/Overlays/ConfirmDialog";
 import { ImageViewerProvider, ZoomableImage } from "@/components/Overlays/ImageViewer";
-import { useLoadingToast } from "@/hooks/useLoadingToast";
-import { type LoadingToastPosition, type LoadingToastSize } from "@/stores/useLoadingToastStore";
+import { useAppToast } from "@/hooks/useAppToast";
+import {
+  type AppToastVariant,
+  type AppToastPosition,
+  type AppToastMode,
+  type AppToastSize,
+  type AppToastIconPreset,
+} from "@/stores/useAppToastStore";
 import { Checkbox } from "@/components/_shadcn/checkbox";
 import {
   Select,
@@ -37,20 +43,46 @@ const SPINNER_VARIANTS = [
   { value: "circle", label: "circle" },
 ] as const satisfies ReadonlyArray<{ value: SpinnerVariant; label: string }>;
 
-const LOADING_TOAST_POSITIONS = [
+const APP_TOAST_VARIANTS = [
+  { value: "success", label: "成功" },
+  { value: "error", label: "エラー" },
+  { value: "warning", label: "警告" },
+  { value: "info", label: "情報" },
+  { value: "loading", label: "ローディング" },
+  { value: "primary", label: "プライマリ" },
+  { value: "secondary", label: "セカンダリ" },
+  { value: "accent", label: "アクセント" },
+] as const satisfies ReadonlyArray<{ value: AppToastVariant; label: string }>;
+
+const APP_TOAST_ICON_PRESETS = [
+  { value: "default", label: "デフォルト（variantに従う）" },
+  { value: "success", label: "成功 (✓)" },
+  { value: "error", label: "エラー (✗)" },
+  { value: "warning", label: "警告 (⚠)" },
+  { value: "info", label: "情報 (ℹ)" },
+  { value: "loading", label: "ローディング (⟳)" },
+] as const satisfies ReadonlyArray<{ value: "default" | AppToastIconPreset; label: string }>;
+
+const APP_TOAST_POSITIONS = [
+  { value: "center", label: "中央" },
   { value: "top-left", label: "左上" },
   { value: "top-center", label: "上中央" },
   { value: "top-right", label: "右上" },
   { value: "bottom-left", label: "左下" },
   { value: "bottom-center", label: "下中央" },
   { value: "bottom-right", label: "右下" },
-] as const satisfies ReadonlyArray<{ value: LoadingToastPosition; label: string }>;
+] as const satisfies ReadonlyArray<{ value: AppToastPosition; label: string }>;
 
-const LOADING_TOAST_SIZES = [
+const APP_TOAST_MODES = [
+  { value: "notification", label: "通知（自動消去）" },
+  { value: "persistent", label: "永続（手動消去）" },
+] as const satisfies ReadonlyArray<{ value: AppToastMode; label: string }>;
+
+const APP_TOAST_SIZES = [
   { value: "sm", label: "小" },
   { value: "md", label: "中" },
   { value: "lg", label: "大" },
-] as const satisfies ReadonlyArray<{ value: LoadingToastSize; label: string }>;
+] as const satisfies ReadonlyArray<{ value: AppToastSize; label: string }>;
 
 const TABBED_MODAL_DEFAULT_TAB = "details" as const;
 
@@ -81,18 +113,26 @@ const INITIAL_OPTIONS: OverlayOptions = {
   messageClassName: "",
 };
 
-type LoadingToastDemoOptions = {
-  position: LoadingToastPosition;
-  spinnerVariant: SpinnerVariant;
-  size: LoadingToastSize;
+type AppToastDemoOptions = {
+  variant: AppToastVariant;
+  position: AppToastPosition;
+  mode: AppToastMode;
+  size: AppToastSize;
+  duration: number;
+  spinning: boolean;
   message: string;
+  iconPreset: "default" | AppToastIconPreset;
 };
 
-const INITIAL_LOADING_TOAST_OPTIONS: LoadingToastDemoOptions = {
-  position: "bottom-center",
-  spinnerVariant: "default",
+const INITIAL_APP_TOAST_OPTIONS: AppToastDemoOptions = {
+  variant: "success",
+  position: "center",
+  mode: "notification",
   size: "md",
-  message: "変更を処理中です…",
+  duration: 3000,
+  spinning: false,
+  message: "処理が完了しました",
+  iconPreset: "default",
 };
 
 export default function OverlayDemoPage() {
@@ -105,12 +145,11 @@ export default function OverlayDemoPage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isConfirmProcessing, setIsConfirmProcessing] = useState(false);
   const [options, setOptions] = useState<OverlayOptions>(INITIAL_OPTIONS);
-  const [loadingToastOptions, setLoadingToastOptions] = useState<LoadingToastDemoOptions>(
-    INITIAL_LOADING_TOAST_OPTIONS,
+  const [appToastOptions, setAppToastOptions] = useState<AppToastDemoOptions>(
+    INITIAL_APP_TOAST_OPTIONS,
   );
-  const [isLoadingToastVisible, setIsLoadingToastVisible] = useState(false);
 
-  const { showLoadingToast, hideLoadingToast } = useLoadingToast();
+  const { showAppToast, hideAppToast } = useAppToast();
 
   const closeTabbedModal = useCallback(() => {
     setIsTabbedModalOpen(false);
@@ -274,20 +313,18 @@ export default function OverlayDemoPage() {
     toast.error(messageMap.error);
   }, []);
 
-  const handleShowLoadingToast = useCallback(() => {
-    showLoadingToast({
-      message: loadingToastOptions.message,
-      spinnerVariant: loadingToastOptions.spinnerVariant,
-      position: loadingToastOptions.position,
-      size: loadingToastOptions.size,
+  const handleShowAppToast = useCallback(() => {
+    showAppToast({
+      message: appToastOptions.message,
+      variant: appToastOptions.variant,
+      position: appToastOptions.position,
+      mode: appToastOptions.mode,
+      size: appToastOptions.size,
+      duration: appToastOptions.duration,
+      spinning: appToastOptions.spinning,
+      icon: appToastOptions.iconPreset === "default" ? undefined : appToastOptions.iconPreset,
     });
-    setIsLoadingToastVisible(true);
-
-    window.setTimeout(() => {
-      hideLoadingToast();
-      setIsLoadingToastVisible(false);
-    }, 3000);
-  }, [showLoadingToast, hideLoadingToast, loadingToastOptions]);
+  }, [showAppToast, appToastOptions]);
 
   return (
     <ImageViewerProvider>
@@ -363,29 +400,29 @@ export default function OverlayDemoPage() {
           className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm"
         >
           <div className="flex flex-col gap-2">
-            <SecTitle as="h2">ローディングトースト</SecTitle>
+            <SecTitle as="h2">AppToast（アプリ用トースト）</SecTitle>
             <Para tone="muted" size="sm" className="mt-0">
-              画面の四隅または上下中央に小さなローディング通知を表示します。
-              グローバルローダー（画面全体を覆う）とは異なり、ユーザーの操作を妨げません。
+              画面中央または指定位置にリッチな通知を表示します。
+              mode で自動消去（notification）か手動消去（persistent）を切り替えられます。
             </Para>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="loading-toast-position">位置</Label>
+              <Label htmlFor="app-toast-variant">バリアント</Label>
               <Select
-                value={loadingToastOptions.position}
-                onValueChange={(value: LoadingToastPosition) =>
-                  setLoadingToastOptions((prev) => ({ ...prev, position: value }))
+                value={appToastOptions.variant}
+                onValueChange={(value: AppToastVariant) =>
+                  setAppToastOptions((prev) => ({ ...prev, variant: value }))
                 }
               >
-                <SelectTrigger id="loading-toast-position" className="w-full justify-between">
+                <SelectTrigger id="app-toast-variant" className="w-full justify-between">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {LOADING_TOAST_POSITIONS.map((pos) => (
-                    <SelectItem key={pos.value} value={pos.value}>
-                      {pos.label}
+                  {APP_TOAST_VARIANTS.map((v) => (
+                    <SelectItem key={v.value} value={v.value}>
+                      {v.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -393,20 +430,20 @@ export default function OverlayDemoPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="loading-toast-size">サイズ</Label>
+              <Label htmlFor="app-toast-position">位置</Label>
               <Select
-                value={loadingToastOptions.size}
-                onValueChange={(value: LoadingToastSize) =>
-                  setLoadingToastOptions((prev) => ({ ...prev, size: value }))
+                value={appToastOptions.position}
+                onValueChange={(value: AppToastPosition) =>
+                  setAppToastOptions((prev) => ({ ...prev, position: value }))
                 }
               >
-                <SelectTrigger id="loading-toast-size" className="w-full justify-between">
+                <SelectTrigger id="app-toast-position" className="w-full justify-between">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {LOADING_TOAST_SIZES.map((size) => (
-                    <SelectItem key={size.value} value={size.value}>
-                      {size.label}
+                  {APP_TOAST_POSITIONS.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>
+                      {p.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -414,20 +451,20 @@ export default function OverlayDemoPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="loading-toast-spinner">スピナー</Label>
+              <Label htmlFor="app-toast-mode">モード</Label>
               <Select
-                value={loadingToastOptions.spinnerVariant}
-                onValueChange={(value: SpinnerVariant) =>
-                  setLoadingToastOptions((prev) => ({ ...prev, spinnerVariant: value }))
+                value={appToastOptions.mode}
+                onValueChange={(value: AppToastMode) =>
+                  setAppToastOptions((prev) => ({ ...prev, mode: value }))
                 }
               >
-                <SelectTrigger id="loading-toast-spinner" className="w-full justify-between">
+                <SelectTrigger id="app-toast-mode" className="w-full justify-between">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {SPINNER_VARIANTS.map((variant) => (
-                    <SelectItem key={variant.value} value={variant.value}>
-                      {variant.label}
+                  {APP_TOAST_MODES.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {m.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -435,25 +472,184 @@ export default function OverlayDemoPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="loading-toast-message">メッセージ</Label>
+              <Label htmlFor="app-toast-size">サイズ</Label>
+              <Select
+                value={appToastOptions.size}
+                onValueChange={(value: AppToastSize) =>
+                  setAppToastOptions((prev) => ({ ...prev, size: value }))
+                }
+              >
+                <SelectTrigger id="app-toast-size" className="w-full justify-between">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {APP_TOAST_SIZES.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="app-toast-icon">アイコン</Label>
+              <Select
+                value={appToastOptions.iconPreset}
+                onValueChange={(value: "default" | AppToastIconPreset) =>
+                  setAppToastOptions((prev) => ({ ...prev, iconPreset: value }))
+                }
+              >
+                <SelectTrigger id="app-toast-icon" className="w-full justify-between">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {APP_TOAST_ICON_PRESETS.map((i) => (
+                    <SelectItem key={i.value} value={i.value}>
+                      {i.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="app-toast-duration">表示時間 (ms)</Label>
               <Input
-                id="loading-toast-message"
-                placeholder="例: 処理中..."
-                value={loadingToastOptions.message}
+                id="app-toast-duration"
+                type="number"
+                min={1000}
+                max={10000}
+                step={500}
+                value={appToastOptions.duration}
                 onChange={(event) =>
-                  setLoadingToastOptions((prev) => ({ ...prev, message: event.target.value }))
+                  setAppToastOptions((prev) => ({
+                    ...prev,
+                    duration: Number(event.target.value) || 3000,
+                  }))
+                }
+                disabled={appToastOptions.mode === "persistent"}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="app-toast-message">メッセージ</Label>
+              <Input
+                id="app-toast-message"
+                placeholder="例: 処理が完了しました"
+                value={appToastOptions.message}
+                onChange={(event) =>
+                  setAppToastOptions((prev) => ({ ...prev, message: event.target.value }))
                 }
               />
             </div>
+
+            <div className="flex items-end gap-2 pb-1">
+              <Label className="flex items-center gap-2">
+                <Checkbox
+                  checked={appToastOptions.spinning}
+                  onCheckedChange={(checked) =>
+                    setAppToastOptions((prev) => ({
+                      ...prev,
+                      spinning: Boolean(checked),
+                    }))
+                  }
+                />
+                アイコン回転
+              </Label>
+            </div>
           </div>
 
-          <Button
-            onClick={handleShowLoadingToast}
-            disabled={isLoadingToastVisible}
-            className="self-start"
-          >
-            {isLoadingToastVisible ? "表示中..." : "ローディングトーストを表示 (3 秒間)"}
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={handleShowAppToast}>
+              AppToast を表示
+            </Button>
+            {appToastOptions.mode === "persistent" && (
+              <Button variant="outline" onClick={hideAppToast}>
+                非表示にする
+              </Button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="accent"
+              size="sm"
+              onClick={() => showAppToast("保存しました", "success")}
+            >
+              成功
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => showAppToast("エラーが発生しました", "error")}
+            >
+              エラー
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => showAppToast("注意してください", "warning")}
+            >
+              警告
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => showAppToast("お知らせです", "info")}
+            >
+              情報
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                showAppToast({
+                  message: "処理中...",
+                  variant: "loading",
+                  mode: "persistent",
+                });
+                setTimeout(() => hideAppToast(), 3000);
+              }}
+            >
+              ローディング
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Button
+              size="sm"
+              onClick={() => showAppToast("プライマリカラーの通知", "primary")}
+            >
+              Primary
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => showAppToast("セカンダリカラーの通知", "secondary")}
+            >
+              Secondary
+            </Button>
+            <Button
+              variant="accent"
+              size="sm"
+              onClick={() => showAppToast("アクセントカラーの通知", "accent")}
+            >
+              Accent
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => showAppToast({
+                message: "プライマリ色 + ローディングアイコン",
+                variant: "primary",
+                icon: "loading",
+                spinning: true,
+              })}
+            >
+              Primary + Loading Icon
+            </Button>
+          </div>
         </Section>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">

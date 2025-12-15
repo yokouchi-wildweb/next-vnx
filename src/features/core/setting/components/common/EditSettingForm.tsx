@@ -11,7 +11,7 @@ import { useUpdateSetting } from "@/features/core/setting/hooks/useUpdateSetting
 import { SettingForm } from "./SettingForm";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useLoadingToast } from "@/hooks/useLoadingToast";
+import { useAppToast } from "@/hooks/useAppToast";
 import { err } from "@/lib/errors";
 
 type Props = {
@@ -33,17 +33,17 @@ export default function EditSettingForm({ setting, redirectPath = "/" }: Props) 
   });
 
   const router = useRouter();
-  const { showLoadingToast, hideLoadingToast } = useLoadingToast();
+  const { showAppToast, hideAppToast } = useAppToast();
   const { trigger, isMutating } = useUpdateSetting();
 
   const submit = async (data: SettingUpdateFields) => {
-    showLoadingToast("更新中です…");
+    showAppToast({ message: "更新中です…", mode: "persistent" });
     try {
       await trigger({ id: setting.id, data });
       toast.success("設定を更新しました");
       router.push(redirectPath);
     } catch (error) {
-      hideLoadingToast();
+      hideAppToast();
       toast.error(err(error, "更新に失敗しました"));
     }
   };
