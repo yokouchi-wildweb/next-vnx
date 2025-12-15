@@ -1,9 +1,11 @@
 import type { ProxyHandler } from './types';
 import { featureGateProxy } from './featureGate';
+import { maintenanceProxy } from './maintenance';
 import { redirectProxy } from './redirect';
 
 export const proxyHandlers: ProxyHandler[] = [
-  featureGateProxy,  // 機能ゲートを先に実行
+  maintenanceProxy,  // メンテナンスモードを最優先で実行
+  featureGateProxy,
   redirectProxy,
 ];
 
