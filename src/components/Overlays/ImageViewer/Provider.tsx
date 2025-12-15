@@ -48,8 +48,8 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
                 alt={imageAlt}
                 className="block max-w-full max-h-[90vh] object-contain"
               />
-              <DialogClose className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 rounded-full bg-black/70 p-1.5 text-white hover:bg-black/90 transition-colors cursor-pointer">
-                <XIcon className="size-5" />
+              <DialogClose className="absolute top-2 right-2 sm:top-0 sm:right-0 sm:translate-x-1/2 sm:-translate-y-1/2 rounded-full bg-black/70 p-2 text-white hover:bg-black/90 transition-colors cursor-pointer">
+                <XIcon className="size-6" />
                 <span className="sr-only">閉じる</span>
               </DialogClose>
             </div>
