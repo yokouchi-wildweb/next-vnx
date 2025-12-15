@@ -2,7 +2,10 @@
 
 import { useEffect } from "react";
 
-import { useBottomNavVisibility } from "../contexts/BottomNavVisibilityContext";
+import {
+  useBottomNavVisibility,
+  type BottomNavVisibility,
+} from "../contexts/BottomNavVisibilityContext";
 
 export type HideBottomNavProps = {
   /** スマホでボトムナビを非表示にする */
@@ -32,13 +35,20 @@ export const HideBottomNav = ({ sp, pc }: HideBottomNavProps) => {
   useEffect(() => {
     // 両方未指定の場合は両方非表示
     const hideAll = sp === undefined && pc === undefined;
-    const hideSp = hideAll || sp === true;
-    const hidePc = hideAll || pc === true;
 
-    setVisibility({
-      sp: !hideSp,
-      pc: !hidePc,
-    });
+    if (hideAll) {
+      setVisibility({ sp: false, pc: false });
+    } else {
+      // 指定されたものだけを変更（未指定のものはデフォルトを維持）
+      const updates: Partial<BottomNavVisibility> = {};
+      if (sp !== undefined) {
+        updates.sp = !sp;
+      }
+      if (pc !== undefined) {
+        updates.pc = !pc;
+      }
+      setVisibility(updates);
+    }
 
     return () => {
       reset();
