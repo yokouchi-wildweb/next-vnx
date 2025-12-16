@@ -8,6 +8,7 @@ import { SpNavigation } from "./SpNavigation";
 import { Brand } from "./Brand";
 import { SpNavSwitch } from "./SpNavSwitch";
 import { APP_HEADER_ELEMENT_ID } from "@/constants/layout";
+import { HEADER_ENABLED } from "@/config/user-header.config";
 
 import { useHeaderVisibility } from "../../contexts/HeaderVisibilityContext";
 import { useUserMenuItems } from "./useUserMenuItems";
@@ -17,21 +18,8 @@ export const UserNavigation = () => {
   const [headerOffset, setHeaderOffset] = useState(0);
   const headerRef = useRef<HTMLElement | null>(null);
   const pathname = usePathname();
-  const { navItems, enabled } = useUserMenuItems();
+  const { navItems, enabled: menuEnabled } = useUserMenuItems();
   const { visibility } = useHeaderVisibility();
-
-  // 機能が無効の場合は何も表示しない
-  if (!enabled) {
-    return null;
-  }
-
-  // 表示/非表示のクラスを決定
-  const visibilityClass = (() => {
-    if (!visibility.sp && !visibility.pc) return "hidden";
-    if (!visibility.sp && visibility.pc) return "hidden sm:block";
-    if (visibility.sp && !visibility.pc) return "block sm:hidden";
-    return "";
-  })();
 
   const handleClose = useCallback(() => {
     setIsMenuOpen(false);
@@ -99,6 +87,19 @@ export const UserNavigation = () => {
     };
   }, [isMenuOpen]);
 
+  // ヘッダー自体が無効の場合は何も表示しない
+  if (!HEADER_ENABLED) {
+    return null;
+  }
+
+  // 表示/非表示のクラスを決定
+  const visibilityClass = (() => {
+    if (!visibility.sp && !visibility.pc) return "hidden";
+    if (!visibility.sp && visibility.pc) return "hidden sm:block";
+    if (visibility.sp && !visibility.pc) return "block sm:hidden";
+    return "";
+  })();
+
   return (
     <header
       id={APP_HEADER_ELEMENT_ID}
@@ -107,16 +108,22 @@ export const UserNavigation = () => {
     >
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-2 sm:py-4">
         <Brand />
-        <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={handleToggle} />
-        <PcNavigation items={navItems} />
+        {menuEnabled && (
+          <>
+            <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={handleToggle} />
+            <PcNavigation items={navItems} />
+          </>
+        )}
       </div>
 
-      <SpNavigation
-        isOpen={isMenuOpen}
-        items={navItems}
-        onClose={handleClose}
-        headerOffset={headerOffset}
-      />
+      {menuEnabled && (
+        <SpNavigation
+          isOpen={isMenuOpen}
+          items={navItems}
+          onClose={handleClose}
+          headerOffset={headerOffset}
+        />
+      )}
     </header>
   );
 };

@@ -1,7 +1,7 @@
 /**
  * ヘッダーナビゲーションの状態を提供するhook
  *
- * 設定は src/config/user-header-menu.config.ts で管理
+ * 設定は src/config/user-header.config.ts で管理
  */
 
 import { useMemo } from "react";
@@ -13,7 +13,7 @@ import {
   LOGOUT_LABEL,
   LOGOUT_REDIRECT_TO,
   SHOW_LOGOUT_BUTTON,
-} from "@/config/user-header-menu.config";
+} from "@/config/user-header.config";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 
