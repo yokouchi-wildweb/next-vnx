@@ -33,7 +33,6 @@ MAIL_FROM_ADDRESS=noreply@yourdomain.com
 src/features/core/mail/
 ├── README.md           # このファイル
 ├── constants/
-│   ├── index.ts        # メール関連の定数（件名など）
 │   └── colors.ts       # テーマカラー定数（自動生成）
 ├── templates/
 │   └── VerificationEmail.tsx  # メールテンプレート（React Email）
@@ -42,7 +41,125 @@ src/features/core/mail/
         └── sendVerificationEmail.tsx  # メール送信サービス
 ```
 
-## テーマカラーの自動同期
+## テンプレートの追加方法
+
+### 1. テンプレートファイルを作成
+
+`templates/` に新しいテンプレートを追加:
+
+```tsx
+// templates/WelcomeEmail.tsx
+
+/** メールの件名 */
+export const subject = "ようこそ！";
+
+import { Html, Text } from "@react-email/components";
+
+export type WelcomeEmailProps = {
+  username: string;
+};
+
+export function WelcomeEmail({ username }: WelcomeEmailProps) {
+  return (
+    <Html>
+      <Text>ようこそ、{username}さん！</Text>
+    </Html>
+  );
+}
+
+export default WelcomeEmail;
+
+// テスト送信用の設定（npm run mail:test で使用）
+export const testProps: WelcomeEmailProps = {
+  username: "テストユーザー",
+};
+
+export const testDescription = "新規ユーザー向けウェルカムメール";
+```
+
+#### エクスポート一覧
+
+| エクスポート | 必須 | 説明 |
+|-------------|------|------|
+| `subject` | ✅ | メールの件名 |
+| `default` | ✅ | テンプレートコンポーネント |
+| `testProps` | ✅ | テスト送信時に使用するprops |
+| `testDescription` | - | テンプレート選択画面に表示する説明 |
+
+> **Note**: 件名（`subject`）はテンプレートファイルの上部で定義します。テンプレートと件名を同じファイルで管理することで、対応関係が明確になります。
+
+### 2. 送信サービスを作成
+
+`services/server/` に送信サービスを追加:
+
+```tsx
+// services/server/sendWelcomeEmail.tsx
+import { send } from "@/lib/mail";
+
+import { subject, WelcomeEmail } from "../../templates/WelcomeEmail";
+
+export async function sendWelcomeEmail(to: string, username: string) {
+  await send({
+    to,
+    subject,
+    react: <WelcomeEmail username={username} />,
+  });
+}
+```
+
+### 3. 必要に応じてAPIルートから呼び出す
+
+```ts
+import { sendWelcomeEmail } from "@/features/core/mail/services/server/sendWelcomeEmail";
+
+await sendWelcomeEmail("user@example.com", "田中太郎");
+```
+
+## テスト送信
+
+### 対話式テスト送信
+
+テンプレートを選択してテストメールを送信できます:
+
+```bash
+npm run mail:test
+```
+
+実行すると以下のような対話式プロンプトが表示されます:
+
+```
+📧 メールテンプレート テスト送信
+
+テンプレートを検出中...
+2 件のテンプレートが見つかりました
+
+? 送信先メールアドレス: admin@example.com
+
+? 送信するテンプレートを選択:
+❯ シンプルテストメール - Resend接続確認用のシンプルなテストメール
+  VerificationEmail - メールアドレス認証用テンプレート
+
+=== 送信情報 ===
+送信元: noreply@yourdomain.com
+送信先: admin@example.com
+テンプレート: VerificationEmail
+
+? 送信しますか? Yes
+
+✅ 送信完了!
+メールID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+```
+
+### テンプレートの自動検出
+
+`templates/` ディレクトリ内の `.tsx` ファイルが自動的に検出されます。
+テンプレートが選択肢に表示されるには、以下のエクスポートが必要です:
+
+- `subject` - メールの件名
+- `default` - テンプレートコンポーネント
+- `testProps` - テスト用のprops
+
+## テーマカラー
 
 メールテンプレートでプロジェクトのテーマカラーを使用できます。
 
@@ -102,131 +219,6 @@ const styles = {
 | `background` | `--background` |
 | `foreground` | `--foreground` |
 | `border` | `--border` |
-
-### 手動で再生成する場合
-
-```bash
-npm run mail:generate-colors
-```
-
-## テンプレートの追加方法
-
-### 1. テンプレートファイルを作成
-
-`templates/` に新しいテンプレートを追加:
-
-```tsx
-// templates/WelcomeEmail.tsx
-import { Html, Text, Button } from "@react-email/components";
-
-export type WelcomeEmailProps = {
-  username: string;
-};
-
-export function WelcomeEmail({ username }: WelcomeEmailProps) {
-  return (
-    <Html>
-      <Text>ようこそ、{username}さん！</Text>
-    </Html>
-  );
-}
-
-export default WelcomeEmail;
-
-// ========================================
-// テスト送信用の設定（npm run mail:test で使用）
-// ========================================
-
-/** テスト送信時に使用するprops */
-export const testProps: WelcomeEmailProps = {
-  username: "テストユーザー",
-};
-
-/** テスト送信時の件名 */
-export const testSubject = "【テスト】ようこそ！";
-
-/** テンプレート選択画面に表示する説明（任意） */
-export const testDescription = "新規ユーザー向けウェルカムメール";
-```
-
-| エクスポート | 必須 | 説明 |
-|-------------|------|------|
-| `default` | ✅ | テンプレートコンポーネント |
-| `testProps` | ✅ | テスト送信時に使用するprops |
-| `testSubject` | ✅ | テスト送信時の件名 |
-| `testDescription` | - | テンプレート選択画面に表示する説明 |
-
-> **Note**: `testProps`、`testSubject` をエクスポートすると、`npm run mail:test` のテンプレート選択に自動で追加されます。
-
-### 2. 送信サービスを作成
-
-`services/server/` に送信サービスを追加:
-
-```tsx
-// services/server/sendWelcomeEmail.tsx
-import { send } from "@/lib/mail";
-import { WelcomeEmail } from "../../templates/WelcomeEmail";
-
-export async function sendWelcomeEmail(to: string, username: string) {
-  await send({
-    to,
-    subject: "ようこそ！",
-    react: <WelcomeEmail username={username} />,
-  });
-}
-```
-
-### 3. 必要に応じてAPIルートから呼び出す
-
-```ts
-import { sendWelcomeEmail } from "@/features/core/mail/services/server/sendWelcomeEmail";
-
-await sendWelcomeEmail("user@example.com", "田中太郎");
-```
-
-## テスト送信
-
-### 対話式テスト送信
-
-テンプレートを選択してテストメールを送信できます:
-
-```bash
-npm run mail:test
-```
-
-実行すると以下のような対話式プロンプトが表示されます:
-
-```
-📧 メールテンプレート テスト送信
-
-テンプレートを検出中...
-2 件のテンプレートが見つかりました
-
-? 送信先メールアドレス: admin@example.com
-
-? 送信するテンプレートを選択:
-❯ シンプルテストメール - Resend接続確認用のシンプルなテストメール
-  VerificationEmail - メールアドレス認証用テンプレート
-
-=== 送信情報 ===
-送信元: noreply@yourdomain.com
-送信先: admin@example.com
-テンプレート: VerificationEmail
-
-? 送信しますか? Yes
-
-✅ 送信完了!
-メールID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-```
-
-### テンプレートの自動検出
-
-`templates/` ディレクトリ内の `.tsx` ファイルが自動的に検出されます。
-テンプレートが選択肢に表示されるには、以下のエクスポートが必要です:
-
-- `default` - テンプレートコンポーネント
-- `testProps` - テスト用のprops
-- `testSubject` - テスト用の件名
 
 ## React Email コンポーネント
 
