@@ -103,9 +103,20 @@ export async function sendWelcomeEmail(to: string, username: string) {
     to,
     subject,
     react: <WelcomeEmail username={username} />,
+    fromName: "サービス名",  // 任意: 送信者名
   });
 }
 ```
+
+#### send関数のオプション
+
+| オプション | 必須 | 説明 |
+|-----------|------|------|
+| `to` | ✅ | 宛先メールアドレス |
+| `subject` | ✅ | 件名 |
+| `react` | ✅ | React Emailコンポーネント |
+| `from` | - | 送信元アドレス（省略時は環境変数 `MAIL_FROM_ADDRESS`） |
+| `fromName` | - | 送信者名（指定すると `"名前 <アドレス>"` 形式で送信） |
 
 ### 3. 必要に応じてAPIルートから呼び出す
 
