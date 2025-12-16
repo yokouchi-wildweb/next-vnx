@@ -7,6 +7,7 @@ import type { ComponentType } from "react";
 import { OAuthRegistrationForm } from "./OAuth"
 import { EmailRegistrationForm } from "./Email";
 import { UnknownRegistrationForm } from "./UnknownRegistrationForm";
+import { RegistrationSteps } from "./RegistrationSteps";
 
 export type RegistrationMethod = "email" | "thirdParty";
 
@@ -23,5 +24,14 @@ export function Registration({ method = "email" }: RegistrationFormProps) {
 
   const Component = registrationComponentMap[method] ?? UnknownRegistrationForm;
 
-  return <Component />;
+  // メール認証: 3番目のステップ（基本情報設定）
+  // OAuth: 2番目のステップ（プロフィール入力）
+  const currentStep = method === "email" ? 2 : 1;
+
+  return (
+    <div className="space-y-8">
+      <RegistrationSteps method={method} currentStep={currentStep} />
+      <Component />
+    </div>
+  );
 }
