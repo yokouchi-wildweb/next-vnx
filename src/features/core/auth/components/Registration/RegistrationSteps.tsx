@@ -28,9 +28,14 @@ export function RegistrationSteps({
   currentStep = 1,
 }: RegistrationStepsProps) {
   const steps = method === "email" ? EMAIL_STEPS : OAUTH_STEPS;
+  // 本登録ページでは常に残り1ステップ
+  const remainingSteps = 1;
 
   return (
-    <nav aria-label="登録の進捗">
+    <nav aria-label="登録の進捗" className="space-y-4">
+      <p className="text-center text-sm text-muted-foreground">
+        完了まで 残り{remainingSteps}ステップ
+      </p>
       <ol className="flex items-center justify-center gap-0">
         {steps.map((step, index) => {
           const stepNumber = index + 1;

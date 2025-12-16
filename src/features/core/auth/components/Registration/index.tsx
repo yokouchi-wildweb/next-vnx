@@ -29,7 +29,7 @@ export function Registration({ method = "email" }: RegistrationFormProps) {
   const currentStep = method === "email" ? 2 : 1;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-8">
       <RegistrationSteps method={method} currentStep={currentStep} />
       <Component />
     </div>

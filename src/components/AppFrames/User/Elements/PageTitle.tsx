@@ -15,8 +15,8 @@ export function UserPageTitle({ children, srOnly, ...props }: UserPageTitleProps
   }
 
   return (
-    <Section as="header" id="page-title">
-      <BasePageTitle {...props}>{children}</BasePageTitle>
+    <Section as="header" id="page-title" className="py-4">
+      <BasePageTitle align="center" {...props}>{children}</BasePageTitle>
     </Section>
   );
 }

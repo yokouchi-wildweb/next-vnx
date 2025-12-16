@@ -1,6 +1,7 @@
 // src/app/(user)/signup/register/page.tsx
 
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
+import { HideBottomNav } from "@/components/AppFrames/User/controls/BottomNavControl";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Registration } from "@/features/core/auth/components/Registration";
 
@@ -23,7 +24,8 @@ export default async function SignUpRegisterPage({
 
   return (
     <UserPage containerType="narrowStack">
-      <UserPageTitle>本登録</UserPageTitle>
+      <HideBottomNav sp />
+      <UserPageTitle srOnly>本登録</UserPageTitle>
       <Registration method={method} />
     </UserPage>
   );
