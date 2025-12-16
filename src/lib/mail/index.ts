@@ -13,6 +13,8 @@ export type SendMailOptions = {
   react: ReactElement;
   /** 送信元メールアドレス（省略時は環境変数から取得） */
   from?: string;
+  /** 送信者名（省略時は名前なし） */
+  fromName?: string;
 };
 
 function getDefaultFromAddress(): string {
@@ -41,12 +43,13 @@ function getDefaultFromAddress(): string {
  * ```
  */
 export async function send(options: SendMailOptions): Promise<void> {
-  const { to, subject, react, from } = options;
+  const { to, subject, react, from, fromName } = options;
   const fromAddress = from ?? getDefaultFromAddress();
+  const fromField = fromName ? `${fromName} <${fromAddress}>` : fromAddress;
   const resend = getResendClient();
 
   const { error } = await resend.emails.send({
-    from: fromAddress,
+    from: fromField,
     to,
     subject,
     react,
