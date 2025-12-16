@@ -2,8 +2,10 @@
 
 import { send } from "@/lib/mail";
 
-import { VERIFICATION_EMAIL_SUBJECT } from "../../constants";
-import { VerificationEmail } from "../../templates/VerificationEmail";
+import {
+  subject,
+  VerificationEmail,
+} from "../../templates/VerificationEmail";
 
 export type SendVerificationEmailParams = {
   /** 宛先メールアドレス */
@@ -21,7 +23,7 @@ export async function sendVerificationEmail({
 }: SendVerificationEmailParams): Promise<void> {
   await send({
     to,
-    subject: VERIFICATION_EMAIL_SUBJECT,
+    subject,
     react: <VerificationEmail verificationUrl={verificationUrl} email={to} />,
   });
 }

@@ -1,5 +1,8 @@
 // src/features/core/mail/templates/VerificationEmail.tsx
 
+/** メールの件名 */
+export const subject = "メールアドレスの確認";
+
 import {
   Body,
   Button,
@@ -129,7 +132,5 @@ export const testProps: VerificationEmailProps = {
   verificationUrl: "https://example.com/verify?token=test-token-12345",
   email: "test@example.com",
 };
-
-export const testSubject = "【テスト】メールアドレスの確認";
 
 export const testDescription = "メールアドレス認証用テンプレート";
