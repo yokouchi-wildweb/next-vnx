@@ -73,10 +73,10 @@ export function Dialog({
 }: DialogProps) {
   const footerAlignClass =
     footerAlign === "left"
-      ? "justify-start"
+      ? "justify-start sm:justify-start"
       : footerAlign === "center"
-        ? "justify-center"
-        : "justify-end";
+        ? "justify-center sm:justify-center"
+        : "justify-end sm:justify-end";
 
   const showFooter = showCancelButton || showConfirmButton;
 

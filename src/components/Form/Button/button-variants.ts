@@ -7,6 +7,8 @@ export const buttonVariants = cva("", {
     variant: {
       // 画面で主なアクションに使う標準のプライマリボタン。
       default: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
+      // default のエイリアス。明示的にプライマリを指定したい場合に使用。
+      primary: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
       // 削除など取り消せない重要な操作向けの強調ボタン。
       destructive:
         "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
