@@ -21,8 +21,8 @@ export type TextAlign = "left" | "center" | "right";
 const TEXT_VARIANT_CLASS: Record<TextVariant, string> = {
   default: "text-foreground",
   primary: "text-primary",
-  secondary: "text-muted-foreground",
-  accent: "text-accent-foreground",
+  secondary: "text-secondary",
+  accent: "text-accent",
   "sr-only": "sr-only",
 };
 
