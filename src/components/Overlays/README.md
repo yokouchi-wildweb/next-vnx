@@ -34,6 +34,7 @@ DialogPrimitives (低レベル部品)
 ```tsx
 import { Dialog } from "@/components/Overlays/Dialog";
 
+// 基本的な確認ダイアログ
 <Dialog
   open={isOpen}
   onOpenChange={setIsOpen}
@@ -44,20 +45,51 @@ import { Dialog } from "@/components/Overlays/Dialog";
   onConfirm={handleDelete}
   confirmVariant="destructive"
 />
+
+// アラート型（OKボタンのみ）
+<Dialog
+  open={isOpen}
+  onOpenChange={setIsOpen}
+  title="完了"
+  titleVariant="primary"
+  titleAlign="center"
+  description="処理が完了しました"
+  descriptionAlign="center"
+  showCancelButton={false}
+  confirmLabel="OK"
+  confirmVariant="default"
+  footerAlign="center"
+/>
 ```
 
 **Props:**
+
 | Prop | 型 | デフォルト | 説明 |
 |------|-----|-----------|------|
 | `open` | `boolean` | - | 表示状態 |
 | `onOpenChange` | `(open: boolean) => void` | - | 状態変更コールバック |
 | `title` | `ReactNode` | - | タイトル |
+| `titleVariant` | `TextVariant` | `"default"` | タイトルのスタイル |
+| `titleAlign` | `TextAlign` | `"left"` | タイトルの配置 |
 | `description` | `ReactNode` | - | 説明文 |
+| `descriptionVariant` | `TextVariant` | `"default"` | 説明文のスタイル |
+| `descriptionAlign` | `TextAlign` | `"left"` | 説明文の配置 |
+| `footerAlign` | `TextAlign` | `"right"` | フッター（ボタン）の配置 |
+| `showCancelButton` | `boolean` | `true` | キャンセルボタンの表示 |
+| `showConfirmButton` | `boolean` | `true` | 確認ボタンの表示 |
 | `confirmLabel` | `string` | `"OK"` | 確認ボタンのラベル |
 | `cancelLabel` | `string` | `"Cancel"` | キャンセルボタンのラベル |
 | `onConfirm` | `() => void \| Promise<void>` | - | 確認時のコールバック |
+| `confirmDisabled` | `boolean` | - | 確認ボタンの無効化 |
 | `confirmVariant` | `ButtonVariant` | `"destructive"` | 確認ボタンのスタイル |
 | `cancelVariant` | `ButtonVariant` | `"outline"` | キャンセルボタンのスタイル |
+
+**型定義:**
+
+```ts
+type TextVariant = "default" | "primary" | "secondary" | "accent" | "sr-only";
+type TextAlign = "left" | "center" | "right";
+```
 
 ---
 
