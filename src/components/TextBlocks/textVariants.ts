@@ -5,9 +5,9 @@ import { cva } from "class-variance-authority";
 export const tone = {
   default: "text-foreground",
   muted: "text-muted-foreground",
-  accent: "text-accent-foreground",
+  accent: "text-accent",
   primary: "text-primary",
-  secondary: "text-secondary-foreground",
+  secondary: "text-secondary",
   destructive: "text-destructive",
   notice: "text-Yellow-400",
   warning: "text-amber-600",
