@@ -81,7 +81,7 @@ import { Dialog } from "@/components/Overlays/Dialog";
 | `cancelLabel` | `string` | `"Cancel"` | キャンセルボタンのラベル |
 | `onConfirm` | `() => void \| Promise<void>` | - | 確認時のコールバック |
 | `confirmDisabled` | `boolean` | - | 確認ボタンの無効化 |
-| `confirmVariant` | `ButtonVariant` | `"destructive"` | 確認ボタンのスタイル |
+| `confirmVariant` | `ButtonVariant` | `"primary"` | 確認ボタンのスタイル |
 | `cancelVariant` | `ButtonVariant` | `"outline"` | キャンセルボタンのスタイル |
 
 **型定義:**

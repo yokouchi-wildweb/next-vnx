@@ -68,7 +68,7 @@ export function Dialog({
   cancelLabel = "Cancel",
   onConfirm,
   confirmDisabled,
-  confirmVariant = "destructive",
+  confirmVariant = "primary",
   cancelVariant = "outline",
 }: DialogProps) {
   const footerAlignClass =
