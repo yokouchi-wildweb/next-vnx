@@ -13,6 +13,7 @@ import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { TextInput } from "@/components/Form/Controlled";
 import { Para } from "@/components/TextBlocks";
 import { USER_PROVIDER_TYPES } from "@/constants/user";
+import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
 import { err, HttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
@@ -27,6 +28,7 @@ export function OAuthRegistrationForm() {
     defaultValues: DefaultValues,
   });
   const { register, isLoading } = useRegistration();
+  const { refreshSession } = useAuthSession();
 
   const currentUser = auth.currentUser;
   const providerProfile = {
@@ -75,13 +77,14 @@ export function OAuthRegistrationForm() {
           displayName,
         });
 
+        await refreshSession();
         router.push("/signup/complete");
       } catch (error) {
         const message = err(error, "本登録の処理に失敗しました");
         form.setError("root", { type: "server", message });
       }
     },
-    [form, register, router],
+    [form, refreshSession, register, router],
   );
 
   const rootErrorMessage = form.formState.errors.root?.message ?? null;

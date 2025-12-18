@@ -45,11 +45,8 @@ export function useOAuthRegistration({ provider }: UseOAuthRegistrationParams) {
       });
 
       log(3, "[useOAuthRegistration] preRegister completed");
-
-      await refreshSession();
-      log(3, "[useOAuthRegistration] session refreshed after preRegister");
     },
-    [preRegister, provider, refreshSession],
+    [preRegister, provider],
   );
 
   /**

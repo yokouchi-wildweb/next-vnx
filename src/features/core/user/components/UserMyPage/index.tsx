@@ -6,6 +6,7 @@ import { Section } from "@/components/Layout/Section";
 import { Para, SecTitle } from "@/components/TextBlocks";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { USER_ROLE_OPTIONS } from "@/constants/user";
+import { LogoutButton } from "@/features/core/auth/components/common/LogoutButton";
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/types/user";
 import { formatDateJa } from "@/utils/date";
@@ -47,10 +48,11 @@ export default function UserMyPage({ user }: UserMyPageProps) {
 
   return (
     <>
-      <Flex justify="end">
+      <Flex justify="end" gap="sm">
         <LinkButton variant="outline" href="/profile/edit">
           プロフィールを編集
         </LinkButton>
+        <LogoutButton />
       </Flex>
       <Section>
         <Para>このページはログイン状態のユーザーのみがアクセスできる想定で設計されているメンバー専用ページです。</Para>

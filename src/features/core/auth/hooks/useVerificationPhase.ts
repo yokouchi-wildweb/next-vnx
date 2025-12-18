@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { signOut } from "firebase/auth";
 
 import { useCheckActionCode } from "@/features/core/auth/hooks/useCheckActionCode";
-import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { usePreRegistration } from "@/features/core/auth/hooks/usePreRegistration";
 import { signInWithEmailLinkClient } from "@/lib/firebase/client/signInWithEmailLinkClient";
 import { isHttpError } from "@/lib/errors";
@@ -30,7 +29,6 @@ export function useVerificationPhase({ oobCode, savedEmail }: UseVerificationPha
   const [phase, setPhase] = useState<Phase>("initial");
   const { check } = useCheckActionCode();
   const { preRegister } = usePreRegistration();
-  const { refreshSession } = useAuthSession();
 
   useEffect(() => {
     let isActive = true;
@@ -78,9 +76,6 @@ export function useVerificationPhase({ oobCode, savedEmail }: UseVerificationPha
         });
         if (!isActive) return;
 
-        await refreshSession();
-        if (!isActive) return;
-
         setPhase("completed");
       } catch (error) {
         console.error("メールリンク認証処理に失敗しました", error);
@@ -104,7 +99,7 @@ export function useVerificationPhase({ oobCode, savedEmail }: UseVerificationPha
     return () => {
       isActive = false;
     };
-  }, [check, oobCode, preRegister, refreshSession, savedEmail]);
+  }, [check, oobCode, preRegister, savedEmail]);
 
   return { phase, setPhase };
 }

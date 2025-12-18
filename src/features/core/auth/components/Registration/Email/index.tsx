@@ -14,6 +14,7 @@ import { PasswordInput, TextInput } from "@/components/Form/Controlled";
 import { Input } from "@/components/Form/Manual";
 import { Para } from "@/components/TextBlocks";
 import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/config/authSettings";
+import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
 import { useLocalStorage } from "@/lib/localStorage";
 import { err, HttpError } from "@/lib/errors";
@@ -33,6 +34,7 @@ export function EmailRegistrationForm() {
     },
   });
   const { register, isLoading } = useRegistration();
+  const { refreshSession } = useAuthSession();
 
   useEffect(() => {
     form.setValue("email", email, { shouldValidate: form.formState.isSubmitted });
@@ -60,13 +62,14 @@ export function EmailRegistrationForm() {
           displayName,
           password,
         });
+        await refreshSession();
         router.push("/signup/complete");
       } catch (error) {
         const message = err(error, "本登録の処理に失敗しました");
         form.setError("root", { type: "server", message });
       }
     },
-    [form, register, router],
+    [form, refreshSession, register, router],
   );
 
   const rootErrorMessage = form.formState.errors.root?.message ?? null;
