@@ -13,6 +13,8 @@ export const APP_FEATURES = {
     },
     /** 本登録ページに進捗インディケーターを表示する */
     showRegistrationSteps: true,
+    /** パスワード入力モード: "single"=確認なし, "double"=確認あり */
+    passwordInputMode: "double" as "single" | "double",
   },
   admin: {
     appearance: {

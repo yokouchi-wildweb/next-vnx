@@ -19,7 +19,7 @@ import { useLocalStorage } from "@/lib/localStorage";
 import { err, HttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
 
-import { FormSchema, type FormValues, DefaultValues } from "./formEntities";
+import { FormSchema, type FormValues, DefaultValues, isDoubleMode } from "./formEntities";
 
 export function EmailRegistrationForm() {
   const router = useRouter();
@@ -121,19 +121,21 @@ export function EmailRegistrationForm() {
           )}
         />
 
-        <FormFieldItem
-          control={form.control}
-          name="passwordConfirmation"
-          label={<span className="text-sm font-medium">パスワード（確認）</span>}
-          renderInput={(field) => (
-            <PasswordInput
-              field={field}
-              required
-              placeholder="同じパスワードを入力"
-              autoComplete="new-password"
-            />
-          )}
-        />
+        {isDoubleMode && (
+          <FormFieldItem
+            control={form.control}
+            name="passwordConfirmation"
+            label={<span className="text-sm font-medium">パスワード（確認）</span>}
+            renderInput={(field) => (
+              <PasswordInput
+                field={field}
+                required
+                placeholder="同じパスワードを入力"
+                autoComplete="new-password"
+              />
+            )}
+          />
+        )}
 
         {rootErrorMessage ? (
           <Para tone="error" size="sm">

@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 
+import { APP_FEATURES } from "@/config/app-features.config";
 import { RegistrationSchema } from "@/features/core/auth/entities";
 
 const emailSchema = z
@@ -22,7 +23,8 @@ const passwordSchema = z
   .string({ required_error: "パスワードは8文字以上で入力してください" })
   .pipe(RegistrationSchema.shape.password.unwrap());
 
-export const FormSchema = z
+/** パスワード確認ありスキーマ（double mode） */
+const FormSchemaDouble = z
   .object({
     email: emailSchema,
     displayName: displayNameSchema,
@@ -41,11 +43,27 @@ export const FormSchema = z
     }
   });
 
-export type FormValues = z.infer<typeof FormSchema>;
+/** パスワード確認なしスキーマ（single mode） */
+const FormSchemaSingle = z.object({
+  email: emailSchema,
+  displayName: displayNameSchema,
+  password: passwordSchema,
+});
+
+export const isDoubleMode = APP_FEATURES.signup.passwordInputMode === "double";
+
+export const FormSchema = isDoubleMode ? FormSchemaDouble : FormSchemaSingle;
+
+export type FormValues = {
+  email: string;
+  displayName: string;
+  password: string;
+  passwordConfirmation?: string;
+};
 
 export const DefaultValues: FormValues = {
   email: "",
   displayName: "",
   password: "",
-  passwordConfirmation: "",
+  ...(isDoubleMode ? { passwordConfirmation: "" } : {}),
 };
