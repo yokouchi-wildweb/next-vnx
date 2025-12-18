@@ -3,6 +3,7 @@
 "use client";
 
 import type { ComponentProps, CSSProperties } from "react";
+import { XIcon } from "lucide-react";
 
 import {
   Dialog as BaseDialog,
@@ -118,13 +119,19 @@ export function DialogContent({
   return (
     <BaseDialogContent
       className={className}
-      showCloseButton={showCloseButton}
+      showCloseButton={false}
       layerClassName={cn(CONTENT_LAYER_CLASS[layer], layerClassName)}
       overlayLayerClassName={cn(OVERLAY_LAYER_CLASS[overlayLayer], overlayLayerClassName)}
       style={contentStyle}
       {...props}
     >
       {children}
+      {showCloseButton && (
+        <BaseDialogClose className="absolute top-0 right-0 translate-x-[calc(50%-6px)] sm:translate-x-1/2 -translate-y-1/2 rounded-full bg-black/70 p-2 text-white hover:bg-black/90 transition-colors cursor-pointer">
+          <XIcon className="size-6" />
+          <span className="sr-only">閉じる</span>
+        </BaseDialogClose>
+      )}
     </BaseDialogContent>
   );
 }
