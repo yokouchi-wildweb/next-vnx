@@ -23,10 +23,13 @@ import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 export function Verification() {
   const searchParams = useSearchParams();
   const oobCode = searchParams.get("oobCode");
+  const emailFromUrl = searchParams.get("email") ?? "";
   const [savedEmail, setSavedEmail] = useLocalStorage(EMAIL_SIGNUP_STORAGE_KEY, "");
+  // URLパラメータのメールアドレスを優先、なければローカルストレージから取得
+  const email = emailFromUrl || savedEmail;
   const { phase, setPhase } = useVerificationPhase({
     oobCode,
-    savedEmail,
+    savedEmail: email,
   });
 
   const handleEmailSubmit = useCallback(

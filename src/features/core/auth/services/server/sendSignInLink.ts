@@ -22,7 +22,8 @@ export async function sendSignInLink({
   origin,
 }: SendSignInLinkParams): Promise<void> {
   const auth = getServerAuth();
-  const continueUrl = `${origin.replace(/\/$/, "")}${AUTH_CONTINUE_URL}`;
+  const baseUrl = `${origin.replace(/\/$/, "")}${AUTH_CONTINUE_URL}`;
+  const continueUrl = `${baseUrl}?email=${encodeURIComponent(email)}`;
 
   const actionCodeSettings: ActionCodeSettings = {
     url: continueUrl,
