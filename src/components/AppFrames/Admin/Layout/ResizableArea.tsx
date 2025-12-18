@@ -57,7 +57,7 @@ export function ResizableArea({
         />
       ) : null}
 
-      <div className="flex-1 min-h-0">{children}</div>
+      <div className="flex-1 min-h-0 min-w-0 overflow-x-hidden">{children}</div>
     </div>
   );
 }
