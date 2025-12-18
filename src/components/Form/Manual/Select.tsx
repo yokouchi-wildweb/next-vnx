@@ -24,6 +24,13 @@ type Props = {
   placeholder?: string;
   includeNullOption?: boolean;
   nullOptionLabel?: string;
+  /**
+   * ドロップダウン内にプレースホルダー項目（「選択してください」）を表示するか。
+   * false の場合、ドロップダウンには実際の選択肢のみが表示される。
+   * トリガーの placeholder テキストは引き続き表示される。
+   * @default true
+   */
+  showPlaceholderOption?: boolean;
 };
 
 const CLEAR_VALUE = "__EMPTY__";
@@ -41,6 +48,7 @@ export function SelectInput({
   placeholder,
   includeNullOption = false,
   nullOptionLabel = "未選択（null）",
+  showPlaceholderOption = true,
   ...rest
 }: Props) {
   const handleChange = (value: string) => {
@@ -53,7 +61,12 @@ export function SelectInput({
   };
 
   const hasValue = !(field.value === "" || field.value === null || typeof field.value === "undefined");
-  const currentValue = hasValue ? serializeValue(field.value as OptionPrimitive) : CLEAR_VALUE;
+  // showPlaceholderOption: false の場合、空値時は空文字列を使用して Radix の placeholder 機能を利用
+  const currentValue = hasValue
+    ? serializeValue(field.value as OptionPrimitive)
+    : showPlaceholderOption
+      ? CLEAR_VALUE
+      : "";
 
   return (
     <ShadcnSelect
@@ -68,9 +81,9 @@ export function SelectInput({
       <SelectContent>
         {includeNullOption ? (
           <SelectItem value={CLEAR_VALUE}>{nullOptionLabel}</SelectItem>
-        ) : (
+        ) : showPlaceholderOption ? (
           <SelectItem value={CLEAR_VALUE}>{placeholder ?? "選択してください"}</SelectItem>
-        )}
+        ) : null}
         {options.map((op, index) => {
           const serialized = serializeValue(op.value);
           const key = serialized || `option-${index}`;
