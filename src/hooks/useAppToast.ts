@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import {
   useAppToastStore,
   type AppToastOptions,
@@ -79,4 +79,41 @@ export function useAppToast() {
   }, [hide]);
 
   return { showAppToast, hideAppToast };
+}
+
+/**
+ * フラグに連動してローディングトーストを自動表示/非表示するフック。
+ * フラグがtrueの間だけトーストを表示し、falseになると自動で非表示にする。
+ *
+ * @example
+ * const { isPending } = useMutation(...);
+ *
+ * // シンプルな使い方
+ * useLoadingToast(isPending, "保存中...");
+ *
+ * // オプション指定
+ * useLoadingToast(isPending, {
+ *   message: "処理中...",
+ *   position: "top-center",
+ *   size: "sm",
+ * });
+ */
+export function useLoadingToast(
+  flag: boolean,
+  messageOrOptions: string | Omit<AppToastOptions, "mode">,
+) {
+  const show = useAppToastStore((s) => s.show);
+  const hide = useAppToastStore((s) => s.hide);
+
+  useEffect(() => {
+    if (flag) {
+      const options: AppToastOptions =
+        typeof messageOrOptions === "string"
+          ? { message: messageOrOptions, mode: "persistent" }
+          : { ...messageOrOptions, mode: "persistent" };
+      show(options);
+    } else {
+      hide();
+    }
+  }, [flag, show, hide]);
 }
