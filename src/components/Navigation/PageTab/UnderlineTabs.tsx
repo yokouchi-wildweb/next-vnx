@@ -84,7 +84,7 @@ export function UnderlineTabs({
               >
                 <Flex align="center" justify="center" gap="xs">
                   {tab.icon}
-                  <Span weight={isActive ? "medium" : "normal"} className="truncate">
+                  <Span weight={isActive ? "medium" : "normal"} className="truncate text-inherit">
                     {tab.label}
                   </Span>
                 </Flex>
