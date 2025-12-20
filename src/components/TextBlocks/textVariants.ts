@@ -3,6 +3,7 @@
 import { cva } from "class-variance-authority";
 
 export const tone = {
+  inherit: "text-inherit",
   default: "text-foreground",
   muted: "text-muted-foreground",
   accent: "text-accent",
