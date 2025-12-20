@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/drizzle";
 import { omitUndefined } from "@/utils/object";
-import { eq, inArray, SQL, ilike, and, or, sql, isNull } from "drizzle-orm";
+import { eq, inArray, SQL, ilike, and, or, sql, isNull, asc } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { PgTable, AnyPgColumn, PgUpdateSetSource, PgTimestampString } from "drizzle-orm/pg-core";
 import type { SearchParams, PaginatedResult, UpsertOptions, WhereExpr } from "../types";
@@ -239,6 +239,11 @@ export function createCrudService<
 
       const baseQuery = db.select().from(table as any);
       const orderByClauses = buildOrderBy(table, orderBy);
+      // セカンダリキーとしてidを追加（既にidが含まれていない場合のみ、ソート順の安定性を保証）
+      const hasIdInOrderBy = orderBy?.some(([field]) => field === "id");
+      if (!hasIdInOrderBy) {
+        orderByClauses.push(asc(table.id));
+      }
       const orderClauses = prioritizeSearchHits
         ? [...priorityOrderClauses, ...orderByClauses]
         : [...orderByClauses, ...priorityOrderClauses];
@@ -289,6 +294,11 @@ export function createCrudService<
 
       const baseQuery = db.select().from(table as any);
       const orderByClauses = buildOrderBy(table, orderBy);
+      // セカンダリキーとしてidを追加（既にidが含まれていない場合のみ、ソート順の安定性を保証）
+      const hasIdInOrderBy = orderBy?.some(([field]) => field === "id");
+      if (!hasIdInOrderBy) {
+        orderByClauses.push(asc(table.id));
+      }
       const orderClauses = prioritizeSearchHits
         ? [...priorityOrderClauses, ...orderByClauses]
         : [...orderByClauses, ...priorityOrderClauses];
