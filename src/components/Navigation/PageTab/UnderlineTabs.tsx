@@ -49,7 +49,7 @@ export function UnderlineTabs({
   ariaLabel = "ページ内タブ",
   size = "md",
   activeUnderlineClassName = "bg-primary",
-  activeTextClassName = "text-foreground",
+  activeTextClassName = "text-primary",
   inactiveTextClassName = "text-muted-foreground hover:text-foreground/80",
 }: UnderlineTabsProps) {
   const resolvedValue = useActiveTab(tabs)
