@@ -1,6 +1,6 @@
 // src/features/wallet/services/server/wrappers/releaseReservation.ts
 
-import type { ReleaseReservationParams } from "@/features/core/wallet/services/types";
+import type { ReleaseReservationParams, WalletOperationOptions } from "@/features/core/wallet/services/types";
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { eq } from "drizzle-orm";
 import {
@@ -11,11 +11,15 @@ import {
   type TransactionClient,
 } from "./utils";
 
-export async function releaseReservation(params: ReleaseReservationParams, tx?: TransactionClient) {
+export async function releaseReservation(
+  params: ReleaseReservationParams,
+  tx?: TransactionClient,
+  options?: WalletOperationOptions,
+) {
   const amount = normalizeAmount(params.amount);
 
   return runWithTransaction(tx, async (trx) => {
-    const wallet = await getOrCreateWallet(trx, params.userId, params.walletType);
+    const wallet = await getOrCreateWallet(trx, params.userId, params.walletType, { lock: options?.lock });
     ensureLockedAmount(wallet, amount);
 
     const [updated] = await trx

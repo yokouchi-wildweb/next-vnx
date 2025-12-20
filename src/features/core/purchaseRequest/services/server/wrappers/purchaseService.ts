@@ -238,6 +238,9 @@ export async function completePurchase(
     );
 
     // wallet_history_id を記録
+    if (!walletResult.history) {
+      throw new DomainError("ウォレット履歴の記録に失敗しました。", { status: 500 });
+    }
     await tx
       .update(PurchaseRequestTable)
       .set({ wallet_history_id: walletResult.history.id })

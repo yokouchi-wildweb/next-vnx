@@ -1,6 +1,6 @@
 // src/features/wallet/services/server/wrappers/reserveBalance.ts
 
-import type { ReserveWalletParams } from "@/features/core/wallet/services/types";
+import type { ReserveWalletParams, WalletOperationOptions } from "@/features/core/wallet/services/types";
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { eq } from "drizzle-orm";
 import {
@@ -11,11 +11,15 @@ import {
   type TransactionClient,
 } from "./utils";
 
-export async function reserveBalance(params: ReserveWalletParams, tx?: TransactionClient) {
+export async function reserveBalance(
+  params: ReserveWalletParams,
+  tx?: TransactionClient,
+  options?: WalletOperationOptions,
+) {
   const amount = normalizeAmount(params.amount);
 
   return runWithTransaction(tx, async (trx) => {
-    const wallet = await getOrCreateWallet(trx, params.userId, params.walletType);
+    const wallet = await getOrCreateWallet(trx, params.userId, params.walletType, { lock: options?.lock });
     ensureSufficientAvailable(wallet, amount);
 
     const [updated] = await trx

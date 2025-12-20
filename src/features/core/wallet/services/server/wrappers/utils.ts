@@ -25,12 +25,14 @@ export async function getOrCreateWallet(
   tx: TransactionClient,
   userId: string,
   walletType: WalletTypeValue,
+  options?: { lock?: boolean },
 ): Promise<Wallet> {
-  const rows = await tx
+  const query = tx
     .select()
     .from(WalletTable)
     .where(and(eq(WalletTable.user_id, userId), eq(WalletTable.type, walletType)))
     .limit(1);
+  const rows = options?.lock ? await query.for("update") : await query;
   const existing = rows[0] as Wallet | undefined;
   if (existing) return existing;
 
@@ -46,6 +48,27 @@ export async function getOrCreateWallet(
     throw new DomainError("ウォレットの初期化に失敗しました。", { status: 500 });
   }
   return created;
+}
+
+export async function getWallet(
+  tx: TransactionClient,
+  userId: string,
+  walletType: WalletTypeValue,
+  options?: { lock?: boolean; createIfNotExists?: boolean },
+): Promise<Wallet | null> {
+  const shouldCreate = options?.createIfNotExists ?? true;
+
+  if (shouldCreate) {
+    return getOrCreateWallet(tx, userId, walletType, { lock: options?.lock });
+  }
+
+  const query = tx
+    .select()
+    .from(WalletTable)
+    .where(and(eq(WalletTable.user_id, userId), eq(WalletTable.type, walletType)))
+    .limit(1);
+  const rows = options?.lock ? await query.for("update") : await query;
+  return (rows[0] as Wallet | undefined) ?? null;
 }
 
 export function normalizeAmount(value: number, options: { allowZero?: boolean } = {}): number {

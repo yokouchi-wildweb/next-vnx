@@ -8,7 +8,8 @@ import type { WalletHistoryMetaInput } from "@/features/core/walletHistory/types
 
 export type WalletAdjustmentResult = {
   wallet: Wallet;
-  history: WalletHistory;
+  /** skipHistory: true の場合は null */
+  history: WalletHistory | null;
 };
 
 export type AdjustWalletParams = {
@@ -47,4 +48,22 @@ export type WalletAdjustRequestPayload = {
   requestBatchId?: string | null;
   reason?: string | null;
   meta?: WalletHistoryMetaInput;
+};
+
+/** Wallet操作の共通オプション */
+export type WalletOperationOptions = {
+  /** trueの場合、SELECT FOR UPDATEで行ロックを取得 */
+  lock?: boolean;
+};
+
+/** adjustBalance用のオプション */
+export type AdjustBalanceOptions = WalletOperationOptions & {
+  /** trueの場合、履歴記録をスキップ */
+  skipHistory?: boolean;
+};
+
+/** getWallet用のオプション */
+export type GetWalletOptions = WalletOperationOptions & {
+  /** falseの場合、存在しなければnullを返す（デフォルト: true） */
+  createIfNotExists?: boolean;
 };

@@ -1,6 +1,6 @@
 // src/features/wallet/services/server/wrappers/adjustBalance.ts
 
-import type { AdjustWalletParams, WalletAdjustmentResult } from "@/features/core/wallet/services/types";
+import type { AdjustWalletParams, WalletAdjustmentResult, AdjustBalanceOptions } from "@/features/core/wallet/services/types";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { eq } from "drizzle-orm";
@@ -19,9 +19,10 @@ import {
 export async function adjustBalance(
   params: AdjustWalletParams,
   tx?: TransactionClient,
+  options?: AdjustBalanceOptions,
 ): Promise<WalletAdjustmentResult> {
   return runWithTransaction(tx, async (trx) => {
-    const wallet = await getOrCreateWallet(trx, params.userId, params.walletType);
+    const wallet = await getOrCreateWallet(trx, params.userId, params.walletType, { lock: options?.lock });
     const amount =
       params.changeMethod === "SET"
         ? normalizeAmount(params.amount, { allowZero: true })
@@ -52,6 +53,11 @@ export async function adjustBalance(
 
     if (!updated) {
       throw new DomainError("ウォレットの更新に失敗しました。", { status: 500 });
+    }
+
+    // skipHistory: true の場合は履歴記録をスキップ
+    if (options?.skipHistory) {
+      return { wallet: updated, history: null };
     }
 
     const historyMeta = sanitizeMeta(params.meta);

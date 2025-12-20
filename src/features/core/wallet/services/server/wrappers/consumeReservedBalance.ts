@@ -1,6 +1,6 @@
 // src/features/wallet/services/server/wrappers/consumeReservedBalance.ts
 
-import type { ConsumeReservationParams, WalletAdjustmentResult } from "@/features/core/wallet/services/types";
+import type { ConsumeReservationParams, WalletAdjustmentResult, WalletOperationOptions } from "@/features/core/wallet/services/types";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { eq } from "drizzle-orm";
@@ -18,11 +18,12 @@ import {
 export async function consumeReservedBalance(
   params: ConsumeReservationParams,
   tx?: TransactionClient,
+  options?: WalletOperationOptions,
 ): Promise<WalletAdjustmentResult> {
   const amount = normalizeAmount(params.amount);
 
   return runWithTransaction(tx, async (trx) => {
-    const wallet = await getOrCreateWallet(trx, params.userId, params.walletType);
+    const wallet = await getOrCreateWallet(trx, params.userId, params.walletType, { lock: options?.lock });
     ensureLockedAmount(wallet, amount);
     if (wallet.balance < amount) {
       throw new DomainError("残高が不足しているため確定できません。", { status: 409 });
