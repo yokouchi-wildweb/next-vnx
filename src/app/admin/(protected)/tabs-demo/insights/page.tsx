@@ -4,7 +4,7 @@ import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
-import { PageTabs, type PageTabItem } from "@/components/Navigation/PageTabs";
+import { SolidTabs, UnderlineTabs, type PageTabItem } from "@/components/Navigation/PageTab";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Para } from "@/components/TextBlocks/Para";
 
@@ -15,19 +15,19 @@ export const metadata = {
 const ADMIN_TABS_DEMO_ITEMS: PageTabItem[] = [
   {
     value: "overview",
-    label: "タブデモ/概要",
+    label: "概要",
     href: "/admin/tabs-demo/overview",
     icon: <LayoutDashboardIcon className="size-4" aria-hidden />,
   },
   {
     value: "insights",
-    label: "タブデモ/インサイト",
+    label: "インサイト",
     href: "/admin/tabs-demo/insights",
     icon: <ActivityIcon className="size-4" aria-hidden />,
   },
   {
     value: "actions",
-    label: "タブデモ/アクション",
+    label: "アクション",
     href: "/admin/tabs-demo/actions",
     icon: <Settings2Icon className="size-4" aria-hidden />,
   },
@@ -42,7 +42,8 @@ export default function AdminTabsDemoInsightsPage() {
         <Para tone="muted">
           タブを用いた複数ページ遷移の中で、インサイト表示や分析ビューのようなコンテンツを想定したレイアウト例です。
         </Para>
-        <PageTabs tabs={ADMIN_TABS_DEMO_ITEMS} ariaLabel="タブUIデモ" />
+        <SolidTabs tabs={ADMIN_TABS_DEMO_ITEMS} ariaLabel="タブUIデモ" />
+        <UnderlineTabs tabs={ADMIN_TABS_DEMO_ITEMS} ariaLabel="タブUIデモ（下線型）" />
         <Block appearance="surface" padding="lg" space="sm">
           <Para>
             ここではダッシュボードやメトリクスの概要など、メイン領域で集約したい情報を掲示するケースを想定しています。タブを切り替えることでページごとに関心の異なる利用者に対応できます。
