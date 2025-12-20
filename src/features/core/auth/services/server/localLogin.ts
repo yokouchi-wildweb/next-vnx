@@ -1,13 +1,11 @@
 // src/features/auth/services/server/localLogin.ts
 
-import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { SessionUserSchema } from "@/features/core/auth/entities/session";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { verifyPassword } from "@/features/core/auth/utils/password";
-import { UserTable } from "@/features/core/user/entities/drizzle";
-import { db } from "@/lib/drizzle";
+import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 import type { UserRoleType, UserStatus } from "@/types/user";
@@ -35,11 +33,6 @@ export type LocalLoginResult = {
   };
 };
 
-// メールアドレスの前後空白を除去し、DB 参照時のブレをなくす。
-function normalizeEmail(email: string): string {
-  return email.trim();
-}
-
 // 管理者アカウントであることを確認し、一般ユーザーのログインを遮断する。
 function assertAdminRole(role: UserRoleType): void {
   if (role !== "admin") {
@@ -65,14 +58,11 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
     throw new DomainError("ログイン情報が正しくありません", { status: 400 });
   }
 
-  // 正常にパースしたメールアドレスとパスワードを取り出し、比較用に正規化する。
+  // 正常にパースしたメールアドレスとパスワードを取り出す。
   const { email, password } = parsed.data;
-  const normalizedEmail = normalizeEmail(email);
 
   // ローカル認証ユーザーをメールアドレスで検索する。
-  const user = await db.query.UserTable.findFirst({
-    where: and(eq(UserTable.providerType, "local"), eq(UserTable.email, normalizedEmail)),
-  });
+  const user = await userService.findByLocalEmail(email);
 
   // 該当ユーザーが存在しなければ認証失敗とする。
   if (!user) {
@@ -90,14 +80,8 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
     throw new DomainError("メールアドレスまたはパスワードが正しくありません", { status: 401 });
   }
 
-  // 認証成功時点の時刻を取得し、最終認証日時を更新する。
-  const now = new Date();
-
-  await db
-    .update(UserTable)
-    // lastAuthenticatedAt と updatedAt を同時に更新し、監査情報を整備する。
-    .set({ lastAuthenticatedAt: now, updatedAt: now })
-    .where(eq(UserTable.id, user.id));
+  // 最終認証日時を更新する。
+  await userService.updateLastAuthenticated(user.id);
 
   // セッションに格納する情報をスキーマで整形し、不正値混入を防ぐ。
   const sessionUser = SessionUserSchema.parse({

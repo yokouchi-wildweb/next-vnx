@@ -1,4 +1,4 @@
-// src/features/user/services/server/requireCurrentUser.ts
+// src/features/user/services/server/resolvers/requireCurrentUser.ts
 
 import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
@@ -6,7 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { authGuard } from "@/features/core/auth/services/server/authorization";
 import type { User } from "@/features/core/user/entities/model";
 
-import { userService } from "./userService";
+import { userService } from "../userService";
 
 type RequireCurrentUserNotFoundOptions = {
   behavior: "notFound";

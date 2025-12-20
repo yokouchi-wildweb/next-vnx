@@ -7,10 +7,10 @@ import { Section } from "@/components/Layout/Section";
 import { Main, Para } from "@/components/TextBlocks";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import AdminSetupForm from "@/features/core/setting/components/AdminSetup";
-import { checkAdminUserExists } from "@/features/core/user/services/server/checkAdminUserExists";
+import { userService } from "@/features/core/user/services/server/userService";
 
 export default async function AdminSetupPage() {
-  const hasAdmin = await checkAdminUserExists();
+  const hasAdmin = await userService.checkAdminUserExists();
 
   if (hasAdmin) {
     redirect("/admin/login");

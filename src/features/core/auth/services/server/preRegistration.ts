@@ -1,15 +1,12 @@
 // src/features/auth/services/server/preRegistration.ts
 
-import { and, eq } from "drizzle-orm";
 import type { z } from "zod";
 
 import { USER_REGISTERED_STATUSES } from "@/constants/user";
 import { PreRegistrationSchema } from "@/features/core/auth/entities/schema";
 import type { User } from "@/features/core/user/entities";
-import { UserTable } from "@/features/core/user/entities/drizzle";
 import { GeneralUserSchema } from "@/features/core/user/entities/schema";
 import { userService } from "@/features/core/user/services/server/userService";
-import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 
@@ -57,9 +54,7 @@ export async function preRegister(input: unknown): Promise<PreRegistrationResult
     throw new DomainError("メールアドレスが一致しません", { status: 400 });
   }
 
-  const existingUser = await db.query.UserTable.findFirst({
-    where: and(eq(UserTable.providerType, providerType), eq(UserTable.providerUid, providerUid)),
-  });
+  const existingUser = await userService.findByProvider(providerType, providerUid);
 
   if (existingUser && USER_REGISTERED_STATUSES.includes(existingUser.status)) {
     throw new DomainError("このアカウントはすでに登録済みです", { status: 409 });

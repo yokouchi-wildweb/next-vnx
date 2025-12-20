@@ -3,7 +3,7 @@
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import UserProfileEdit from "@/features/core/user/components/UserProfileEdit";
-import { requireCurrentUser } from "@/features/core/user/services/server/requireCurrentUser";
+import { requireCurrentUser } from "@/features/core/user/services/server/userService";
 
 export default async function UserProfileEditPage() {
   const user = await requireCurrentUser();

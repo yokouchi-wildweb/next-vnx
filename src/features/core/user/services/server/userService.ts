@@ -1,14 +1,33 @@
 // src/features/user/services/server/userService.ts
 
 import { base } from "./drizzleBase";
+import { checkAdminUserExists } from "./finders/checkAdminUserExists";
+import { findByLocalEmail } from "./finders/findByLocalEmail";
+import { findByProvider } from "./finders/findByProvider";
+import {
+  registerAdminFromConsole,
+  registerGeneralUserFromConsole,
+} from "./registrations";
 import { create } from "./wrappers/create";
 import { remove } from "./wrappers/remove";
 import { update } from "./wrappers/update";
-export { userRegistrationService } from "./userRegistrationService";
+import { updateLastAuthenticated } from "./wrappers/updateLastAuthenticated";
+
+export { requireCurrentUser } from "./resolvers/requireCurrentUser";
+export type { RequireCurrentUserOptions } from "./resolvers/requireCurrentUser";
 
 export const userService = {
   ...base,
   create,
   remove,
   update,
+  // finders
+  findByProvider,
+  findByLocalEmail,
+  checkAdminUserExists,
+  // wrappers
+  updateLastAuthenticated,
+  // registrations
+  registerAdminFromConsole,
+  registerGeneralUserFromConsole,
 };
