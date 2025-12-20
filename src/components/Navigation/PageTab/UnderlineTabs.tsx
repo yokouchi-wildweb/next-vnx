@@ -67,7 +67,7 @@ export function UnderlineTabs({
           const isActive = tab.value === resolvedValue
 
           return (
-            <li key={tab.value} className="relative">
+            <li key={tab.value} className="relative flex-1">
               <Link
                 href={tab.href}
                 prefetch={tab.prefetch}
