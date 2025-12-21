@@ -78,8 +78,8 @@ export default function generate(tokens) {
   // 追加の import があればテンプレートに挿入
   if (extras.imports) {
     content = content.replace(
-      'import { toast } from "sonner";',
-      `import { toast } from "sonner";\n${extras.imports}`,
+      'import { useAppToast, useLoadingToast } from "@/hooks/useAppToast";',
+      `import { useAppToast, useLoadingToast } from "@/hooks/useAppToast";\n${extras.imports}`,
     );
   }
   // 追加のフック処理を挿入

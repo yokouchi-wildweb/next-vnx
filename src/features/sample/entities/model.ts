@@ -2,7 +2,7 @@
 
 export type Sample = {
   id: string;
-  sample_category_id: string;
+  sample_category_id: string | null;
   sample_tag_ids?: string[];
   name: string;
   number: number | null;

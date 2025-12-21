@@ -8,7 +8,7 @@ export const SampleSelectEnum = pgEnum("sample_select_enum", ["apple", "orange",
 
 export const SampleTable = pgTable("samples", {
   id: uuid("id").defaultRandom().primaryKey(),
-  sample_category_id: uuid("sample_category_id").notNull()
+  sample_category_id: uuid("sample_category_id")
     .references(() => SampleCategoryTable.id),
   name: text("name").notNull(),
   number: integer("number").default(999),

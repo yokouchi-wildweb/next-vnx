@@ -30,6 +30,8 @@ export type AppToastPosition =
 
 export type AppToastSize = "sm" | "md" | "lg";
 
+export type AppToastLayer = "alert" | "super" | "ultimate" | "apex";
+
 export type AppToastItem = {
   id: string;
   message: string;
@@ -40,6 +42,7 @@ export type AppToastItem = {
   size: AppToastSize;
   spinning: boolean;
   icon?: AppToastIconPreset | ReactNode;
+  layer: AppToastLayer;
 };
 
 export type AppToastOptions = {
@@ -51,12 +54,14 @@ export type AppToastOptions = {
   size?: AppToastSize;
   spinning?: boolean;
   icon?: AppToastIconPreset | ReactNode;
+  layer?: AppToastLayer;
 };
 
 type AppToastState = {
   toast: AppToastItem | null;
-  show: (options: AppToastOptions) => void;
+  show: (options: AppToastOptions) => string;
   hide: () => void;
+  hideById: (id: string) => void;
 };
 
 export const useAppToastStore = create<AppToastState>((set) => ({
@@ -69,11 +74,12 @@ export const useAppToastStore = create<AppToastState>((set) => ({
     const variant = options.variant ?? (isPersistent ? "loading" : "info");
     const isLoading = variant === "loading";
     const spinning = options.spinning ?? (isPersistent || isLoading);
-    const position = options.position ?? (isPersistent ? "bottom-center" : "center");
+    const position = options.position ?? "bottom-center";
 
+    const id = crypto.randomUUID();
     set({
       toast: {
-        id: crypto.randomUUID(),
+        id,
         message: options.message,
         variant,
         mode,
@@ -82,8 +88,12 @@ export const useAppToastStore = create<AppToastState>((set) => ({
         size: options.size ?? "md",
         spinning,
         icon: options.icon,
+        layer: options.layer ?? "alert",
       },
     });
+    return id;
   },
   hide: () => set({ toast: null }),
+  hideById: (id) =>
+    set((state) => (state.toast?.id === id ? { toast: null } : state)),
 }));

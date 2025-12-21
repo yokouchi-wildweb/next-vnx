@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   useAppToastStore,
   type AppToastOptions,
@@ -84,6 +84,7 @@ export function useAppToast() {
 /**
  * フラグに連動してローディングトーストを自動表示/非表示するフック。
  * フラグがtrueの間だけトーストを表示し、falseになると自動で非表示にする。
+ * 別のトーストで上書きされた場合は、そのトーストを消さない。
  *
  * @example
  * const { isPending } = useMutation(...);
@@ -103,7 +104,8 @@ export function useLoadingToast(
   messageOrOptions: string | Omit<AppToastOptions, "mode">,
 ) {
   const show = useAppToastStore((s) => s.show);
-  const hide = useAppToastStore((s) => s.hide);
+  const hideById = useAppToastStore((s) => s.hideById);
+  const toastIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (flag) {
@@ -111,9 +113,10 @@ export function useLoadingToast(
         typeof messageOrOptions === "string"
           ? { message: messageOrOptions, mode: "persistent" }
           : { ...messageOrOptions, mode: "persistent" };
-      show(options);
-    } else {
-      hide();
+      toastIdRef.current = show(options);
+    } else if (toastIdRef.current) {
+      hideById(toastIdRef.current);
+      toastIdRef.current = null;
     }
-  }, [flag, show, hide]);
+  }, [flag, show, hideById]);
 }

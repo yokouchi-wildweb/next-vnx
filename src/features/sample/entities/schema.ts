@@ -4,7 +4,8 @@ import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
 
 export const SampleBaseSchema = z.object({
-  sample_category_id: z.string().trim().min(1, { message: "サンプルカテゴリは必須です。" }),
+  sample_category_id: z.string().trim().nullish()
+    .transform((value) => emptyToNull(value)),
   sample_tag_ids: z.array(z.string()).default([]),
   name: z.string().trim().min(1, { message: "名前は必須です。" }),
   number: z.coerce.number().int().nullish(),

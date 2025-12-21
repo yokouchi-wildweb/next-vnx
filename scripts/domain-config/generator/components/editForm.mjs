@@ -77,8 +77,8 @@ export default function generate(tokens) {
   // 追加の import を挿入
   if (extras.imports) {
     content = content.replace(
-      'import { toast } from "sonner";',
-      `import { toast } from "sonner";\n${extras.imports}`,
+      'import { useAppToast, useLoadingToast } from "@/hooks/useAppToast";',
+      `import { useAppToast, useLoadingToast } from "@/hooks/useAppToast";\n${extras.imports}`,
     );
   }
   // フォーム用のフック処理を挿入

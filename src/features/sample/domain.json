@@ -12,7 +12,7 @@
       "fieldName": "sample_category_id",
       "fieldType": "uuid",
       "relationType": "belongsTo",
-      "required": true,
+      "required": false,
       "onDeleteCascade": false
     },
     {

@@ -9,8 +9,7 @@ import { __Domain__CreateFields } from "@/features/__domain__/entities/form";
 import { useCreate__Domain__ } from "@/features/__domain__/hooks/useCreate__Domain__";
 import { __Domain__Form } from "./__Domain__Form";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useAppToast, useLoadingToast } from "@/hooks/useAppToast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
 import domainConfig from "@/features/__domain__/domain.json";
@@ -28,18 +27,17 @@ export default function Create__Domain__Form({ redirectPath = "/" }: Props) {
   });
 
   const router = useRouter();
-  const { showAppToast, hideAppToast } = useAppToast();
+  const { showAppToast } = useAppToast();
   const { trigger, isMutating } = useCreate__Domain__();
+  useLoadingToast(isMutating, "登録中です…");
 
   const submit = async (data: __Domain__CreateFields) => {
-    showAppToast({ message: "登録中です…", mode: "persistent" });
     try {
       await trigger(data);
-      toast.success("登録しました");
+      showAppToast("登録しました", "success");
       router.push(redirectPath);
     } catch (error) {
-      hideAppToast();
-      toast.error(err(error, "登録に失敗しました"));
+      showAppToast(err(error, "登録に失敗しました"), "error");
     }
   };
 

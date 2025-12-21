@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import {
   useAppToastStore,
   type AppToastPosition,
+  type AppToastLayer,
   type AppToastItem as ToastData,
 } from "@/stores/useAppToastStore";
 import { cn } from "@/lib/cn";
@@ -44,6 +45,13 @@ const EXIT_ANIMATION_CLASSES: Record<AppToastPosition, string> = {
 };
 
 const EXIT_ANIMATION_DURATION = 350;
+
+const LAYER_CLASSES: Record<AppToastLayer, string> = {
+  alert: "alert-layer",
+  super: "super-layer",
+  ultimate: "ultimate-layer",
+  apex: "apex-layer",
+};
 
 /**
  * グローバルアプリトーストをPortalでbody直下に描画するコンポーネント。
@@ -126,11 +134,13 @@ export function GlobalAppToast() {
   const animationClass = isExiting
     ? EXIT_ANIMATION_CLASSES[displayedToast.position]
     : ENTER_ANIMATION_CLASSES[displayedToast.position];
+  const layerClass = LAYER_CLASSES[displayedToast.layer];
 
   const content = isCenter ? (
     <div
       className={cn(
-        "fixed pointer-events-none alert-layer",
+        "fixed pointer-events-none",
+        layerClass,
         POSITION_CLASSES[displayedToast.position],
       )}
       role="region"
@@ -147,7 +157,8 @@ export function GlobalAppToast() {
   ) : (
     <div
       className={cn(
-        "fixed pointer-events-none alert-layer",
+        "fixed pointer-events-none",
+        layerClass,
         POSITION_CLASSES[displayedToast.position],
         animationClass,
       )}
