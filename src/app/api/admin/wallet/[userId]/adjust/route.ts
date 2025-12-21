@@ -1,12 +1,15 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { z } from "zod";
-import { CURRENCY_CONFIG, type WalletType } from "@/features/core/wallet/currencyConfig";
+// src/app/api/admin/wallet/[userId]/adjust/route.ts
 
-import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+
+import { createApiRoute } from "@/lib/routeFactory";
+import { CURRENCY_CONFIG, type WalletType } from "@/features/core/wallet/currencyConfig";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletAdjustRequestPayload } from "@/features/core/wallet/services/types";
 import { WalletHistoryMetaSchema } from "@/features/core/walletHistory/entities/schema";
-import { isDomainError } from "@/lib/errors";
+
+type Params = { userId: string };
 
 const walletTypeValues = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
 
@@ -33,39 +36,39 @@ const WalletAdjustPayloadSchema = z
     }
   });
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ userId: string }> },
-) {
-  const { userId } = await params;
-  if (!userId) {
-    return NextResponse.json({ message: "ユーザーIDが指定されていません。" }, { status: 400 });
-  }
+export const POST = createApiRoute<Params>(
+  {
+    operation: "POST /api/admin/wallet/[userId]/adjust",
+    operationType: "write",
+    skipForDemo: false,
+  },
+  async (req, { params, session }) => {
+    const { userId } = params;
 
-  const sessionUser = await getSessionUser();
-
-  if (!sessionUser || sessionUser.role !== "admin") {
-    return NextResponse.json({ message: "この操作を行う権限がありません。" }, { status: 403 });
-  }
-
-  let payload: WalletAdjustRequestPayload;
-
-  try {
-    const json = await req.json();
-    const parsed = WalletAdjustPayloadSchema.safeParse(json);
-    if (!parsed.success) {
-      const errorMessage = parsed.error.errors[0]?.message ?? "入力値が不正です。";
-      return NextResponse.json({ message: errorMessage }, { status: 400 });
+    if (!userId) {
+      return NextResponse.json({ message: "ユーザーIDが指定されていません。" }, { status: 400 });
     }
-    payload = parsed.data as WalletAdjustRequestPayload;
-  } catch {
-    return NextResponse.json({ message: "リクエストボディの解析に失敗しました。" }, { status: 400 });
-  }
 
-  try {
+    if (!session || session.role !== "admin") {
+      return NextResponse.json({ message: "この操作を行う権限がありません。" }, { status: 403 });
+    }
+
+    let payload: WalletAdjustRequestPayload;
+    try {
+      const json = await req.json();
+      const parsed = WalletAdjustPayloadSchema.safeParse(json);
+      if (!parsed.success) {
+        const errorMessage = parsed.error.errors[0]?.message ?? "入力値が不正です。";
+        return NextResponse.json({ message: errorMessage }, { status: 400 });
+      }
+      payload = parsed.data as WalletAdjustRequestPayload;
+    } catch {
+      return NextResponse.json({ message: "リクエストボディの解析に失敗しました。" }, { status: 400 });
+    }
+
     const mergedMeta = {
       ...(payload.meta ?? {}),
-      adminId: sessionUser.userId,
+      adminId: session.userId,
     };
 
     const result = await walletService.adjustBalance({
@@ -79,12 +82,6 @@ export async function POST(
       meta: mergedMeta,
     });
 
-    return NextResponse.json(result);
-  } catch (error) {
-    if (isDomainError(error)) {
-      return NextResponse.json({ message: error.message }, { status: error.status });
-    }
-    console.error("POST /api/admin/wallet/[userId]/adjust failed:", error);
-    return NextResponse.json({ message: "ポイントの更新に失敗しました。" }, { status: 500 });
-  }
-}
+    return result;
+  },
+);

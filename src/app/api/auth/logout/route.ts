@@ -2,12 +2,18 @@
 
 import { NextResponse } from "next/server";
 
+import { createApiRoute } from "@/lib/routeFactory";
 import { clearSessionCookie } from "@/features/core/auth/services/server/session/clearSessionCookie";
 
-export async function POST() {
-  // レスポンスを先に生成し、フロントエンドへログアウト完了を通知する。
-  const response = NextResponse.json({ success: true });
-  // クッキーに保持されているセッショントークンを強制的に破棄する。
-  clearSessionCookie({ cookies: response.cookies });
-  return response;
-}
+export const POST = createApiRoute(
+  {
+    operation: "POST /api/auth/logout",
+    operationType: "write",
+    skipForDemo: false,
+  },
+  async () => {
+    const response = NextResponse.json({ success: true });
+    clearSessionCookie({ cookies: response.cookies });
+    return response;
+  },
+);

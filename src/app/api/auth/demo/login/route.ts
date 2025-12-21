@@ -2,16 +2,19 @@
 
 import { NextResponse } from "next/server";
 
+import { createApiRoute } from "@/lib/routeFactory";
 import { demoLogin } from "@/features/core/auth/services/server/demoLogin";
 import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
-import { isDomainError } from "@/lib/errors";
 
-export async function POST() {
-  try {
-    // デモログインを実行
+export const POST = createApiRoute(
+  {
+    operation: "POST /api/auth/demo/login",
+    operationType: "write",
+    skipForDemo: false,
+  },
+  async () => {
     const { user, session } = await demoLogin();
 
-    // レスポンスにユーザー情報とセッションの有効期限を含める
     const response = NextResponse.json({
       user,
       session: {
@@ -19,7 +22,6 @@ export async function POST() {
       },
     });
 
-    // セッショントークンを Cookie に書き込む
     issueSessionCookie({
       cookies: response.cookies,
       token: session.token,
@@ -28,17 +30,5 @@ export async function POST() {
     });
 
     return response;
-  } catch (error) {
-    console.error("POST /api/auth/demo/login failed", error);
-
-    if (isDomainError(error)) {
-      return NextResponse.json({ message: error.message }, { status: error.status });
-    }
-
-    if (error instanceof Error) {
-      return NextResponse.json({ message: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
-  }
-}
+  },
+);

@@ -1,27 +1,17 @@
 // src/app/api/auth/pre-register/route.ts
 
-import { NextRequest, NextResponse } from "next/server";
-
+import { createApiRoute } from "@/lib/routeFactory";
 import { preRegister } from "@/features/core/auth/services/server/preRegistration";
-import { isDomainError } from "@/lib/errors";
 
-export async function POST(req: NextRequest) {
-  try {
+export const POST = createApiRoute(
+  {
+    operation: "POST /api/auth/pre-register",
+    operationType: "write",
+    skipForDemo: true,
+  },
+  async (req) => {
     const body = await req.json();
     const { user } = await preRegister(body);
-
-    return NextResponse.json({ user });
-  } catch (error) {
-    console.error("POST /api/auth/pre-register failed", error);
-
-    if (isDomainError(error)) {
-      return NextResponse.json({ message: error.message }, { status: error.status });
-    }
-
-    if (error instanceof Error) {
-      return NextResponse.json({ message: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
-  }
-}
+    return { user };
+  },
+);
