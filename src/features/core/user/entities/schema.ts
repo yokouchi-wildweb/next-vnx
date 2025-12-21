@@ -13,6 +13,7 @@ export const UserCoreSchema = z.object({
     .min(1, { message: "プロバイダー UID が不足しています" }),
   role: z.enum(USER_ROLES),
   status: z.enum(USER_STATUSES),
+  isDemo: z.boolean().default(false),
   email: z
     .string()
     .email()

@@ -11,6 +11,7 @@ export type User = BaseEntity & {
   role: UserRoleType;
   localPassword: string | null;
   status: UserStatus;
+  isDemo: boolean;
   lastAuthenticatedAt: Date | null;
 };
 

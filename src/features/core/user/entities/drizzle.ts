@@ -1,7 +1,7 @@
 // src/features/user/entities/drizzle.ts
 
 import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/constants/user";
-import { pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const UserRoleEnum = pgEnum("user_role", [...USER_ROLES]);
 export const UserProviderTypeEnum = pgEnum("user_provider_type", [...USER_PROVIDER_TYPES]);
@@ -18,6 +18,7 @@ export const UserTable = pgTable(
     role: UserRoleEnum("role").notNull(),
     localPassword: text("local_password"),
     status: UserStatusEnum("status").default("pending").notNull(),
+    isDemo: boolean("is_demo").default(false).notNull(),
     lastAuthenticatedAt: timestamp("last_authenticated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
