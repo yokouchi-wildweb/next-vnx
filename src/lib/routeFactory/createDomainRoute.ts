@@ -15,6 +15,13 @@ export type DomainRouteConfig<TService> = {
   operationType: OperationType;
   /** サービスが特定のメソッドをサポートしているか確認 */
   supports?: keyof TService | Array<keyof TService>;
+  /**
+   * デモユーザーの場合にDB操作をスキップするか
+   * - undefined: operationType === "write" の場合に自動スキップ
+   * - true: 強制的にスキップ
+   * - false: スキップしない（デモでも実行を許可）
+   */
+  skipForDemo?: boolean;
 };
 
 /**
@@ -72,6 +79,7 @@ export function createDomainRoute<
     {
       operation: config.operation,
       operationType: config.operationType,
+      skipForDemo: config.skipForDemo,
     },
     async (req, ctx) => {
       const { domain } = ctx.params;

@@ -21,6 +21,13 @@ export type ApiRouteConfig = {
   operation: string;
   /** 操作の種類 */
   operationType: OperationType;
+  /**
+   * デモユーザーの場合にDB操作をスキップするか
+   * - undefined: operationType === "write" の場合に自動スキップ
+   * - true: 強制的にスキップ
+   * - false: スキップしない（デモでも実行を許可）
+   */
+  skipForDemo?: boolean;
 };
 
 /**
@@ -67,7 +74,12 @@ export function createApiRoute<TParams = Record<string, string>, TResult = unkno
       // ===== 共通処理（前処理） =====
 
       // デモユーザーの書き込み操作をスキップ
-      if (config.operationType === "write" && session?.isDemo) {
+      // skipForDemo が明示的に指定されていればその値を使用
+      // 未指定の場合は operationType === "write" で自動スキップ
+      const shouldSkipForDemo =
+        config.skipForDemo ?? (config.operationType === "write");
+
+      if (shouldSkipForDemo && session?.isDemo) {
         return NextResponse.json({ success: true, demo: true });
       }
 
