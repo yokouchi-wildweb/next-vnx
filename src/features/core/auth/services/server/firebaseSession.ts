@@ -95,6 +95,7 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
     userId: user.id,
     role: user.role,
     status: user.status,
+    isDemo: user.isDemo,
     providerType: user.providerType,
     providerUid: user.providerUid,
     displayName: user.displayName,
@@ -107,6 +108,7 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
     claims: {
       role: sessionUser.role,
       status: sessionUser.status,
+      isDemo: sessionUser.isDemo,
       providerType: sessionUser.providerType,
       providerUid: sessionUser.providerUid,
       displayName: sessionUser.displayName,

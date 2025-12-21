@@ -88,6 +88,7 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
     userId: user.id,
     role: user.role,
     status: user.status,
+    isDemo: user.isDemo,
     providerType: user.providerType,
     providerUid: user.providerUid,
     displayName: user.displayName,
@@ -100,6 +101,7 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
     claims: {
       role: sessionUser.role,
       status: sessionUser.status,
+      isDemo: sessionUser.isDemo,
       providerType: sessionUser.providerType,
       providerUid: sessionUser.providerUid,
       displayName: sessionUser.displayName,

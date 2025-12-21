@@ -98,6 +98,7 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     userId: upserted.id,
     role: upserted.role,
     status: upserted.status,
+    isDemo: upserted.isDemo,
     providerType: upserted.providerType,
     providerUid: upserted.providerUid,
     displayName: upserted.displayName,
@@ -109,6 +110,7 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     claims: {
       role: sessionUser.role,
       status: sessionUser.status,
+      isDemo: sessionUser.isDemo,
       providerType: sessionUser.providerType,
       providerUid: sessionUser.providerUid,
       displayName: sessionUser.displayName,

@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
         userId: parsed.data.sub,
         role: parsed.data.role,
         status: parsed.data.status,
+        isDemo: parsed.data.isDemo,
         providerType: parsed.data.providerType,
         providerUid: parsed.data.providerUid,
         displayName: parsed.data.displayName ?? null,
@@ -66,6 +67,7 @@ export async function GET(req: NextRequest) {
     claims: {
       role: sessionUser.role,
       status: sessionUser.status,
+      isDemo: sessionUser.isDemo,
       providerType: sessionUser.providerType,
       providerUid: sessionUser.providerUid,
       displayName: sessionUser.displayName,
