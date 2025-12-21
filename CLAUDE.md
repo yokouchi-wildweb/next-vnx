@@ -51,7 +51,7 @@ constants/, types/, domain.json
 
 ### shared (approval required to modify)
 ```
-lib/: crud, errors, drizzle, firebase, storage, mail, jwt, mediaInputSuite, tableSuite, localStorage, redirectToast, cn
+lib/: crud, errors, drizzle, firebase, storage, mail, jwt, routeFactory, mediaInputSuite, tableSuite, localStorage, redirectToast, cn
 config/: admin-global-menu, app-features, maintenance, redirect, user-header, user-bottom-menu
 stores/: useAppToastStore, useGlobalLoaderStore, useSiteTheme, useViewportSize
 hooks/: useAppToast (primary toast), useGlobalLoader, useInfiniteScrollQuery, useFieldGuard, useRouteTransitionPending
@@ -69,6 +69,9 @@ auth, user, wallet, walletHistory, purchaseRequest, setting, mail, adminCommand,
 sample (relation example), sampleCategory (belongsTo), sampleTag (belongsToMany), _template
 
 ## API_ROUTES
+
+**MANDATORY: all routes must use routeFactory (createApiRoute / createDomainRoute)**
+ref: src/lib/routeFactory/README.md
 
 ### generic (app/api/[domain]/)
 GET / -> list
@@ -160,6 +163,7 @@ constants: UPPER_SNAKE_CASE
 - manual m2m sync when belongsToMany available
 - re-implement CRUD when base suffices
 - edit generated files without wrappers
+- direct API route handlers (use routeFactory: createApiRoute / createDomainRoute)
 
 ## CORE_FILES (approval required)
 src/lib/, src/features/core/, src/components/, scripts/domain-config/, src/styles/config.css
