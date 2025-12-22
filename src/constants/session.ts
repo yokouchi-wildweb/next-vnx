@@ -13,3 +13,9 @@ export const SESSION_COOKIE_NAME = "__session" as const;
  * 7 日間をデフォルト値として採用する。
  */
 export const SESSION_DEFAULT_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
+
+/**
+ * デモユーザー用セッションの最大存続時間（秒）。
+ * セキュリティ上の理由から短めに設定する。
+ */
+export const DEMO_SESSION_MAX_AGE_SECONDS = 60 * 10; // 10分

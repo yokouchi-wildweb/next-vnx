@@ -3,8 +3,9 @@
 import { SessionUserSchema } from "@/features/core/auth/entities/session";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { userService } from "@/features/core/user/services/server/userService";
+import { DEMO_SESSION_MAX_AGE_SECONDS } from "@/constants/session";
 import { DomainError } from "@/lib/errors";
-import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
+import { signUserToken } from "@/lib/jwt";
 
 const DEMO_USER_PROVIDER_TYPE = "custom";
 const DEMO_USER_PROVIDER_UID = "demo-user-u001";
@@ -55,8 +56,8 @@ export async function demoLogin(): Promise<DemoLoginResult> {
     displayName: user.displayName,
   });
 
-  // JWT の存続期間を定義し、トークンを署名
-  const maxAge = SESSION_DEFAULT_MAX_AGE_SECONDS;
+  // JWT の存続期間を定義し、トークンを署名（デモユーザーは短いセッション時間）
+  const maxAge = DEMO_SESSION_MAX_AGE_SECONDS;
   const { token, expiresAt } = await signUserToken({
     subject: sessionUser.userId,
     claims: {
