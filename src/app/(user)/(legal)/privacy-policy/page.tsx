@@ -2,12 +2,12 @@ import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Section } from "@/components/Layout/Section";
 import { Para, SecTitle, Span } from "@/components/TextBlocks";
+import { businessConfig } from "@/config/business.config";
 
-// TODO: 各プロジェクトで適切な値に変更してください
-const SERVICE_NAME = "本サービス";
-const SUPPORT_EMAIL = "support@example.com";
-const ENACTED_AT = "20XX年X月X日";
-const LAST_UPDATED_AT = "20XX年X月X日";
+const SERVICE_NAME = businessConfig.serviceName;
+const SUPPORT_EMAIL = businessConfig.company.email;
+const ENACTED_AT = businessConfig.legal.enactedAt;
+const LAST_UPDATED_AT = businessConfig.legal.lastUpdatedAt;
 
 const dataCategories = [
   {

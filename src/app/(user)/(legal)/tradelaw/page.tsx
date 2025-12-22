@@ -2,18 +2,17 @@ import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Section } from "@/components/Layout/Section";
 import { Para, SecTitle } from "@/components/TextBlocks";
+import { businessConfig } from "@/config/business.config";
 import Link from "next/link";
 
-// TODO: 各プロジェクトで適切な値に変更してください
-const COMPANY_NAME = "株式会社サンプル";
-const REPRESENTATIVE_NAME = "代表 太郎";
-const POSTAL_CODE = "〒000-0000";
-const ADDRESS = "東京都○○区○○1-2-3";
-const PHONE_NUMBER = "03-0000-0000";
-const EMAIL = "support@example.com";
-const PAYMENT_METHODS = "クレジット決済、銀行振込、コンビニ払い";
-// 古物商許可が必要な場合のみ設定（不要な場合は空文字）
-const ANTIQUE_LICENSE = ""; // 例: "東京都公安委員会 第000000000000号"
+const COMPANY_NAME = businessConfig.company.name;
+const REPRESENTATIVE_NAME = businessConfig.company.representative;
+const POSTAL_CODE = businessConfig.company.postalCode;
+const ADDRESS = businessConfig.company.address;
+const PHONE_NUMBER = businessConfig.company.phone;
+const EMAIL = businessConfig.company.email;
+const PAYMENT_METHODS = businessConfig.payment.methods;
+const ANTIQUE_LICENSE = businessConfig.legal.antiqueLicense;
 
 export default function TradelawPage() {
   return (
