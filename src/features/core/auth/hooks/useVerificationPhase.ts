@@ -34,6 +34,11 @@ export function useVerificationPhase({ oobCode, savedEmail }: UseVerificationPha
     let isActive = true;
 
     async function resolve() {
+      // 既にログイン済みの場合は一度ログアウトしてから処理を開始する
+      if (auth.currentUser) {
+        await signOut(auth);
+      }
+
       if (!oobCode) {
         // 受け取った URL に認証コードが含まれていない場合は手続きが継続できない
         setPhase("invalidProcess");
