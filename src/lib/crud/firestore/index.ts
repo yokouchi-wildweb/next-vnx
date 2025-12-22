@@ -3,6 +3,7 @@
 import { getServerFirestore } from "@/lib/firebase/server/app";
 import { omitUndefined } from "@/utils/object";
 import { uuidv7 } from "uuidv7";
+import { Timestamp } from "firebase-admin/firestore";
 import type {
   SearchParams,
   CreateCrudServiceOptions,
@@ -11,6 +12,22 @@ import type {
   WhereExpr,
 } from "../types";
 import { buildSearchQuery, applyWhere } from "./query";
+
+/**
+ * FirestoreのTimestampオブジェクトをDateオブジェクトに再帰的に変換する
+ * Server Components -> Client Componentsへのシリアライズを可能にする
+ */
+function convertTimestamps<T>(data: T): T {
+  if (data === null || data === undefined) return data;
+  if (data instanceof Timestamp) return data.toDate() as T;
+  if (Array.isArray(data)) return data.map(convertTimestamps) as T;
+  if (typeof data === "object") {
+    return Object.fromEntries(
+      Object.entries(data as Record<string, unknown>).map(([k, v]) => [k, convertTimestamps(v)])
+    ) as T;
+  }
+  return data;
+}
 
 export type DefaultInsert<T> = Omit<T, "id" | "createdAt" | "updatedAt">;
 
@@ -62,7 +79,7 @@ export function createCrudService<
       const finalInsert = omitUndefined(insertData);
       await docRef.set(finalInsert);
       const snap = await docRef.get();
-      return { id: docRef.id, ...(snap.data() as T) } as Select;
+      return convertTimestamps({ id: docRef.id, ...(snap.data() as T) } as Select);
     },
 
     async list(): Promise<Select[]> {
@@ -71,12 +88,12 @@ export function createCrudService<
         query = query.where("deletedAt", "==", null);
       }
       const snap = await query.get();
-      return snap.docs.map((d) => ({ id: d.id, ...(d.data() as T) } as Select));
+      return snap.docs.map((d) => convertTimestamps({ id: d.id, ...(d.data() as T) } as Select));
     },
 
     async listWithDeleted(): Promise<Select[]> {
       const snap = await col.get();
-      return snap.docs.map((d) => ({ id: d.id, ...(d.data() as T) } as Select));
+      return snap.docs.map((d) => convertTimestamps({ id: d.id, ...(d.data() as T) } as Select));
     },
 
     async get(id: string): Promise<Select | undefined> {
@@ -87,13 +104,13 @@ export function createCrudService<
       if (useSoftDelete && data.deletedAt != null) {
         return undefined;
       }
-      return { id: snap.id, ...data } as Select;
+      return convertTimestamps({ id: snap.id, ...data } as Select);
     },
 
     async getWithDeleted(id: string): Promise<Select | undefined> {
       const snap = await col.doc(id).get();
       if (!snap.exists) return undefined;
-      return { id: snap.id, ...(snap.data() as T) } as Select;
+      return convertTimestamps({ id: snap.id, ...(snap.data() as T) } as Select);
     },
 
     async update(id: string, data: Partial<Insert>): Promise<Select> {
@@ -109,7 +126,7 @@ export function createCrudService<
 
       await ref.set(updateData, { merge: true });
       const snap = await ref.get();
-      return { id: ref.id, ...(snap.data() as T) } as Select;
+      return convertTimestamps({ id: ref.id, ...(snap.data() as T) } as Select);
     },
 
     async remove(id: string): Promise<void> {
@@ -131,7 +148,7 @@ export function createCrudService<
       if (!snap.exists) {
         throw new Error(`Record not found: ${id}`);
       }
-      return { id: snap.id, ...(snap.data() as T) } as Select;
+      return convertTimestamps({ id: snap.id, ...(snap.data() as T) } as Select);
     },
 
     async hardDelete(id: string): Promise<void> {
@@ -157,7 +174,7 @@ export function createCrudService<
       const start = (page - 1) * limit;
       const results = docs
         .slice(start, start + limit)
-        .map((d) => ({ id: d.id, ...(d.data() as T) } as Select));
+        .map((d) => convertTimestamps({ id: d.id, ...(d.data() as T) } as Select));
       return { results, total };
     },
 
@@ -170,7 +187,7 @@ export function createCrudService<
       const start = (page - 1) * limit;
       const results = docs
         .slice(start, start + limit)
-        .map((d) => ({ id: d.id, ...(d.data() as T) } as Select));
+        .map((d) => convertTimestamps({ id: d.id, ...(d.data() as T) } as Select));
       return { results, total };
     },
 
@@ -237,7 +254,7 @@ export function createCrudService<
       const sanitizedInsert = omitUndefined(insertData);
       await ref.set(sanitizedInsert, { merge: true });
       const snap = await ref.get();
-      return { id: ref.id, ...(snap.data() as T) } as Select;
+      return convertTimestamps({ id: ref.id, ...(snap.data() as T) } as Select);
     },
 
     async duplicate(id: string): Promise<Select> {
