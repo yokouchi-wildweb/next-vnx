@@ -4,6 +4,15 @@
 // ここで定義された値を参照することで、UI や機能を環境ごとに切り替えられるようにします。
 
 export const APP_FEATURES = {
+  /**
+   * ドメインロック設定
+   * true にすると該当ルート全体が404になる（middlewareで制御）
+   */
+  domainLocks: {
+    wallet: false,
+    // shop: false,
+  },
+
   signup: {
     thirdPartyRegistration: {
       google: true,
@@ -31,8 +40,6 @@ export const APP_FEATURES = {
     },
   },
   wallet: {
-    /** ユーザー側のウォレット管理・購入機能を有効にする */
-    enableUserWallet: true,
     enableUserAdjustButton: true,
   },
   // Higher values may increase productivity.

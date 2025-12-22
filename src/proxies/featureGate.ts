@@ -11,13 +11,13 @@ import type { ProxyHandler } from "./types";
 export const featureGateProxy: ProxyHandler = (request) => {
   const pathname = request.nextUrl.pathname;
 
-  // ユーザー側ウォレット機能のチェック
-  if (pathname.startsWith("/wallet") && !APP_FEATURES.wallet.enableUserWallet) {
+  // ドメインロック: wallet
+  if (pathname.startsWith("/wallet") && APP_FEATURES.domainLocks.wallet) {
     return NextResponse.rewrite(new URL("/404", request.url));
   }
 
-  // 他の機能ゲートはここに追加
-  // if (pathname.startsWith("/xxx") && !APP_FEATURES.xxx.enabled) {
+  // ドメインロック: 他のドメインはここに追加
+  // if (pathname.startsWith("/shop") && APP_FEATURES.domainLocks.shop) {
   //   return NextResponse.rewrite(new URL("/404", request.url));
   // }
 };
