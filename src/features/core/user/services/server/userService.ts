@@ -9,6 +9,7 @@ import {
   registerGeneralUserFromConsole,
 } from "./registrations";
 import { create } from "./wrappers/create";
+import { hardDelete } from "./wrappers/hardDelete";
 import { remove } from "./wrappers/remove";
 import { update } from "./wrappers/update";
 import { updateLastAuthenticated } from "./wrappers/updateLastAuthenticated";
@@ -20,6 +21,7 @@ export const userService = {
   ...base,
   create,
   remove,
+  hardDelete,
   update,
   // finders
   findByProvider,
