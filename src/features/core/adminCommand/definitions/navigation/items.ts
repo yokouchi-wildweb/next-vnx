@@ -42,4 +42,11 @@ export const navigationItems: NavigationItem[] = [
     href: "/admin/settings",
     keywords: ["setting", "config", "設定"],
   },
+  {
+    id: "nav-admin-insane",
+    label: "インセインモード (insane)",
+    description: "特権的な管理機能",
+    href: "/admin/insane",
+    keywords: ["insane", "インセイン", "特権", "裏メニュー"],
+  },
 ];

@@ -5,6 +5,8 @@
 import { type CSSProperties, type ReactNode, useMemo } from "react";
 
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
+import { cn } from "@/lib/cn";
+import { useAdminLayoutStore } from "@/stores/useAdminLayoutStore";
 
 import { Footer } from "../Sections/Footer";
 import { Header } from "../Sections/Header";
@@ -14,6 +16,8 @@ export type AdminLayoutClientProps = {
   headerLogoUrl?: string;
   headerLogoDarkUrl?: string;
   footerText?: string | null;
+  /** 追加のクラス名（invert等のスタイル制御用） */
+  className?: string;
 };
 
 type AdminLayoutCSSVariables = CSSProperties & {
@@ -25,8 +29,10 @@ export function AdminOuterLayout({
   headerLogoUrl,
   headerLogoDarkUrl,
   footerText,
+  className,
 }: AdminLayoutClientProps) {
   const headerHeight = useHeaderHeight();
+  const extraClassName = useAdminLayoutStore((s) => s.extraClassName);
 
   const layoutStyle: AdminLayoutCSSVariables = useMemo(
     () => ({
@@ -37,7 +43,11 @@ export function AdminOuterLayout({
 
   return (
     <div
-      className="relative flex min-h-[var(--viewport-height,100dvh)] flex-col bg-background text-foreground"
+      className={cn(
+        "relative flex min-h-[var(--viewport-height,100dvh)] flex-col bg-background text-foreground",
+        className,
+        extraClassName,
+      )}
       style={layoutStyle}
     >
       <Header logoUrl={headerLogoUrl} darkLogoUrl={headerLogoDarkUrl} />
