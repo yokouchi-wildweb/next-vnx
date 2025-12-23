@@ -32,12 +32,21 @@ export const USER_ROLE_OPTIONS = [
   { id: "user", name: "一般" },
 ] as const;
 
-export const USER_STATUSES = ["pending", "active", "inactive", "locked"] as const;
+export const USER_STATUSES = [
+  "pending",
+  "active",
+  "inactive",
+  "suspended",
+  "banned",
+  "security_locked",
+  "withdrawn",
+] as const;
 
-export const USER_AVAILABLE_STATUSES: readonly UserStatus[] = ["active",];
+export const USER_AVAILABLE_STATUSES: readonly UserStatus[] = ["active"];
 
 export const USER_REGISTERED_STATUSES: readonly UserStatus[] = [
   "active",
   "inactive",
-  "locked",
+  "suspended",
+  "security_locked",
 ];

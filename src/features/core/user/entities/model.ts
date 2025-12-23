@@ -13,5 +13,6 @@ export type User = BaseEntity & {
   status: UserStatus;
   isDemo: boolean;
   lastAuthenticatedAt: Date | null;
+  deletedAt: Date | null;
 };
 

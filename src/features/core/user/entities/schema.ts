@@ -25,6 +25,7 @@ export const UserCoreSchema = z.object({
     .transform((value) => emptyToNull(value))
     .transform(async (value) => await createHashPreservingNullish(value)),
   lastAuthenticatedAt: z.coerce.date().nullish(),
+  deletedAt: z.coerce.date().nullish(),
   displayName: z
     .string()
     .nullish()
@@ -76,4 +77,5 @@ export const userSelfUpdateSchema = GeneralUserOptionalSchema.omit({
   role: true,
   status: true,
   lastAuthenticatedAt: true,
+  deletedAt: true,
 });

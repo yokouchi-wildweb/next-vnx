@@ -20,6 +20,7 @@ export const UserTable = pgTable(
     status: UserStatusEnum("status").default("pending").notNull(),
     isDemo: boolean("is_demo").default(false).notNull(),
     lastAuthenticatedAt: timestamp("last_authenticated_at", { withTimezone: true }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },
