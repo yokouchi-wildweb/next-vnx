@@ -9,6 +9,9 @@ import Dialog from "@/components/Overlays/Dialog";
 import { useAppToast } from "@/hooks/useAppToast";
 import { toast } from "sonner";
 
+
+import { err } from "@/lib/errors";
+
 export type DeleteButtonProps = {
   id: string;
   /** Hook that provides delete mutation */
@@ -30,6 +33,8 @@ export default function DeleteButton({ id, useDelete, title }: DeleteButtonProps
       await trigger(id);
       toast.success("削除が完了しました。");
       router.refresh();
+    } catch (error) {
+      toast.error(err(error, "削除に失敗しました"));
     } finally {
       hideAppToast();
     }

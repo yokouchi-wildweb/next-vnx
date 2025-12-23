@@ -13,7 +13,9 @@ import { emitCrudEvent } from "./events";
 import { normalizeHttpError, type HttpError } from "@/lib/errors";
 
 let errorHandler = (error: HttpError) => {
-  console.error("API request error", error.status, error.message);
+  if (error.status && error.status >= 500) {
+    console.error("API request error", error.status, error.message);
+  }
 };
 
 export function setApiErrorHandler(handler: (error: HttpError) => void) {

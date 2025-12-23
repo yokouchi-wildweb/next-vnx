@@ -25,18 +25,45 @@ const resolveRecordId = (value: unknown): string | number | undefined => {
 };
 
 /**
+ * エラーオブジェクトからPostgreSQLエラーコードを抽出する
+ * Drizzleはエラーをラップするため、直接またはcause経由で確認
+ */
+const extractPgErrorCode = (error: unknown): string | undefined => {
+  if (!error || typeof error !== "object") return undefined;
+
+  // 直接codeを持つ場合
+  if ("code" in error && typeof error.code === "string") {
+    return error.code;
+  }
+
+  // cause経由でcodeを持つ場合（Drizzleのラップ）
+  if ("cause" in error && error.cause && typeof error.cause === "object") {
+    const cause = error.cause as Record<string, unknown>;
+    if ("code" in cause && typeof cause.code === "string") {
+      return cause.code;
+    }
+  }
+
+  return undefined;
+};
+
+/**
  * 外部キー制約違反エラーを検出してDomainErrorに変換する
- * PostgreSQL エラーコード 23503 = foreign_key_violation
+ * PostgreSQL エラーコード:
+ * - 23503 = foreign_key_violation（RESTRICT違反）
+ * - 23502 = not_null_violation（SET_NULL + NOT NULL制約違反）
  */
 const handleForeignKeyError = (error: unknown): never => {
-  if (
-    error &&
-    typeof error === "object" &&
-    "code" in error &&
-    error.code === "23503"
-  ) {
+  const pgCode = extractPgErrorCode(error);
+  if (pgCode === "23503") {
     throw new DomainError(
       "このレコードは他のデータから参照されているため削除できません",
+      { status: 409 }
+    );
+  }
+  if (pgCode === "23502") {
+    throw new DomainError(
+      "削除するには関連レコードで空の値を許容する必要があります",
       { status: 409 }
     );
   }
