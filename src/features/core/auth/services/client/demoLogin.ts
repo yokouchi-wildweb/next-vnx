@@ -9,16 +9,24 @@ import { normalizeHttpError } from "@/lib/errors";
 
 const ENDPOINT = "/api/auth/demo/login";
 
+export type DemoLoginInput = {
+  demoUserId?: string | null;
+};
+
 export type DemoLoginResponse = {
   user: SessionUser;
+  demoUserId: string;
+  isNewUser: boolean;
   session: {
     expiresAt: string;
   };
 };
 
-export async function demoLogin(): Promise<DemoLoginResponse> {
+export async function demoLogin(input: DemoLoginInput = {}): Promise<DemoLoginResponse> {
   try {
-    const response = await axios.post<DemoLoginResponse>(ENDPOINT);
+    const response = await axios.post<DemoLoginResponse>(ENDPOINT, {
+      demoUserId: input.demoUserId ?? null,
+    });
 
     return response.data;
   } catch (error) {
