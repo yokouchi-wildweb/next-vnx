@@ -56,15 +56,26 @@ async function askSingleRelation(config, domain, label, relationType) {
     required = res.required;
   }
 
-  let onDeleteCascade = undefined;
-  if (relationType === 'hasOne' || relationType === 'belongsTo') {
+  let onDelete = undefined;
+  if (relationType === 'belongsTo') {
+    // required の値に応じて選択肢を変更
+    const onDeleteChoices = [
+      { name: 'RESTRICT（参照があれば削除を拒否）', value: 'RESTRICT' },
+      { name: 'CASCADE（このレコードも削除）', value: 'CASCADE' },
+    ];
+    // SET_NULL は required: false の場合のみ選択可能
+    if (!required) {
+      onDeleteChoices.push({ name: 'SET_NULL（外部キーをNULLに設定）', value: 'SET_NULL' });
+    }
+
     const res = await prompt({
-      type: 'confirm',
-      name: 'onDeleteCascade',
-      message: '関連レコード削除時にこのレコードも削除しますか?',
-      default: false,
+      type: 'list',
+      name: 'onDelete',
+      message: '参照先削除時の挙動を選択:',
+      choices: onDeleteChoices,
+      default: 'RESTRICT',
     });
-    onDeleteCascade = res.onDeleteCascade;
+    onDelete = res.onDelete;
   }
 
   let includeRelationTable = false;
@@ -77,7 +88,7 @@ async function askSingleRelation(config, domain, label, relationType) {
     });
     includeRelationTable = res.includeRelationTable;
     required = false;
-    onDeleteCascade = false;
+    // belongsToMany は中間テーブルが CASCADE 固定のため onDelete は設定しない
   }
 
   const defaultLabel = toPascalCase(domain) || domain;
@@ -88,7 +99,7 @@ async function askSingleRelation(config, domain, label, relationType) {
     fieldType,
     relationType,
     required,
-    onDeleteCascade,
+    onDelete,
     includeRelationTable,
   };
 }

@@ -87,6 +87,42 @@ function formatValue(v) {
   return typeof v === 'string' ? `"${v}"` : v;
 }
 
+/**
+ * onDelete挙動を取得（後方互換性対応）
+ * @param {Object} relation - リレーション設定
+ * @returns {string} - CASCADE | RESTRICT | SET_NULL
+ */
+function getOnDeleteBehavior(relation) {
+  // 新形式が存在すれば優先
+  if (relation.onDelete) {
+    return relation.onDelete;
+  }
+  // 旧形式からの変換
+  if (relation.onDeleteCascade === true) {
+    return 'CASCADE';
+  }
+  // デフォルト: RESTRICT
+  return 'RESTRICT';
+}
+
+/**
+ * onDelete設定からDrizzleオプション文字列を生成
+ * @param {string} behavior - CASCADE | RESTRICT | SET_NULL
+ * @returns {string} - Drizzleの.references()第2引数
+ */
+function buildOnDeleteOption(behavior) {
+  switch (behavior) {
+    case 'CASCADE':
+      return ', { onDelete: "cascade" }';
+    case 'SET_NULL':
+      return ', { onDelete: "set null" }';
+    case 'RESTRICT':
+      return ', { onDelete: "restrict" }';
+    default:
+      return '';
+  }
+}
+
 const imports = new Set(['pgTable']);
 const relationImports = new Map();
 let usesPrimaryKey = false;
@@ -117,6 +153,17 @@ switch (config.idType) {
 // belongsTo relations
 (config.relations || []).forEach((rel) => {
   if (rel.relationType !== 'belongsTo') return;
+
+  // onDelete挙動を取得
+  const onDeleteBehavior = getOnDeleteBehavior(rel);
+
+  // バリデーション: SET_NULL + required: true は矛盾
+  if (onDeleteBehavior === 'SET_NULL' && rel.required) {
+    console.error(`エラー: ${rel.fieldName} で SET_NULL と required: true は同時に設定できません`);
+    console.error('  SET_NULL は外部キーを NULL に設定するため、required: false が必要です');
+    process.exit(1);
+  }
+
   const relationDomainCamel = toCamelCase(rel.domain);
   const relationDomainPascal = toPascalCase(rel.domain);
   relationImports.set(relationDomainCamel, relationDomainPascal);
@@ -131,7 +178,7 @@ switch (config.idType) {
   }
   let line = `  ${rel.fieldName}: ${column}`;
   if (rel.required) line += '.notNull()';
-  const opt = rel.onDeleteCascade ? ', { onDelete: "cascade" }' : '';
+  const opt = buildOnDeleteOption(onDeleteBehavior);
   line += `\n    .references(() => ${relationDomainPascal}Table.id${opt})`;
   line += ',';
   fields.push(line);
