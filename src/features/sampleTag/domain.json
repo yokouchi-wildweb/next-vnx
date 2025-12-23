@@ -13,7 +13,6 @@
       "fieldType": "uuid",
       "relationType": "belongsToMany",
       "required": false,
-      "onDeleteCascade": false,
       "includeRelationTable": false
     }
   ],
