@@ -8,6 +8,15 @@ export const demoModeConfig = {
   // デモモードの有効/無効
   enabled: false,
 
+  // デモ入り口ページのテキスト設定（HTMLタグ使用可）
+  text: {
+    title: "デモモード",
+    description: "デモユーザーとしてログインし、アプリケーションの機能をお試しいただけます。",
+    note: "デモモードでは、データベースへの書き込みはスキップされます。",
+    buttonLabel: "デモを開始",
+    loadingLabel: "ログイン中...",
+  },
+
   // デモモード中もアクセス許可するパス（完全一致）
   allowedPaths: [
     '/demo',
