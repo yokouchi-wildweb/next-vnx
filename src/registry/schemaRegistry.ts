@@ -3,6 +3,8 @@
 // example
 // export * from "@/features/xxx/entities/drizzle";
 
+export * from "@/features/core/userActionLog/entities/drizzle";
+
 // --- AUTO-GENERATED-START ---
 export * from "@/features/core/user/entities/drizzle";
 export * from "@/features/core/setting/entities/drizzle";

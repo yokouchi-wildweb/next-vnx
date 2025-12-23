@@ -1,6 +1,7 @@
 // src/config/serviceRegistry.ts
 
 import { userService } from "@/features/core/user/services/server/userService";
+import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
 import { settingService } from "@/features/core/setting/services/server/settingService";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import { walletHistoryService } from "@/features/core/walletHistory/services/server/walletHistoryService";
@@ -10,6 +11,7 @@ import { sampleCategoryService } from "@/features/sampleCategory/services/server
 import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
 
 export const serviceRegistry: Record<string, any> = {
+  userActionLog: userActionLogService,
 
   // --- AUTO-GENERATED-START ---
   user: userService,
