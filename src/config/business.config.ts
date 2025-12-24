@@ -6,7 +6,7 @@ export const businessConfig = {
   // === サービス基本情報 ===
 
   /** サービス名（正式名称） */
-  serviceName: "サービス名",
+  serviceName: "Wildweb Tokyo",
 
   /** サービス名（略称・ロゴ横やタイトルで使用） */
   serviceNameShort: "略称",
@@ -24,10 +24,10 @@ export const businessConfig = {
 
   company: {
     /** 会社名（正式名称） */
-    name: "株式会社サンプル",
+    name: "Wildweb Tokyo",
 
     /** 代表者名 */
-    representative: "代表 太郎",
+    representative: "代表者名",
 
     /** 郵便番号 */
     postalCode: "〒000-0000",
