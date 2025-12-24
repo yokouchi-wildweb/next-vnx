@@ -5,10 +5,24 @@
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { SettingFields } from "./SettingFields";
-import { ExtendedSettingFields } from "./ExtendedSettingFields";
+import { DomainFieldRenderer, type DomainMediaState } from "@/components/Form/DomainFieldRenderer";
 import type { FieldValues, Path, UseFormReturn } from "react-hook-form";
 import { useCallback, useRef, useState } from "react";
 import { usePendingMediaUploads, usePendingMediaDeletion } from "@/lib/mediaInputSuite";
+import settingFieldsJson from "../../setting-fields.json";
+import type { DomainJsonField } from "@/components/Form/DomainFieldRenderer/fieldMapper";
+
+// setting-fields.json を DomainJsonField[] 形式に変換
+const extendedFields: DomainJsonField[] = settingFieldsJson.fields.map((field) => ({
+  name: field.name,
+  label: field.label,
+  formInput: field.formInput,
+  fieldType: field.fieldType,
+  options: field.options,
+  uploadPath: "uploadPath" in field ? field.uploadPath : undefined,
+  accept: "accept" in field ? field.accept : undefined,
+  helperText: "description" in field ? field.description : undefined,
+}));
 
 export type SettingFormProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
@@ -118,8 +132,12 @@ export function SettingForm<TFieldValues extends FieldValues>({
           if (url === darkUrlRef.current) markDeleteDark(url);
         }}
       />
-      {/* 拡張設定フィールド */}
-      <ExtendedSettingFields<TFieldValues> control={control} />
+      {/* 拡張設定フィールド（setting-fields.json から動的レンダリング） */}
+      <DomainFieldRenderer<TFieldValues>
+        control={control}
+        methods={methods}
+        domainJsonFields={extendedFields}
+      />
       <div className="flex justify-center">
         <Button type="submit" disabled={disabled} variant="default">
           {disabled ? processingLabel : submitLabel}

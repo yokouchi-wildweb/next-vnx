@@ -15,6 +15,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAppToast } from "@/hooks/useAppToast";
 import { err } from "@/lib/errors";
+import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
+import settingFieldsJson from "../../setting-fields.json";
 
 // 統合されたフォーム型
 type CombinedSettingUpdateFields = SettingUpdateFields & SettingExtendedUpdateFields;
@@ -25,6 +27,12 @@ type Props = {
 };
 
 export default function EditSettingForm({ setting, redirectPath = "/" }: Props) {
+  // 拡張設定項目のdefaultValuesを動的に構築
+  const extendedDefaults = buildFormDefaultValues(
+    { fields: settingFieldsJson.fields },
+    setting as unknown as Record<string, unknown>,
+  );
+
   const methods = useForm<CombinedSettingUpdateFields>({
     resolver: zodResolver(SettingCombinedUpdateSchema),
     mode: "onSubmit",
@@ -35,12 +43,9 @@ export default function EditSettingForm({ setting, redirectPath = "/" }: Props) 
       adminHeaderLogoImageDarkUrl: setting.adminHeaderLogoImageDarkUrl ?? "",
       adminListPerPage: setting.adminListPerPage ?? 100,
       adminFooterText: setting.adminFooterText ?? "",
-      // 拡張設定項目
-      siteTitle: (setting as any).siteTitle ?? "",
-      maintenanceMode: (setting as any).maintenanceMode ?? false,
-      themeColor: (setting as any).themeColor ?? null,
-      ogImageUrl: (setting as any).ogImageUrl ?? "",
-    },
+      // 拡張設定項目（setting-fields.json から動的に構築）
+      ...extendedDefaults,
+    } as CombinedSettingUpdateFields,
   });
 
   const router = useRouter();

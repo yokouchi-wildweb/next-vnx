@@ -4,8 +4,8 @@ import { settingTable } from "@/features/core/setting/entities/drizzle";
 import {
   SettingCreateSchema,
   SettingUpsertSchema,
-  SettingUpdateSchema,
 } from "@/features/core/setting/entities/schema";
+import { SettingCombinedUpdateSchema } from "@/features/core/setting/entities";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { z } from "zod";
@@ -17,7 +17,7 @@ import type { z } from "zod";
 const baseOptions = {
   idType: "manual",
   parseCreate: (data) => SettingCreateSchema.parse(data),
-  parseUpdate: (data) => SettingUpdateSchema.parse(data),
+  parseUpdate: (data) => SettingCombinedUpdateSchema.parse(data),
   parseUpsert: (data) => SettingUpsertSchema.parse(data),
 } satisfies DrizzleCrudServiceOptions<z.infer<typeof SettingCreateSchema>>;
 
