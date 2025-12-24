@@ -56,6 +56,7 @@ export default function EditSettingForm({ setting, redirectPath = "/" }: Props) 
     showAppToast({ message: "更新中です…", mode: "persistent" });
     try {
       await trigger({ id: setting.id, data });
+      hideAppToast();
       toast.success("設定を更新しました");
       router.push(redirectPath);
     } catch (error) {
