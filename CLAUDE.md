@@ -135,6 +135,22 @@ page-level layout control:
 
 ref: src/components/README.md
 
+## DOMAIN_FIELD_RENDERER
+
+domain.json.fields[].formInput → DomainFieldRenderer → Input components
+
+formInput mapping: textInput, numberInput, textarea, select, multiSelect, radio, checkbox (array→checkGroup, else→booleanCheckbox), stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, mediaUploader, hidden
+
+usage (components/common/*Fields.tsx):
+```tsx
+<DomainFieldRenderer
+  domainJsonFields={domainConfig.fields}  // from domain.json
+  fields={customFields}                    // relations, overrides (domainFieldIndex)
+/>
+```
+
+ref: src/components/Form/DomainFieldRenderer/
+
 ## ERROR_HANDLING
 ServerService: throw DomainError(status, message)
 APIRoute: convert to JSON {status, message}
