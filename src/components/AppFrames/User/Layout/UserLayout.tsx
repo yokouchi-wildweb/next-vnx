@@ -39,7 +39,7 @@ export const UserAppLayout = ({ children, footerText }: UserAppLayoutProps) => {
             style={layoutStyle}
           >
             <UserNavigation />
-            <div className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">
+            <div id="stretch-wrapper" className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">
               {children}
             </div>
             <UserFooter text={footerText} />
