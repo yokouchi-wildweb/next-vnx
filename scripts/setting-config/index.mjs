@@ -6,8 +6,8 @@
  *   --init              setting-fields.json のテンプレートを生成
  *   --generate          拡張ファイルを生成
  *   --list              設定項目の一覧を表示
- *   --add               対話形式でフィールドを追加（Phase 5で実装予定）
- *   --remove            フィールドを削除（Phase 5で実装予定）
+ *   --add               対話形式でフィールドを追加
+ *   --remove            フィールドを削除
  *
  * オプション:
  *   --samples           init時にサンプルフィールドを含める
@@ -15,6 +15,7 @@
  *   --extended          拡張フィールドのみ表示
  *   --base              基本フィールドのみ表示
  *   --json              JSON形式で出力
+ *   --name <name>       removeで削除するフィールド名を指定
  *
  * 例:
  *   pnpm sc:init
@@ -22,10 +23,15 @@
  *   pnpm sc:list
  *   pnpm sc:list -- --json
  *   pnpm sc:generate
+ *   pnpm sc:add
+ *   pnpm sc:remove
+ *   pnpm sc:remove -- --name siteTitle
  */
 import init from "./init.mjs";
 import list from "./list.mjs";
 import generate from "./generate.mjs";
+import addField from "./add-field.mjs";
+import removeField from "./remove-field.mjs";
 
 function printUsage() {
   console.log(`
@@ -38,8 +44,8 @@ function printUsage() {
   --init              setting-fields.json のテンプレートを生成
   --generate          拡張ファイルを生成
   --list              設定項目の一覧を表示
-  --add               対話形式でフィールドを追加（未実装）
-  --remove            フィールドを削除（未実装）
+  --add               対話形式でフィールドを追加
+  --remove            フィールドを削除
 
 \x1b[36mオプション:\x1b[0m
   --samples           init時にサンプルフィールドを含める
@@ -47,6 +53,7 @@ function printUsage() {
   --extended          listで拡張フィールドのみ表示
   --base              listで基本フィールドのみ表示
   --json              listでJSON形式出力
+  --name <name>       removeで削除するフィールド名を指定
 
 \x1b[36m例:\x1b[0m
   pnpm sc:init
@@ -54,6 +61,9 @@ function printUsage() {
   pnpm sc:list
   pnpm sc:list -- --json
   pnpm sc:generate
+  pnpm sc:add
+  pnpm sc:remove
+  pnpm sc:remove -- --name siteTitle
 `);
 }
 
@@ -101,17 +111,18 @@ async function main() {
       return;
     }
 
-    // add コマンド（Phase 5 で実装）
+    // add コマンド
     if (hasAdd) {
-      console.log("\x1b[33madd コマンドは Phase 5 で実装予定です\x1b[0m");
-      console.log("現在は setting-fields.json を直接編集してください");
+      await addField();
       return;
     }
 
-    // remove コマンド（Phase 5 で実装）
+    // remove コマンド
     if (hasRemove) {
-      console.log("\x1b[33mremove コマンドは Phase 5 で実装予定です\x1b[0m");
-      console.log("現在は setting-fields.json を直接編集してください");
+      // --name オプションの取得
+      const nameIndex = args.indexOf("--name");
+      const name = nameIndex !== -1 ? args[nameIndex + 1] : undefined;
+      await removeField({ name });
       return;
     }
 
