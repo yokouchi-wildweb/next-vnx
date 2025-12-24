@@ -3,13 +3,23 @@ import type { ReactNode } from "react";
 import { UserAppLayout } from "@/components/AppFrames/User/Layout/UserLayout";
 import { settingService } from "@/features/core/setting/services/server/settingService";
 
+// 背景設定
+const backgroundImageUrl = ""; // 背景画像のURL（例: "/images/user-bg.jpg"）
+const overlayColor = "#000"; // オーバーレイの色（任意のCSS色形式: "#000", "black", "rgb(0,0,0)"など）
+const overlayOpacity = 0; // オーバーレイの透明度（0-1）
+
 export default async function UserLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   const setting = await settingService.getGlobalSetting();
 
   return (
-    <UserAppLayout footerText={setting.adminFooterText ?? undefined}>
+    <UserAppLayout
+      footerText={setting.adminFooterText ?? undefined}
+      backgroundImageUrl={backgroundImageUrl || undefined}
+      overlayColor={overlayColor}
+      overlayOpacity={overlayOpacity}
+    >
       {children}
     </UserAppLayout>
   );

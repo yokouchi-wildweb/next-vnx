@@ -6,6 +6,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 
 import { BottomNavVisibilityProvider } from "../contexts/BottomNavVisibilityContext";
+import { BackgroundLayer } from "./BackgroundLayer";
 import { FooterVisibilityProvider } from "../contexts/FooterVisibilityContext";
 import { HeaderVisibilityProvider } from "../contexts/HeaderVisibilityContext";
 import { UserBottomNav } from "../Sections/BottomNav";
@@ -20,9 +21,21 @@ type LayoutStyle = CSSProperties & {
 export type UserAppLayoutProps = {
   readonly children: ReactNode;
   readonly footerText?: string;
+  /** 背景画像のURL */
+  readonly backgroundImageUrl?: string;
+  /** オーバーレイの色（任意のCSS色形式: "#000", "black", "rgb(0,0,0)"など） */
+  readonly overlayColor?: string;
+  /** オーバーレイの透明度（0-1） */
+  readonly overlayOpacity?: number;
 };
 
-export const UserAppLayout = ({ children, footerText }: UserAppLayoutProps) => {
+export const UserAppLayout = ({
+  children,
+  footerText,
+  backgroundImageUrl,
+  overlayColor,
+  overlayOpacity,
+}: UserAppLayoutProps) => {
   const headerHeight = useHeaderHeight();
 
   const layoutStyle: LayoutStyle = {
@@ -33,6 +46,11 @@ export const UserAppLayout = ({ children, footerText }: UserAppLayoutProps) => {
     <HeaderVisibilityProvider>
       <FooterVisibilityProvider>
         <BottomNavVisibilityProvider>
+          <BackgroundLayer
+            imageUrl={backgroundImageUrl}
+            overlayColor={overlayColor}
+            overlayOpacity={overlayOpacity}
+          />
           <Flex
             direction="column"
             className="my-0 min-h-[var(--viewport-height,100dvh)] bg-background text-foreground"
