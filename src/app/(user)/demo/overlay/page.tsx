@@ -12,6 +12,7 @@ import TabbedModal, { type TabbedModalTab } from "@/components/Overlays/TabbedMo
 import { Dialog } from "@/components/Overlays/Dialog";
 import { ImageViewerProvider, ZoomableImage } from "@/components/Overlays/ImageViewer";
 import { useAppToast } from "@/hooks/useAppToast";
+import { imgPath } from "@/utils/assets";
 import {
   type AppToastVariant,
   type AppToastPosition,
@@ -383,12 +384,12 @@ export default function OverlayDemoPage() {
           </div>
           <div className="flex flex-wrap gap-4">
             <ZoomableImage
-              src="/assets/imgs/logos/nextjs.png"
+              src={imgPath("logos/nextjs.png")}
               alt="Next.js ロゴ"
               className="h-24 w-24 rounded border object-contain p-2"
             />
             <ZoomableImage
-              src="/assets/imgs/logos/nextjs.png"
+              src={imgPath("logos/nextjs.png")}
               alt="Next.js ロゴ (大)"
               className="h-32 w-32 rounded border object-contain p-2"
             />
