@@ -11,7 +11,8 @@ type BackgroundLayerProps = {
 
 /**
  * 固定位置の背景レイヤー
- * - 画面全体を覆う背景画像とオーバーレイを表示
+ * - 背景画像がある場合: 背景画像 + オーバーレイを表示
+ * - 背景画像がない場合: デフォルト背景色（bg-background）を表示
  * - z-index: -1 で最背面に配置し、既存レイアウトに影響しない
  */
 export const BackgroundLayer = ({
@@ -19,11 +20,6 @@ export const BackgroundLayer = ({
   overlayColor = "#000",
   overlayOpacity = 0,
 }: BackgroundLayerProps) => {
-  // 画像もオーバーレイも不要な場合は何も表示しない
-  if (!imageUrl && overlayOpacity === 0) {
-    return null;
-  }
-
   const containerStyle: CSSProperties = {
     position: "fixed",
     inset: 0,
@@ -31,10 +27,17 @@ export const BackgroundLayer = ({
     pointerEvents: "none",
   };
 
+  // 背景画像がない場合はデフォルト背景色を使用
+  const baseStyle: CSSProperties = {
+    position: "absolute",
+    inset: 0,
+    backgroundColor: "hsl(var(--background))",
+  };
+
   const imageStyle: CSSProperties = {
     position: "absolute",
     inset: 0,
-    backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
+    backgroundImage: `url(${imageUrl})`,
     backgroundSize: "cover",
     backgroundPosition: "center",
     backgroundRepeat: "no-repeat",
@@ -49,8 +52,14 @@ export const BackgroundLayer = ({
 
   return (
     <div style={containerStyle} aria-hidden="true">
-      {imageUrl && <div style={imageStyle} />}
-      {overlayOpacity > 0 && <div style={overlayStyle} />}
+      {imageUrl ? (
+        <>
+          <div style={imageStyle} />
+          {overlayOpacity > 0 && <div style={overlayStyle} />}
+        </>
+      ) : (
+        <div style={baseStyle} />
+      )}
     </div>
   );
 };

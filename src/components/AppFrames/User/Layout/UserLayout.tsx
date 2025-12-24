@@ -53,7 +53,7 @@ export const UserAppLayout = ({
           />
           <Flex
             direction="column"
-            className="my-0 min-h-[var(--viewport-height,100dvh)] bg-background text-foreground"
+            className="my-0 min-h-[var(--viewport-height,100dvh)] text-foreground"
             style={layoutStyle}
           >
             <UserNavigation />
