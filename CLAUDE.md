@@ -127,6 +127,7 @@ use wrappers instead of raw HTML:
 - input -> Form/Input
 - p,h2 -> TextBlocks/{Para,SecTitle}
 - skeleton -> Skeleton/BaseSkeleton (not shadcn)
+- page title in user app routes -> AppFrames/User/Elements/PageTitle
 
 page-level layout control:
 - AppFrames/User/controls: header/footer/bottomMenu visibility per page
