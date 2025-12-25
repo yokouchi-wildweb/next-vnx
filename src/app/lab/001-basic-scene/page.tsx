@@ -259,10 +259,12 @@ const CHARACTER_CONFIG = {
 
 // メッセージ領域配置設定
 const MESSAGE_AREA = {
-  topOffset: 0,      // 上端（画面上から %）
+  topOffset: 0,       // 上端（画面上から %）
   bottomOffset: 35,   // 下端（画面下から %）
   width: 500,         // 幅（px）
-  fadeStart: 20,      // フェード開始位置（%）
+  fadeTop: 20,        // 上部フェード終了位置（%）
+  fadeBottom: 90,     // 下部フェード開始位置（%）
+  paddingBottom: 40,  // 下部パディング（px）
 }
 
 // キャラクター透明度設定
@@ -759,12 +761,15 @@ export default function BasicScenePage() {
                 width: MESSAGE_AREA.width,
                 scrollbarWidth: "none", // Firefox
                 msOverflowStyle: "none", // IE/Edge
-                WebkitMaskImage: `linear-gradient(to bottom, transparent 0%, black ${MESSAGE_AREA.fadeStart}%, black 100%)`,
-                maskImage: `linear-gradient(to bottom, transparent 0%, black ${MESSAGE_AREA.fadeStart}%, black 100%)`,
+                WebkitMaskImage: `linear-gradient(to bottom, transparent 0%, black ${MESSAGE_AREA.fadeTop}%, black ${MESSAGE_AREA.fadeBottom}%, transparent 100%)`,
+                maskImage: `linear-gradient(to bottom, transparent 0%, black ${MESSAGE_AREA.fadeTop}%, black ${MESSAGE_AREA.fadeBottom}%, transparent 100%)`,
               }}
             >
               {/* 内部コンテナ: 下揃え用 */}
-              <div className="min-h-full flex flex-col justify-end gap-3 py-6">
+              <div
+                className="min-h-full flex flex-col justify-end gap-3 pt-6"
+                style={{ paddingBottom: `${MESSAGE_AREA.paddingBottom}px` }}
+              >
               {/* メッセージ一覧 */}
               <AnimatePresence>
                 {displayedMessages.map((msg, index) => {
