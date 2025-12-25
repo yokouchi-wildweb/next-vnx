@@ -56,7 +56,7 @@ const INITIAL_BGM: BGMKey = "main"
 // SE（効果音）定義
 // ============================================================
 
-type SEKey = "cheer" | "cold"
+type SEKey = "cheer" | "cold" | "jajaan"
 
 const SE_TRACKS: Record<SEKey, { src: string; volume: number }> = {
   cheer: {
@@ -65,6 +65,10 @@ const SE_TRACKS: Record<SEKey, { src: string; volume: number }> = {
   },
   cold: {
     src: "/game/assets/se/「冷気よ！」.mp3",
+    volume: 0.7,
+  },
+  jajaan: {
+    src: "/game/assets/se/ジャジャーン.mp3",
     volume: 0.7,
   },
 }
@@ -163,25 +167,42 @@ const DIALOGUES: Dialogue[] = [
     text: "別に聞き取れなかったわけではない。",
   },
   {
-    speaker: "tatsumi",
-    text: "ああそうだったな！メリクリメリクリ！",
-    commands: [{ type: "se", value: "cheer" }],  // ← SE再生コマンド
+    speaker: "circus",
+    text: "それに、そんなこととはなんだ！ふざけてるのか！",
   },
-  { speaker: "circus", text: "……いや待て。お前正気か？" },
   {
     speaker: "tatsumi",
-    text: "それはそれとして、教会って寒くないか？暖房とか…",
+    text: "クリスマスパーティが……",
+  },
+  {
+    speaker: "tatsumi",
+    text: "したいだけなんだが！！",
+    commands: [{ type: "se", value: "jajaan" }],
+  },
+  {
+    speaker: "circus",
+    text: "だから、それが問題だと言っている。",
+  },
+  {
+    speaker: "tatsumi",
+    text: "あーはいはい！メリクリメリクリ！",
+    commands: [{ type: "se", value: "cheer" }],  // ← SE再生コマンド
+  },
+  { speaker: "circus", text: "……待て。お前正気か？" },
+  {
+    speaker: "tatsumi",
+    text: "それはそれとして、教会って寒くないか？暖房とかないしな…",
     commands: [{ type: "se", value: "cold" }],
   },
-  { speaker: "circus", text: "話をそらすな！神に誓って今ごまかしただろ！" },
-  { speaker: "tatsumi", text: "神の前だからこそ正直に言うが、今はまだ言えない。" },
-  { speaker: "circus", text: "じゃあ何で呼び出したんだよ！" },
+  { speaker: "circus", text: "おい、無理やり会場に案内しようとするな" },
+  { speaker: "tatsumi", text: "神の前だからこそ正直に言うが、俺はまじめだ。" },
+  { speaker: "circus", text: "じゃあ、そのもさもさの付け髭と、とんがり帽子はなんだ？" },
   {
     speaker: "tatsumi",
     text: "雰囲気作り？鐘の音とか、ほら…それっぽいだろ。" ,
     commands: [{ type: "se", value: "cold" }],
   },
-  { speaker: "circus", text: "それっぽさのために俺を使うな。" },
+  { speaker: "circus", text: "だからパーティをしに来たわけでは…" },
   {
     speaker: "tatsumi",
     text: "まあまあ。クリスマスだし、心を清めようじゃないか。" ,
