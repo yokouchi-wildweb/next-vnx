@@ -20,9 +20,18 @@ const NPC_LIST = [
     description: "散歩中のおじいちゃん（目撃者）",
     situation: "あなたは探偵。昨日この公園で事件が起きた。目の前にいる散歩中のおじいちゃん（田中義男さん、78歳）から目撃情報を聞き出そう。",
   },
-  // 将来追加
-  // { id: "shop", name: "店主", description: "近くのコンビニ店主", situation: "..." },
-  // { id: "suspect", name: "容疑者", description: "怪しい男", situation: "..." },
+  {
+    id: "friend",
+    name: "山田健太",
+    description: "被害者の親友",
+    situation: "あなたは探偵。被害者・鈴木翔太（28歳）の親友である山田健太（32歳）から話を聞いている。カフェで向かい合い、被害者の最近の様子や人間関係について聞き出そう。",
+  },
+  {
+    id: "suspicious",
+    name: "佐藤隆",
+    description: "怪しい男（容疑者候補）",
+    situation: "あなたは探偵。事件当日、公園付近をウロウロしていた不審な男・佐藤隆（45歳）から話を聞いている。態度が妙に defensive だが、本当に犯人なのか？真実を引き出せ。",
+  },
 ] as const
 
 type NPCId = (typeof NPC_LIST)[number]["id"]
