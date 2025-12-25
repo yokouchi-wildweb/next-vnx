@@ -97,7 +97,7 @@ type CharacterId = "circus" | "tatsumi"
 // キャラクター情報（名前・カラーを一元管理）
 const CHARACTERS: Record<CharacterId, { name: string; color: string }> = {
   circus: { name: "サーカス", color: "#e63946" },      // 赤系
-  tatsumi: { name: "妻夫木 龍己", color: "#4361ee" },  // 青系
+  tatsumi: { name: "妻夫木 達巳", color: "#4361ee" },  // 青系
 }
 
 // ============================================================
