@@ -24,11 +24,11 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Application, Assets, Sprite, Container, BlurFilter, ColorMatrixFilter } from "pixi.js"
 
 // キャラクター定義
-type CharacterId = "marcus" | "tatsumi"
+type CharacterId = "circus" | "tatsumi"
 
 // キャラクター情報（名前・カラーを一元管理）
 const CHARACTERS: Record<CharacterId, { name: string; color: string }> = {
-  marcus: { name: "マーカス", color: "#e63946" },      // 赤系
+  circus: { name: "サーカス", color: "#e63946" },      // 赤系
   tatsumi: { name: "妻夫木 龍己", color: "#4361ee" },  // 青系
 }
 
@@ -39,27 +39,27 @@ interface Dialogue {
 
 // ダミーセリフデータ（6つ）
 const DIALOGUES: Dialogue[] = [
-  { speaker: "marcus", text: "ここが噂の教会か...。思っていたより立派な建物だな。" },
+  { speaker: "circus", text: "ここが噂の教会か...。思っていたより立派な建物だな。" },
   { speaker: "tatsumi", text: "ああ、この地域では一番古い教会らしい。築200年以上だとか。" },
-  { speaker: "marcus", text: "それにしても、こんな場所に呼び出すとは...一体何の用なんだ？" },
+  { speaker: "circus", text: "それにしても、こんな場所に呼び出すとは...一体何の用なんだ？" },
   { speaker: "tatsumi", text: "まあ、そう急ぐな。少し話がしたかっただけさ。" },
-  { speaker: "marcus", text: "話？お前がわざわざ呼び出すなんて、ただ事じゃないだろう。" },
+  { speaker: "circus", text: "話？お前がわざわざ呼び出すなんて、ただ事じゃないだろう。" },
   { speaker: "tatsumi", text: "...実は、あの件について新しい情報が入ったんだ。" },
-  { speaker: "marcus", text: "そんなことより。クリスマスの話をしよう。" },
+  { speaker: "circus", text: "そんなことより。クリスマスの話をしよう。" },
   { speaker: "tatsumi", text: "ああそうだったな！メリクリメリクリ！" },
-  { speaker: "marcus", text: "……いや待て。今『あの件』って言いかけただろ。" },
+  { speaker: "circus", text: "……いや待て。今『あの件』って言いかけただろ。" },
   { speaker: "tatsumi", text: "言いかけたな。" },
-  { speaker: "marcus", text: "続きは？" },
+  { speaker: "circus", text: "続きは？" },
   { speaker: "tatsumi", text: "それはそれとして、教会って寒くないか？暖房とか…" },
-  { speaker: "marcus", text: "話をそらすな！神に誓って今ごまかしただろ！" },
+  { speaker: "circus", text: "話をそらすな！神に誓って今ごまかしただろ！" },
   { speaker: "tatsumi", text: "神の前だからこそ正直に言うが、今はまだ言えない。" },
-  { speaker: "marcus", text: "じゃあ何で呼び出したんだよ！" },
+  { speaker: "circus", text: "じゃあ何で呼び出したんだよ！" },
   { speaker: "tatsumi", text: "雰囲気作り？鐘の音とか、ほら…それっぽいだろ。" },
-  { speaker: "marcus", text: "それっぽさのために俺を使うな。" },
+  { speaker: "circus", text: "それっぽさのために俺を使うな。" },
   { speaker: "tatsumi", text: "まあまあ。クリスマスだし、心を清めようじゃないか。" },
-  { speaker: "marcus", text: "お前が一番清められるべき存在だと思うが？" },
+  { speaker: "circus", text: "お前が一番清められるべき存在だと思うが？" },
   { speaker: "tatsumi", text: "ひどいな。せっかくプレゼントも用意してるのに。" },
-  { speaker: "marcus", text: "……嫌な予感しかしないんだが。" },
+  { speaker: "circus", text: "……嫌な予感しかしないんだが。" },
   { speaker: "tatsumi", text: "安心しろ。ちゃんと“爆発しない”やつだ。" },
 ]
 
@@ -67,14 +67,14 @@ const DIALOGUES: Dialogue[] = [
 const ASSETS = {
   background: "/game/assets/backgrounds/church/default.png",
   characters: {
-    marcus: "/game/assets/characters/marcus_hartluhl/default.png",
+    circus: "/game/assets/characters/circus_hartluhl/default.png",
     tatsumi: "/game/assets/characters/tsumabuki_tatsumi/default.png",
   },
 }
 
 // キャラクター位置設定
 const CHARACTER_CONFIG = {
-  marcus: { side: "left" as const },
+  circus: { side: "left" as const },
   tatsumi: { side: "right" as const },
 }
 
@@ -111,8 +111,8 @@ const BOTTOM_OVERLAY = {
 export default function BasicScenePage() {
   const containerRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<Application | null>(null)
-  const spritesRef = useRef<{ marcus: Sprite | null; tatsumi: Sprite | null }>({
-    marcus: null,
+  const spritesRef = useRef<{ circus: Sprite | null; tatsumi: Sprite | null }>({
+    circus: null,
     tatsumi: null,
   })
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -141,21 +141,21 @@ export default function BasicScenePage() {
 
   // 発言者に応じてキャラクターのエフェクトを更新
   useEffect(() => {
-    const { marcus, tatsumi } = spritesRef.current
-    if (!marcus || !tatsumi) return
+    const { circus, tatsumi } = spritesRef.current
+    if (!circus || !tatsumi) return
 
     const applyEffect = (sprite: Sprite, isActive: boolean) => {
       sprite.alpha = isActive ? CHARACTER_ALPHA.active : CHARACTER_ALPHA.inactive
     }
 
-    if (currentSpeaker === "marcus") {
-      applyEffect(marcus, true)
+    if (currentSpeaker === "circus") {
+      applyEffect(circus, true)
       applyEffect(tatsumi, false)
     } else if (currentSpeaker === "tatsumi") {
-      applyEffect(marcus, false)
+      applyEffect(circus, false)
       applyEffect(tatsumi, true)
     } else {
-      applyEffect(marcus, true)
+      applyEffect(circus, true)
       applyEffect(tatsumi, true)
     }
   }, [currentSpeaker])
@@ -187,9 +187,9 @@ export default function BasicScenePage() {
       container.appendChild(app.canvas)
 
       // アセットロード
-      const [bgTexture, marcusTexture, tatsumiTexture] = await Promise.all([
+      const [bgTexture, circusTexture, tatsumiTexture] = await Promise.all([
         Assets.load(ASSETS.background),
-        Assets.load(ASSETS.characters.marcus),
+        Assets.load(ASSETS.characters.circus),
         Assets.load(ASSETS.characters.tatsumi),
       ])
 
@@ -226,15 +226,15 @@ export default function BasicScenePage() {
       const horizontalOverflow = 0.1 // 幅の10%を画面外に見切れさせる
 
       // マーカス（左側）
-      const marcus = new Sprite(marcusTexture)
-      const marcusTargetWidth = app.screen.width * characterWidthRatio
-      const marcusScale = marcusTargetWidth / marcusTexture.width
-      marcus.scale.set(marcusScale)
-      marcus.anchor.set(0, 0) // 左上基準
-      marcus.x = -marcusTargetWidth * horizontalOverflow // 少し左に見切れ
-      marcus.y = app.screen.height - (app.screen.height * verticalPullUp) // top 100%から80%上へ
-      charactersContainer.addChild(marcus)
-      spritesRef.current.marcus = marcus
+      const circus = new Sprite(circusTexture)
+      const circusTargetWidth = app.screen.width * characterWidthRatio
+      const circusScale = circusTargetWidth / circusTexture.width
+      circus.scale.set(circusScale)
+      circus.anchor.set(0, 0) // 左上基準
+      circus.x = -circusTargetWidth * horizontalOverflow // 少し左に見切れ
+      circus.y = app.screen.height - (app.screen.height * verticalPullUp) // top 100%から80%上へ
+      charactersContainer.addChild(circus)
+      spritesRef.current.circus = circus
 
       // 辻吹（右側）
       const tatsumi = new Sprite(tatsumiTexture)
@@ -302,11 +302,11 @@ export default function BasicScenePage() {
               <span
                 className="inline-block px-3 py-1 text-lg font-bold text-white"
                 style={{
-                  borderBottom: `${CHARACTER_NAME_DISPLAY.underlineWidth}px solid ${CHARACTERS.marcus.color}`,
+                  borderBottom: `${CHARACTER_NAME_DISPLAY.underlineWidth}px solid ${CHARACTERS.circus.color}`,
                   textShadow: CHARACTER_NAME_DISPLAY.textShadow,
                 }}
               >
-                {CHARACTERS.marcus.name}
+                {CHARACTERS.circus.name}
               </span>
             </div>
 
