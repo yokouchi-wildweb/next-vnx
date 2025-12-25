@@ -31,7 +31,18 @@
     "mail:generate-colors": "npx tsx scripts/mail/generate-colors.ts"
   },
   "engines": {
-    "node": "20"
+    "node": "24"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@firebase/util",
+      "@parcel/watcher",
+      "esbuild",
+      "msw",
+      "protobufjs",
+      "sharp",
+      "unrs-resolver"
+    ]
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
