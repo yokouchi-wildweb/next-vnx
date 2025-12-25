@@ -44,6 +44,15 @@ export const npcSuspicious: NPCConfig = {
     "妻にバレたくない一心",
   ],
 
+  clues: [
+    { id: "s_present", label: "事件当日、公園の近くにいた", keywords: ["公園", "いた", "近く"] },
+    { id: "s_time", label: "6時15分頃に帰った", keywords: ["6時", "15分", "帰"] },
+    { id: "s_waiting", label: "誰かを待っていた", keywords: ["待", "人"] },
+    { id: "s_earphone", label: "イヤホンで音楽を聴いていた", keywords: ["イヤホン", "音楽", "聴"] },
+    { id: "s_no_witness", label: "事件は何も見ていない・聞いていない", keywords: ["見てない", "知らない", "聞いてない"] },
+    { id: "s_affair", label: "【隠された真実】不倫相手を待っていた", keywords: ["不倫", "浮気", "女", "相手"] },
+  ],
+
   additionalPrompt: `
 ## 最重要：このキャラクターの核心
 

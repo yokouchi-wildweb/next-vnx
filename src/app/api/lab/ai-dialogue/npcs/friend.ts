@@ -44,6 +44,15 @@ export const npcFriend: NPCConfig = {
     "事件当日は自宅にいて現場にはいなかった",
   ],
 
+  clues: [
+    { id: "f_watch", label: "被害者は高価な腕時計を最近手に入れた", keywords: ["腕時計", "高価", "時計"] },
+    { id: "f_strange", label: "1週間前から様子がおかしかった", keywords: ["様子", "おかしい", "そわそわ", "1週間"] },
+    { id: "f_dangerous", label: "「やばい人に関わった」と言っていた", keywords: ["やばい", "関わ", "危険"] },
+    { id: "f_girlfriend", label: "彼女（彩香）と最近別れた", keywords: ["彩香", "彼女", "別れ"] },
+    { id: "f_money", label: "最近金遣いが荒くなっていた", keywords: ["金", "お金", "遣い", "荒"] },
+    { id: "f_line", label: "事件当日「大事な話がある」とLINEが来ていた", keywords: ["LINE", "大事な話", "当日"] },
+  ],
+
   additionalPrompt: `
 ## 最重要：情報開示のルール
 

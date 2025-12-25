@@ -8,6 +8,7 @@
 
 import { useState, useRef } from "react"
 import axios from "axios"
+import { useAppToast } from "@/hooks/useAppToast"
 
 // ============================================================
 // NPC定義（UI表示用）
@@ -37,7 +38,7 @@ const NPC_LIST = [
 type NPCId = (typeof NPC_LIST)[number]["id"]
 
 // ============================================================
-// コンポーネント
+// 型定義
 // ============================================================
 
 interface Message {
@@ -45,12 +46,29 @@ interface Message {
   content: string
 }
 
+interface ClueInfo {
+  id: string
+  label: string
+}
+
+interface ObtainedClue extends ClueInfo {
+  npcId: string
+  npcName: string
+}
+
+// ============================================================
+// コンポーネント
+// ============================================================
+
 export default function AIDialoguePage() {
   const [activeNpcId, setActiveNpcId] = useState<NPCId>("grandpa")
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [obtainedClues, setObtainedClues] = useState<ObtainedClue[]>([])
+  const [cluesMap, setCluesMap] = useState<Record<string, ClueInfo[]>>({})
   const inputRef = useRef<HTMLInputElement>(null)
+  const { showAppToast } = useAppToast()
 
   const activeNpc = NPC_LIST.find((npc) => npc.id === activeNpcId)!
 
@@ -60,6 +78,7 @@ export default function AIDialoguePage() {
     setMessages([]) // 会話履歴をリセット
     setInput("")
     inputRef.current?.focus()
+    // 注意: obtainedCluesはリセットしない（全体で蓄積）
   }
 
   // メッセージ送信
@@ -79,9 +98,46 @@ export default function AIDialoguePage() {
         messages: newMessages,
         npcId: activeNpcId,
       })
+
+      const { content, revealedClues, clues } = response.data as {
+        content: string
+        revealedClues: string[]
+        clues: ClueInfo[]
+      }
+
+      // cluesMapを更新
+      if (clues && !cluesMap[activeNpcId]) {
+        setCluesMap((prev) => ({ ...prev, [activeNpcId]: clues }))
+      }
+
+      // 新しく得られた手がかりを検出
+      const existingClueIds = new Set(obtainedClues.map((c) => c.id))
+      const newClueIds = revealedClues.filter((id) => !existingClueIds.has(id))
+
+      if (newClueIds.length > 0 && clues) {
+        const newClues: ObtainedClue[] = newClueIds
+          .map((id) => {
+            const clueInfo = clues.find((c) => c.id === id)
+            if (!clueInfo) return null
+            return {
+              ...clueInfo,
+              npcId: activeNpcId,
+              npcName: activeNpc.name,
+            }
+          })
+          .filter((c): c is ObtainedClue => c !== null)
+
+        // トースト表示（中央）
+        for (const clue of newClues) {
+          showAppToast(`🔍 「${clue.label}」の情報を獲得！`, "success", "center")
+        }
+
+        setObtainedClues((prev) => [...prev, ...newClues])
+      }
+
       const assistantMessage: Message = {
         role: "assistant",
-        content: response.data.content,
+        content,
       }
       setMessages((prev) => [...prev, assistantMessage])
     } catch (error) {
@@ -120,13 +176,33 @@ export default function AIDialoguePage() {
       </div>
 
       {/* シチュエーション表示 */}
-      <div className="bg-gray-800 border border-gray-600 rounded p-3 mb-4 text-sm">
+      <div className="bg-gray-800 border border-gray-600 rounded p-3 mb-3 text-sm">
         <p className="text-yellow-400 font-bold mb-1">シチュエーション</p>
         <p className="text-gray-300">{activeNpc.situation}</p>
       </div>
 
+      {/* 得られた手がかり */}
+      <div className="bg-gray-800 border border-gray-600 rounded p-3 mb-4 text-sm min-h-[100px]">
+        <p className="text-green-400 font-bold mb-2">🔍 得られた手がかり</p>
+        {obtainedClues.length === 0 ? (
+          <p className="text-gray-500">まだ手がかりはありません。NPCから情報を引き出しましょう。</p>
+        ) : (
+          <ul className="space-y-1">
+            {obtainedClues.map((clue) => (
+              <li key={clue.id} className="flex items-start gap-2">
+                <span className="text-green-400">✓</span>
+                <span className="text-gray-300">
+                  <span className="text-gray-500 text-xs">[{clue.npcName}]</span>{" "}
+                  {clue.label}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       {/* 履歴表示 */}
-      <div className="border border-gray-700 rounded p-4 h-[50vh] overflow-y-auto mb-4 space-y-3">
+      <div className="border border-gray-700 rounded p-4 h-[40vh] overflow-y-auto mb-4 space-y-3">
         {messages.length === 0 && (
           <p className="text-gray-500">メッセージを送信してください</p>
         )}

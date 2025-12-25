@@ -43,6 +43,15 @@ export const npcGrandpa: NPCConfig = {
     "男の身長は「中くらい」としか言えない",
   ],
 
+  clues: [
+    { id: "g_time", label: "目撃時刻は夕方6時頃", keywords: ["6時", "夕方", "ベンチ"] },
+    { id: "g_black_hoodie", label: "黒いパーカーの男を目撃", keywords: ["黒", "パーカー", "若い男"] },
+    { id: "g_square_object", label: "四角いものを抱えていた", keywords: ["四角", "抱え", "持っ"] },
+    { id: "g_east_exit", label: "東側の出口から逃走", keywords: ["東", "出口", "出て"] },
+    { id: "g_scream", label: "女性の悲鳴を聞いた", keywords: ["悲鳴", "叫び", "声"] },
+    { id: "g_dog_walker", label: "犬の散歩をしていた女性がいた", keywords: ["犬", "散歩", "女性"] },
+  ],
+
   additionalPrompt: `
 ## 最重要：情報開示のルール
 
