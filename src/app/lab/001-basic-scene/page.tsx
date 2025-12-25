@@ -78,6 +78,22 @@ const CHARACTER_ALPHA = {
   inactive: 0.8,  // 非アクティブ
 }
 
+// キャラクター名表示設定
+const CHARACTER_NAME_DISPLAY = {
+  bottomOffset: 8,        // 画面下からの距離（%）
+  leftCharacterX: 18,     // 左キャラの名前X位置（画面左から%）
+  rightCharacterX: 82,    // 右キャラの名前X位置（画面左から%）
+  underlineWidth: 3,      // アンダーラインの太さ（px）
+  textShadow: "0 2px 4px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.9)",  // テキストシャドウ
+}
+
+// 下部オーバーレイ設定（システムパネル領域）
+const BOTTOM_OVERLAY = {
+  height: 20,             // 高さ（画面下から%）
+  opacity: 1,           // 不透明度（0-1）
+  color: "0, 0, 0",       // RGB値（カンマ区切り）
+}
+
 export default function BasicScenePage() {
   const containerRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<Application | null>(null)
@@ -261,28 +277,60 @@ export default function BasicScenePage() {
         {/* キャラクター名前表示 */}
         {!isLoading && (
           <>
-            {/* 左キャラ名 */}
-            <div className="absolute bottom-4 left-4 z-30">
+            {/* 左キャラ名（マーカス） */}
+            <div
+              className="absolute z-30 -translate-x-1/2"
+              style={{
+                bottom: `${CHARACTER_NAME_DISPLAY.bottomOffset}%`,
+                left: `${CHARACTER_NAME_DISPLAY.leftCharacterX}%`,
+              }}
+            >
               <span
-                className={`inline-block px-3 py-1 text-lg font-bold border-b-2 border-red-500 transition-opacity duration-300 ${
+                className={`inline-block px-3 py-1 text-lg font-bold transition-opacity duration-300 ${
                   currentSpeaker === "marcus" ? "text-white" : "text-white/50"
                 }`}
+                style={{
+                  borderBottom: `${CHARACTER_NAME_DISPLAY.underlineWidth}px solid ${CHARACTERS.marcus.color}`,
+                  textShadow: CHARACTER_NAME_DISPLAY.textShadow,
+                }}
               >
-                マーカス
+                {CHARACTERS.marcus.name}
               </span>
             </div>
 
-            {/* 右キャラ名 */}
-            <div className="absolute bottom-4 right-4 z-30">
+            {/* 右キャラ名（妻夫木） */}
+            <div
+              className="absolute z-30 -translate-x-1/2"
+              style={{
+                bottom: `${CHARACTER_NAME_DISPLAY.bottomOffset}%`,
+                left: `${CHARACTER_NAME_DISPLAY.rightCharacterX}%`,
+              }}
+            >
               <span
-                className={`inline-block px-3 py-1 text-lg font-bold border-b-2 border-red-500 transition-opacity duration-300 ${
+                className={`inline-block px-3 py-1 text-lg font-bold transition-opacity duration-300 ${
                   currentSpeaker === "tatsumi" ? "text-white" : "text-white/50"
                 }`}
+                style={{
+                  borderBottom: `${CHARACTER_NAME_DISPLAY.underlineWidth}px solid ${CHARACTERS.tatsumi.color}`,
+                  textShadow: CHARACTER_NAME_DISPLAY.textShadow,
+                }}
               >
-                辻吹 龍己
+                {CHARACTERS.tatsumi.name}
               </span>
             </div>
           </>
+        )}
+
+        {/* 下部オーバーレイ（システムパネル領域） */}
+        {!isLoading && (
+          <div
+            className="absolute bottom-0 left-0 right-0 pointer-events-none"
+            style={{
+              height: `${BOTTOM_OVERLAY.height}%`,
+              background: `linear-gradient(to top, rgba(${BOTTOM_OVERLAY.color},${BOTTOM_OVERLAY.opacity}) 0%, transparent 100%)`,
+              zIndex: 25,
+            }}
+          />
         )}
 
         {/* 中央メッセージ領域 */}
