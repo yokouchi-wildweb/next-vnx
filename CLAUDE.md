@@ -197,6 +197,10 @@ src/lib/, src/features/core/, src/components/, scripts/domain-config/, src/style
 ## TOOLS
 playwright-mcp: use for CSS/UI verification, dynamic content, when WebSearch/WebFetch fails
 
+## SCRIPTS
+ref: scripts/README.md
+claude:test -> Claude API connection check (requires ANTHROPIC_API_KEY)
+
 ## DOCS (on-demand reference, not auto-read)
 location: docs/
 use_when: edge cases, detailed checklists, implementation examples

@@ -28,7 +28,8 @@
     "sc:add": "node scripts/setting-config/index.mjs --add",
     "sc:remove": "node scripts/setting-config/index.mjs --remove",
     "mail:test": "npx tsx scripts/mail/test-send.ts",
-    "mail:generate-colors": "npx tsx scripts/mail/generate-colors.ts"
+    "mail:generate-colors": "npx tsx scripts/mail/generate-colors.ts",
+    "claude:test": "cross-env APP_ENV=.env.development npx tsx scripts/test-claude-api.ts"
   },
   "engines": {
     "node": "24"
