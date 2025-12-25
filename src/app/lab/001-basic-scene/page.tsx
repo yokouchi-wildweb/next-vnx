@@ -262,9 +262,17 @@ function useBGM() {
   const currentHowlRef = useRef<HowlType | null>(null)
   const currentKeyRef = useRef<BGMKey | null>(null)
   const howlerRef = useRef<typeof import("howler") | null>(null)
+  const isMountedRef = useRef(true)
 
   // BGMを再生（内部用）
   const playBGM = useCallback(async (key: BGMKey, fadeIn: boolean = true) => {
+    // 既存のBGMを先に停止（二重再生防止）
+    if (currentHowlRef.current) {
+      currentHowlRef.current.stop()
+      currentHowlRef.current.unload()
+      currentHowlRef.current = null
+    }
+
     // Howler.jsを動的インポート（ブラウザ環境でのみ）
     if (!howlerRef.current) {
       howlerRef.current = await import("howler")
@@ -277,6 +285,11 @@ function useBGM() {
       loop: true,
       volume: 0,  // 常に0から開始
       onload: () => {
+        // マウント解除後やBGM切り替え後は再生しない
+        if (!isMountedRef.current || currentHowlRef.current !== howl) {
+          howl.unload()
+          return
+        }
         // ロード完了後に再生開始
         howl.play()
         if (fadeIn) {
@@ -334,11 +347,12 @@ function useBGM() {
     }
   }, [])
 
-  // 初回マウント時に再生、アンマウント時に停止
+  // アンマウント時に停止
   useEffect(() => {
-    playBGM(INITIAL_BGM, true)
+    isMountedRef.current = true
 
     return () => {
+      isMountedRef.current = false
       // アンマウント時は即座に停止（フェードなし）
       if (currentHowlRef.current) {
         currentHowlRef.current.stop()
@@ -346,9 +360,10 @@ function useBGM() {
         currentHowlRef.current = null
       }
     }
-  }, [playBGM])
+  }, [])
 
   return {
+    playBGM,     // 初回再生用に公開
     changeBGM,
     stopBGM,
     currentBGM: currentKeyRef.current,
@@ -434,8 +449,8 @@ export default function BasicScenePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [currentSpeaker, setCurrentSpeaker] = useState<CharacterId | null>(null)
 
-  // BGM管理（シーン開始時に自動再生）
-  const { changeBGM, stopBGM } = useBGM()
+  // BGM管理（クリックして開始時に再生開始）
+  const { playBGM, changeBGM, stopBGM } = useBGM()
 
   // コマンドハンドラ定義（新しいコマンドはここに追加）
   const commandHandlers: CommandHandlers = {
@@ -455,6 +470,11 @@ export default function BasicScenePage() {
   // 次のセリフへ進む
   const handleAdvance = useCallback(() => {
     if (dialogueIndex < DIALOGUES.length) {
+      // 初回クリック時にBGM開始
+      if (dialogueIndex === 0) {
+        playBGM(INITIAL_BGM, true)
+      }
+
       const newDialogue = DIALOGUES[dialogueIndex]
       setDisplayedMessages((prev) => [...prev, newDialogue])
       setCurrentSpeaker(newDialogue.speaker)
@@ -463,7 +483,7 @@ export default function BasicScenePage() {
       // ダイアログに紐づくコマンドを実行
       executeCommands(newDialogue.commands)
     }
-  }, [dialogueIndex, executeCommands])
+  }, [dialogueIndex, executeCommands, playBGM])
 
   // メッセージ追加時に自動スクロール（instantでframer-motionのlayoutアニメーションと競合を避ける）
   useEffect(() => {
