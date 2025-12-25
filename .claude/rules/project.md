@@ -30,14 +30,14 @@ engine_scope: game execution only (receives data, renders)
 - src/app/lab/: experiment mocks (hardcoded OK)
 - src/engine/: VN engine (outside DDD)
 - src/features/: studio features (DDD)
-- game/: sample game data (config, characters, scenes, assets)
+- public/game/: sample game data (config, characters, scenes, assets)
 
 ## dev_approach
 method: bottom-up
-flow: lab mock → analyze → extract to engine/ + game/ → repeat
+flow: lab mock → analyze → extract to engine/ + public/game/ → repeat
 rule: no pre-designed schema, evolve through prototyping
 
 ## constraints
 - engine: no DB access, no API calls
-- game/: input data for engine (dev mock, prod from DB)
+- public/game/: input data for engine (dev mock, prod from DB)
 - scenario format: undefined, evolve via prototyping
