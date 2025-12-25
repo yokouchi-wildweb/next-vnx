@@ -11,6 +11,14 @@ const experiments = [
     description: '背景 + 立ち絵 + 台詞表示',
     status: 'wip',
   },
+
+
+  {
+    id: '002-ai-dialogue',
+    title: 'AIダイアログ',
+    description: 'LLMによる動的な文章の受け答え',
+    status: 'wip',
+  },
 ]
 
 export default function LabIndexPage() {
