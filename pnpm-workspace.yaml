@@ -1,0 +1,8 @@
+onlyBuiltDependencies:
+  - '@firebase/util'
+  - '@parcel/watcher'
+  - esbuild
+  - msw
+  - protobufjs
+  - sharp
+  - unrs-resolver
