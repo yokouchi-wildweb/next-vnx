@@ -125,7 +125,8 @@
       "Skill(brainstorm)",
       "Bash(ss -tlnp:*)",
       "Bash(cross-env APP_ENV=.env.development npx drizzle-kit push:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nVNエンジンのアーキテクチャ方針を策定\n\n- DDD層（features/）とエンジン層（engine/）の分離方針を定義\n- ボトムアップ開発アプローチ（lab → engine切り出し）を採用\n- ディレクトリ構造（src/engine/, game/）を決定\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nVNエンジンのアーキテクチャ方針を策定\n\n- DDD層（features/）とエンジン層（engine/）の分離方針を定義\n- ボトムアップ開発アプローチ（lab → engine切り出し）を採用\n- ディレクトリ構造（src/engine/, game/）を決定\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [
       "Bash(sudo:*)",
