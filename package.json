@@ -28,7 +28,8 @@
     "sc:add": "node scripts/setting-config/index.mjs --add",
     "sc:remove": "node scripts/setting-config/index.mjs --remove",
     "mail:test": "npx tsx scripts/mail/test-send.ts",
-    "mail:generate-colors": "npx tsx scripts/mail/generate-colors.ts"
+    "mail:generate-colors": "npx tsx scripts/mail/generate-colors.ts",
+    "claude:test": "cross-env APP_ENV=.env.development npx tsx scripts/test-claude-api.ts"
   },
   "engines": {
     "node": "24"
@@ -45,6 +46,7 @@
     ]
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@headlessui/react": "^2.2.4",
     "@hookform/resolvers": "^5.1.1",
     "@radix-ui/react-accordion": "^1.2.12",
