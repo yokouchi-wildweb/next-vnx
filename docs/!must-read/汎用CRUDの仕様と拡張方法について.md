@@ -92,9 +92,18 @@
 | CRUD 前後に副作用を入れたい | `services/server/wrappers/` に `createWithNotification` などを定義し、`base.create` を呼ぶ前後で処理を追加。 | 各ドメインの `wrappers` |
 | belongsToMany 以外の関連同期 | `db.transaction` を使ったカスタム実装を `wrappers` に記述し、`base` の `update` 等と差し替える。 | `createCrudService` の `update` 実装を参考にする |
 | Firestore で条件を増やしたい | 必要な複合インデックスを `firestore.indexes.json` に追加し、SDK の `Filter` 等を直接利用。 | `docs/core-specs/DB種別の違いによる機能の差異.md` |
-| API レスポンスの形を変えたい | API ルートでカスタムレスポンスを組む場合でも、サービス層の戻り値型を基準にする。必要なら `services/server/<domain>Service.ts` でメソッドを追加。 | `src/app/api/[domain]/route.ts` |
+| API レスポンスの形を変えたい | API ルートでカスタムレスポンスを組む場合でも、サービス層の戻り値型を基準にする。必要なら `services/server/<domain>/` 配下に専用メソッドファイルを作成し、`<domain>Service.ts` から読み込む。 | `src/app/api/[domain]/route.ts` |
 
 判断基準: **まず `base` に欲しい機能が無いか確認 → 無ければ `query/wrappers` → さらに無理なら個別サービス** の順に検討します。
+
+---
+
+## 6-2. サーバーサービスの実装ルール（重要）
+
+- `src/features/<domain>/services/server/<domain>Service.ts` には直接実装を追加せず、単体のサービスメソッドファイルを作成して読み込む。
+- 既存 CRUD メソッドの上書きは必ず `services/server/<domain>/wrappers/` に配置する。
+- ドメイン独自で汎用ではないサービスが必要な場合は `wrappers` ではなく適切なフォルダへ分割する（必要に応じて `services/server/<domain>/` 直下でも可）。
+- `wrappers` 以外のサブフォルダ構成はドメインごとに自由なので、用途が伝わる整理を行う。
 
 ---
 
@@ -119,6 +128,8 @@
    - 直接 `src/lib/crud` を改造していないか確認。
 5. **API/Hook/フォームの責務を混同していないか？**  
    - Hook で axios を直接呼ぶ、フォームで `fetch` を使う等は禁止。
+6. **サーバーサービスの配置ルールを守れているか？**  
+   - `xxxService.ts` に直接ロジックを追加していないか、CRUD 上書きが `wrappers` にあるか確認。
 
 **よくある失敗例**
 - 中間テーブル操作を複製し、`belongsToManyRelations` と二重管理になった。
