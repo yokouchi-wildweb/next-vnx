@@ -123,17 +123,51 @@ const DIALOGUES: Dialogue[] = [
   },
   {
     speaker: "circus",
-    text: "そんなことより。クリスマスの話をしよう。",
+    text: "なに…！？そんなに早く進展があったのか？",
+  },
+  {
+    speaker: "tatsumi",
+    text: "ああそうだ。",
+  },
+  {
+    speaker: "tatsumi",
+    text: "なんと…池袋に30名くらいまで余裕で収容できる格安のレンスペを見つけた！",
+  },
+  {
+    speaker: "circus",
+    text: "はあ？いったい何の話をしている？",
     commands: [{ type: "bgm", value: "tension" }],  // ← BGM変更コマンド
+  },
+  {
+    speaker: "tatsumi",
+    text: "だからレンスペだよ！パーティ会場。",
+  },
+  {
+    speaker: "circus",
+    text: "パーティーなんてしているヒマはない。早く事件について話せ。",
+  },
+  {
+    speaker: "tatsumi",
+    text: "そんなことより。クリスマスの話をしよう。",
+  },
+  {
+    speaker: "circus",
+    text: "なに…！？",
+  },
+  {
+    speaker: "tatsumi",
+    text: "そんなことより。クリスマスの話をしよう。",
+  },
+  {
+    speaker: "circus",
+    text: "別に聞き取れなかったわけではない。",
   },
   {
     speaker: "tatsumi",
     text: "ああそうだったな！メリクリメリクリ！",
     commands: [{ type: "se", value: "cheer" }],  // ← SE再生コマンド
   },
-  { speaker: "circus", text: "……いや待て。今『あの件』って言いかけただろ。" },
-  { speaker: "tatsumi", text: "言いかけたな。" },
-  { speaker: "circus", text: "続きは？" },
+  { speaker: "circus", text: "……いや待て。お前正気か？" },
   {
     speaker: "tatsumi",
     text: "それはそれとして、教会って寒くないか？暖房とか…",
@@ -161,6 +195,12 @@ const DIALOGUES: Dialogue[] = [
     text: "安心しろ。ちゃんと\"爆発しない\"やつだ。",
     commands: [{ type: "se", value: "cheer" }],
   },
+  {
+    speaker: "circus",
+    text: "……ふう。AIのユーモアもまだ人間にはおよばないな。",
+    commands: [{ type: "se", value: "cold" }],
+  },
+
 ]
 
 // アセットパス
@@ -235,14 +275,17 @@ function useBGM() {
     const howl = new Howl({
       src: [track.src],
       loop: true,
-      volume: fadeIn ? 0 : track.volume,
+      volume: 0,  // 常に0から開始
+      onload: () => {
+        // ロード完了後に再生開始
+        howl.play()
+        if (fadeIn) {
+          howl.fade(0, track.volume, BGM_FADE.duration)
+        } else {
+          howl.volume(track.volume)
+        }
+      },
     })
-
-    howl.play()
-
-    if (fadeIn) {
-      howl.fade(0, track.volume, BGM_FADE.duration)
-    }
 
     currentHowlRef.current = howl
     currentKeyRef.current = key
