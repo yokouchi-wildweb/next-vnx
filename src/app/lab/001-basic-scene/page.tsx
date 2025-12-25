@@ -790,7 +790,7 @@ export default function BasicScenePage() {
 
                       {/* 吹き出し */}
                       <div
-                        className={`max-w-[350px] px-4 py-3 rounded-2xl bg-gray-800/80 ${
+                        className={`min-w-[200px] max-w-[350px] px-4 py-3 rounded-2xl bg-gray-800/80 ${
                           side === "left" ? "rounded-tl-sm" : "rounded-tr-sm"
                         }`}
                       >
