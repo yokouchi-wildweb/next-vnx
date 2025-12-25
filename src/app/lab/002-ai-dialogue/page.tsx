@@ -7,6 +7,29 @@
 "use client"
 
 import { useState, useRef } from "react"
+import axios from "axios"
+
+// ============================================================
+// NPC定義（UI表示用）
+// ============================================================
+
+const NPC_LIST = [
+  {
+    id: "grandpa",
+    name: "田中義男",
+    description: "散歩中のおじいちゃん（目撃者）",
+    situation: "あなたは探偵。昨日この公園で事件が起きた。目の前にいる散歩中のおじいちゃん（田中義男さん、78歳）から目撃情報を聞き出そう。",
+  },
+  // 将来追加
+  // { id: "shop", name: "店主", description: "近くのコンビニ店主", situation: "..." },
+  // { id: "suspect", name: "容疑者", description: "怪しい男", situation: "..." },
+] as const
+
+type NPCId = (typeof NPC_LIST)[number]["id"]
+
+// ============================================================
+// コンポーネント
+// ============================================================
 
 interface Message {
   role: "user" | "assistant"
@@ -14,31 +37,53 @@ interface Message {
 }
 
 export default function AIDialoguePage() {
+  const [activeNpcId, setActiveNpcId] = useState<NPCId>("grandpa")
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  const activeNpc = NPC_LIST.find((npc) => npc.id === activeNpcId)!
+
+  // NPC切り替え
+  const handleNpcChange = (npcId: NPCId) => {
+    setActiveNpcId(npcId)
+    setMessages([]) // 会話履歴をリセット
+    setInput("")
+    inputRef.current?.focus()
+  }
+
+  // メッセージ送信
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim() || isLoading) return
 
     const userMessage: Message = { role: "user", content: input.trim() }
-    setMessages((prev) => [...prev, userMessage])
+    const newMessages = [...messages, userMessage]
+    setMessages(newMessages)
     setInput("")
     setIsLoading(true)
     inputRef.current?.focus()
 
-    // TODO: API連携
-    // 仮のダミー応答
-    setTimeout(() => {
+    try {
+      const response = await axios.post("/api/lab/ai-dialogue", {
+        messages: newMessages,
+        npcId: activeNpcId,
+      })
       const assistantMessage: Message = {
         role: "assistant",
-        content: `[ダミー応答] 「${userMessage.content}」に対する返答 / まだ未実装なので会話はできません。`,
+        content: response.data.content,
       }
       setMessages((prev) => [...prev, assistantMessage])
+    } catch (error) {
+      const errorMessage: Message = {
+        role: "assistant",
+        content: `[エラー] ${axios.isAxiosError(error) ? error.response?.data?.error || error.message : "通信エラー"}`,
+      }
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
       setIsLoading(false)
-    }, 500)
+    }
   }
 
   return (
@@ -46,11 +91,33 @@ export default function AIDialoguePage() {
       <h1 className="text-xl font-bold mb-2">Lab 002: AIダイアログ</h1>
       <p className="text-gray-400 text-sm mb-4">
         AIがあなたのメッセージを読み取り、その場で考えて返答します。
-        台本にない、毎回異なる会話が生まれます。
       </p>
 
+      {/* NPC切り替えタブ */}
+      <div className="flex gap-2 mb-4">
+        {NPC_LIST.map((npc) => (
+          <button
+            key={npc.id}
+            onClick={() => handleNpcChange(npc.id)}
+            className={`px-4 py-2 rounded text-sm transition ${
+              activeNpcId === npc.id
+                ? "bg-blue-600 text-white"
+                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            }`}
+          >
+            {npc.name}
+          </button>
+        ))}
+      </div>
+
+      {/* シチュエーション表示 */}
+      <div className="bg-gray-800 border border-gray-600 rounded p-3 mb-4 text-sm">
+        <p className="text-yellow-400 font-bold mb-1">シチュエーション</p>
+        <p className="text-gray-300">{activeNpc.situation}</p>
+      </div>
+
       {/* 履歴表示 */}
-      <div className="border border-gray-700 rounded p-4 h-[60vh] overflow-y-auto mb-4 space-y-3">
+      <div className="border border-gray-700 rounded p-4 h-[50vh] overflow-y-auto mb-4 space-y-3">
         {messages.length === 0 && (
           <p className="text-gray-500">メッセージを送信してください</p>
         )}
@@ -64,15 +131,15 @@ export default function AIDialoguePage() {
             }`}
           >
             <span className="text-xs text-gray-400 block mb-1">
-              {msg.role === "user" ? "あなた" : "AI"}
+              {msg.role === "user" ? "あなた" : activeNpc.name}
             </span>
             <p className="whitespace-pre-wrap">{msg.content}</p>
           </div>
         ))}
         {isLoading && (
           <div className="bg-gray-700 mr-8 p-2 rounded">
-            <span className="text-xs text-gray-400 block mb-1">AI</span>
-            <p className="text-gray-400">考え中...</p>
+            <span className="text-xs text-gray-400 block mb-1">{activeNpc.name}</span>
+            <p className="text-gray-400">...</p>
           </div>
         )}
       </div>
