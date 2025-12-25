@@ -22,9 +22,12 @@
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
-import { Howl } from "howler"
 import { motion, AnimatePresence } from "framer-motion"
 import { Application, Assets, Sprite, Container, BlurFilter, ColorMatrixFilter } from "pixi.js"
+
+// Howler.jsはブラウザ専用（SSR時にimportするとエラー）
+// 使用時に動的importする
+type HowlType = import("howler").Howl
 
 // ============================================================
 // BGM定義（SceneCommandより先に定義が必要）
@@ -216,11 +219,18 @@ const BOTTOM_OVERLAY = {
  * - アンマウント時に自動停止
  */
 function useBGM() {
-  const currentHowlRef = useRef<Howl | null>(null)
+  const currentHowlRef = useRef<HowlType | null>(null)
   const currentKeyRef = useRef<BGMKey | null>(null)
+  const howlerRef = useRef<typeof import("howler") | null>(null)
 
   // BGMを再生（内部用）
-  const playBGM = useCallback((key: BGMKey, fadeIn: boolean = true) => {
+  const playBGM = useCallback(async (key: BGMKey, fadeIn: boolean = true) => {
+    // Howler.jsを動的インポート（ブラウザ環境でのみ）
+    if (!howlerRef.current) {
+      howlerRef.current = await import("howler")
+    }
+    const { Howl } = howlerRef.current
+
     const track = BGM_TRACKS[key]
     const howl = new Howl({
       src: [track.src],
@@ -310,7 +320,10 @@ function useBGM() {
  * 効果音を再生する（ワンショット）
  * BGMと異なり状態管理不要なのでシンプルな関数として実装
  */
-function playSE(key: SEKey) {
+async function playSE(key: SEKey) {
+  // Howler.jsを動的インポート（ブラウザ環境でのみ）
+  const { Howl } = await import("howler")
+
   const track = SE_TRACKS[key]
   const howl = new Howl({
     src: [track.src],
