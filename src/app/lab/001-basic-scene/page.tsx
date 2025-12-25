@@ -10,20 +10,85 @@
  * - キャラクター立ち絵の左右固定表示
  * - チャット風メッセージUI + スクロール
  * - 発言者強調（非発言者を暗く）
+ * - BGM再生（Howler.js）
  *
  * 完了後の抽出先:
  * - src/engine/renderer/
  * - src/engine/ui/
  * - src/engine/stores/
+ * - src/engine/audio/
  * - game/scenes/
  */
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
+import { Howl } from "howler"
 import { motion, AnimatePresence } from "framer-motion"
 import { Application, Assets, Sprite, Container, BlurFilter, ColorMatrixFilter } from "pixi.js"
 
+// ============================================================
+// BGM定義（SceneCommandより先に定義が必要）
+// ============================================================
+
+type BGMKey = "main" | "tension"
+
+const BGM_TRACKS: Record<BGMKey, { src: string; volume: number }> = {
+  main: {
+    src: "/game/assets/audio/存在しない街.mp3",
+    volume: 0.5,
+  },
+  tension: {
+    src: "/game/assets/audio/かたまる脳みそ.mp3",
+    volume: 0.5,
+  },
+}
+
+const BGM_FADE = {
+  duration: 1500,  // フェード時間（ms）
+}
+
+const INITIAL_BGM: BGMKey = "main"
+
+// ============================================================
+// SE（効果音）定義
+// ============================================================
+
+type SEKey = "cheer" | "cold"
+
+const SE_TRACKS: Record<SEKey, { src: string; volume: number }> = {
+  cheer: {
+    src: "/game/assets/se/スタジアムの歓声1.mp3",
+    volume: 0.7,
+  },
+  cold: {
+    src: "/game/assets/se/「冷気よ！」.mp3",
+    volume: 0.7,
+  },
+}
+
+// ============================================================
+// シーンコマンド定義（拡張可能）
+// ============================================================
+
+/**
+ * シーンコマンド型定義
+ * 新しいコマンドを追加する場合はここに型を追加
+ */
+type SceneCommand =
+  | { type: "bgm"; value: BGMKey }                              // BGM変更
+  | { type: "bgm_stop" }                                        // BGM停止
+  | { type: "se"; value: SEKey }                                // 効果音再生
+  // 以下は将来の拡張用（実装時にコメント解除）
+  // | { type: "shake"; intensity?: number; duration?: number } // 画面揺れ
+  // | { type: "flash"; color?: string; duration?: number }     // フラッシュ
+  // | { type: "wait"; duration: number }                       // 待機
+  // | { type: "background"; value: string }                    // 背景変更
+  // | { type: "expression"; character: string; value: string } // 表情変更
+
+// ============================================================
 // キャラクター定義
+// ============================================================
+
 type CharacterId = "circus" | "tatsumi"
 
 // キャラクター情報（名前・カラーを一元管理）
@@ -32,35 +97,67 @@ const CHARACTERS: Record<CharacterId, { name: string; color: string }> = {
   tatsumi: { name: "妻夫木 龍己", color: "#4361ee" },  // 青系
 }
 
+// ============================================================
+// ダイアログ定義
+// ============================================================
+
 interface Dialogue {
   speaker: CharacterId
   text: string
+  commands?: SceneCommand[]  // このダイアログ表示時に実行するコマンド
 }
 
-// ダミーセリフデータ（6つ）
+// ダミーセリフデータ
 const DIALOGUES: Dialogue[] = [
   { speaker: "circus", text: "ここが噂の教会か...。思っていたより立派な建物だな。" },
   { speaker: "tatsumi", text: "ああ、この地域では一番古い教会らしい。築200年以上だとか。" },
   { speaker: "circus", text: "それにしても、こんな場所に呼び出すとは...一体何の用なんだ？" },
   { speaker: "tatsumi", text: "まあ、そう急ぐな。少し話がしたかっただけさ。" },
   { speaker: "circus", text: "話？お前がわざわざ呼び出すなんて、ただ事じゃないだろう。" },
-  { speaker: "tatsumi", text: "...実は、あの件について新しい情報が入ったんだ。" },
-  { speaker: "circus", text: "そんなことより。クリスマスの話をしよう。" },
-  { speaker: "tatsumi", text: "ああそうだったな！メリクリメリクリ！" },
+  {
+    speaker: "tatsumi",
+    text: "...実は、あの件について新しい情報が入ったんだ。",
+  },
+  {
+    speaker: "circus",
+    text: "そんなことより。クリスマスの話をしよう。",
+    commands: [{ type: "bgm", value: "tension" }],  // ← BGM変更コマンド
+  },
+  {
+    speaker: "tatsumi",
+    text: "ああそうだったな！メリクリメリクリ！",
+    commands: [{ type: "se", value: "cheer" }],  // ← SE再生コマンド
+  },
   { speaker: "circus", text: "……いや待て。今『あの件』って言いかけただろ。" },
   { speaker: "tatsumi", text: "言いかけたな。" },
   { speaker: "circus", text: "続きは？" },
-  { speaker: "tatsumi", text: "それはそれとして、教会って寒くないか？暖房とか…" },
+  {
+    speaker: "tatsumi",
+    text: "それはそれとして、教会って寒くないか？暖房とか…",
+    commands: [{ type: "se", value: "cold" }],
+  },
   { speaker: "circus", text: "話をそらすな！神に誓って今ごまかしただろ！" },
   { speaker: "tatsumi", text: "神の前だからこそ正直に言うが、今はまだ言えない。" },
   { speaker: "circus", text: "じゃあ何で呼び出したんだよ！" },
-  { speaker: "tatsumi", text: "雰囲気作り？鐘の音とか、ほら…それっぽいだろ。" },
+  {
+    speaker: "tatsumi",
+    text: "雰囲気作り？鐘の音とか、ほら…それっぽいだろ。" ,
+    commands: [{ type: "se", value: "cold" }],
+  },
   { speaker: "circus", text: "それっぽさのために俺を使うな。" },
-  { speaker: "tatsumi", text: "まあまあ。クリスマスだし、心を清めようじゃないか。" },
+  {
+    speaker: "tatsumi",
+    text: "まあまあ。クリスマスだし、心を清めようじゃないか。" ,
+    commands: [{ type: "se", value: "cold" }],
+  },
   { speaker: "circus", text: "お前が一番清められるべき存在だと思うが？" },
   { speaker: "tatsumi", text: "ひどいな。せっかくプレゼントも用意してるのに。" },
   { speaker: "circus", text: "……嫌な予感しかしないんだが。" },
-  { speaker: "tatsumi", text: "安心しろ。ちゃんと“爆発しない”やつだ。" },
+  {
+    speaker: "tatsumi",
+    text: "安心しろ。ちゃんと\"爆発しない\"やつだ。",
+    commands: [{ type: "se", value: "cheer" }],
+  },
 ]
 
 // アセットパス
@@ -108,6 +205,165 @@ const BOTTOM_OVERLAY = {
   color: "0, 0, 0",       // RGB値（カンマ区切り）
 }
 
+// ============================================================
+// BGM管理フック
+// ============================================================
+
+/**
+ * BGM管理フック
+ * - シーン開始時に自動再生（ループ）
+ * - changeBGM()でクロスフェード切り替え
+ * - アンマウント時に自動停止
+ */
+function useBGM() {
+  const currentHowlRef = useRef<Howl | null>(null)
+  const currentKeyRef = useRef<BGMKey | null>(null)
+
+  // BGMを再生（内部用）
+  const playBGM = useCallback((key: BGMKey, fadeIn: boolean = true) => {
+    const track = BGM_TRACKS[key]
+    const howl = new Howl({
+      src: [track.src],
+      loop: true,
+      volume: fadeIn ? 0 : track.volume,
+    })
+
+    howl.play()
+
+    if (fadeIn) {
+      howl.fade(0, track.volume, BGM_FADE.duration)
+    }
+
+    currentHowlRef.current = howl
+    currentKeyRef.current = key
+  }, [])
+
+  // BGMを切り替え（クロスフェード）
+  const changeBGM = useCallback((newKey: BGMKey) => {
+    // 同じBGMなら何もしない
+    if (currentKeyRef.current === newKey) return
+
+    const oldHowl = currentHowlRef.current
+
+    // 新しいBGMを開始（フェードイン）
+    playBGM(newKey, true)
+
+    // 古いBGMをフェードアウトして停止
+    if (oldHowl) {
+      const currentVolume = oldHowl.volume()
+      oldHowl.fade(currentVolume, 0, BGM_FADE.duration)
+      setTimeout(() => {
+        oldHowl.stop()
+        oldHowl.unload()
+      }, BGM_FADE.duration)
+    }
+  }, [playBGM])
+
+  // BGMを停止
+  const stopBGM = useCallback((fadeOut: boolean = true) => {
+    const howl = currentHowlRef.current
+    if (!howl) return
+
+    if (fadeOut) {
+      const currentVolume = howl.volume()
+      howl.fade(currentVolume, 0, BGM_FADE.duration)
+      setTimeout(() => {
+        howl.stop()
+        howl.unload()
+        currentHowlRef.current = null
+        currentKeyRef.current = null
+      }, BGM_FADE.duration)
+    } else {
+      howl.stop()
+      howl.unload()
+      currentHowlRef.current = null
+      currentKeyRef.current = null
+    }
+  }, [])
+
+  // 初回マウント時に再生、アンマウント時に停止
+  useEffect(() => {
+    playBGM(INITIAL_BGM, true)
+
+    return () => {
+      // アンマウント時は即座に停止（フェードなし）
+      if (currentHowlRef.current) {
+        currentHowlRef.current.stop()
+        currentHowlRef.current.unload()
+        currentHowlRef.current = null
+      }
+    }
+  }, [playBGM])
+
+  return {
+    changeBGM,
+    stopBGM,
+    currentBGM: currentKeyRef.current,
+  }
+}
+
+// ============================================================
+// SE（効果音）再生関数
+// ============================================================
+
+/**
+ * 効果音を再生する（ワンショット）
+ * BGMと異なり状態管理不要なのでシンプルな関数として実装
+ */
+function playSE(key: SEKey) {
+  const track = SE_TRACKS[key]
+  const howl = new Howl({
+    src: [track.src],
+    volume: track.volume,
+  })
+  howl.play()
+}
+
+// ============================================================
+// コマンドハンドラ型定義
+// ============================================================
+
+/**
+ * コマンドハンドラのマップ型
+ * 新しいコマンドを追加する場合、ここにハンドラを定義
+ */
+type CommandHandlers = {
+  [K in SceneCommand["type"]]: (
+    command: Extract<SceneCommand, { type: K }>
+  ) => void
+}
+
+// ============================================================
+// コマンド実行フック
+// ============================================================
+
+/**
+ * シーンコマンド実行フック
+ * ダイアログ表示時にコマンドを実行する
+ *
+ * @param handlers コマンドタイプごとのハンドラ関数
+ * @returns executeCommands - コマンド配列を実行する関数
+ */
+function useCommandExecutor(handlers: CommandHandlers) {
+  const executeCommands = useCallback(
+    (commands: SceneCommand[] | undefined) => {
+      if (!commands || commands.length === 0) return
+
+      for (const command of commands) {
+        const handler = handlers[command.type] as (cmd: SceneCommand) => void
+        if (handler) {
+          handler(command)
+        } else {
+          console.warn(`Unknown command type: ${command.type}`)
+        }
+      }
+    },
+    [handlers]
+  )
+
+  return { executeCommands }
+}
+
 export default function BasicScenePage() {
   const containerRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<Application | null>(null)
@@ -122,6 +378,22 @@ export default function BasicScenePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [currentSpeaker, setCurrentSpeaker] = useState<CharacterId | null>(null)
 
+  // BGM管理（シーン開始時に自動再生）
+  const { changeBGM, stopBGM } = useBGM()
+
+  // コマンドハンドラ定義（新しいコマンドはここに追加）
+  const commandHandlers: CommandHandlers = {
+    bgm: (cmd) => changeBGM(cmd.value),
+    bgm_stop: () => stopBGM(),
+    se: (cmd) => playSE(cmd.value),
+    // 将来の拡張例:
+    // shake: (cmd) => shakeScreen(cmd.intensity, cmd.duration),
+    // flash: (cmd) => flashScreen(cmd.color, cmd.duration),
+  }
+
+  // コマンド実行フック
+  const { executeCommands } = useCommandExecutor(commandHandlers)
+
   const isLastDialogue = dialogueIndex >= DIALOGUES.length
 
   // 次のセリフへ進む
@@ -131,8 +403,11 @@ export default function BasicScenePage() {
       setDisplayedMessages((prev) => [...prev, newDialogue])
       setCurrentSpeaker(newDialogue.speaker)
       setDialogueIndex((prev) => prev + 1)
+
+      // ダイアログに紐づくコマンドを実行
+      executeCommands(newDialogue.commands)
     }
-  }, [dialogueIndex])
+  }, [dialogueIndex, executeCommands])
 
   // メッセージ追加時に自動スクロール（instantでframer-motionのlayoutアニメーションと競合を避ける）
   useEffect(() => {
