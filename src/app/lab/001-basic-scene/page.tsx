@@ -293,6 +293,17 @@ const MESSAGE_NAME_UNDERLINE = {
   shimmerSpeed: 3.5,        // シマーが流れる速度（秒）- 小さいほど速い
 }
 
+// 次へインジケーター設定（テキスト末尾のダイヤモンド）
+const NEXT_INDICATOR = {
+  symbol: "◆",              // 表示するシンボル
+  size: "text-xs",          // サイズ（Tailwindクラス）
+  baselineOffset: 2,        // ベースラインオフセット（px）- 正で下、負で上
+  bounceDuration: 1.2,      // バウンドアニメーション周期（秒）
+  bounceHeight: 3,          // バウンドの高さ（px）
+  pulseDuration: 2.1,       // 明滅アニメーション周期（秒）
+  minOpacity: 0.4,          // 明滅時の最小不透明度
+}
+
 // 下部オーバーレイ設定（システムパネル領域）
 const BOTTOM_OVERLAY = {
   height: 20,             // 高さ（画面下から%）
@@ -832,6 +843,35 @@ export default function BasicScenePage() {
                       >
                         <p className="text-white text-base leading-relaxed">
                           {msg.text}
+                          {/* 次へインジケーター（アクティブ時のみ） */}
+                          {isLatest && (
+                            <motion.span
+                              className={`inline-block ml-2 ${NEXT_INDICATOR.size}`}
+                              style={{
+                                color: CHARACTERS[msg.speaker].color,
+                                position: "relative",
+                                top: `${NEXT_INDICATOR.baselineOffset}px`,
+                              }}
+                              animate={{
+                                y: [0, -NEXT_INDICATOR.bounceHeight, 0],
+                                opacity: [1, NEXT_INDICATOR.minOpacity, 1],
+                              }}
+                              transition={{
+                                y: {
+                                  duration: NEXT_INDICATOR.bounceDuration,
+                                  repeat: Infinity,
+                                  ease: "easeInOut",
+                                },
+                                opacity: {
+                                  duration: NEXT_INDICATOR.pulseDuration,
+                                  repeat: Infinity,
+                                  ease: "easeInOut",
+                                },
+                              }}
+                            >
+                              {NEXT_INDICATOR.symbol}
+                            </motion.span>
+                          )}
                         </p>
                       </div>
                     </motion.div>
