@@ -94,8 +94,14 @@ auth/, admin/, wallet/, webhook/, storage/
 operations: create, list, get, update, remove, search, query, upsert, bulkDeleteByIds, bulkDeleteByQuery
 drizzle-only: belongsToMany (auto-sync m2m)
 
-extend via: services/server/wrappers/*.ts
-use base.query() for: JOINs, transactions, side effects
+extension_priority: check base methods → base.query()/wrappers → custom service
+firestore_limits: no or condition, single orderBy, no belongsToMany
+
+service file organization:
+- xxxService.ts: import only, never add implementations directly
+- wrappers/: base CRUD method overrides only
+- other subfolders: domain-specific services (non-CRUD), flexible structure per domain
+- server/ root: simple standalone services allowed
 
 ## CODE_GENERATION
 
@@ -133,22 +139,21 @@ page-level layout control:
 - AppFrames/User/controls: header/footer/bottomMenu visibility per page
 - must be placed in page.tsx, not in child components
 
+ui_layers (4-tier):
+- page: SSR, minimal tags (main + h1 + section_container)
+- section_container: PascalCase/index.tsx only, wrap with <section>, call hooks here
+- unit_item: display only, no hooks
+- interaction_parts: "use client", minimal hooks allowed if self-contained
+
+rules:
+- call hooks at upper layer, pass handlers via props to children
+- import only index.tsx from section containers
+
 ref: src/components/README.md
 
 ## DOMAIN_FIELD_RENDERER
-
 domain.json.fields[].formInput → DomainFieldRenderer → Input components
-
-formInput mapping: textInput, numberInput, textarea, select, multiSelect, radio, checkbox (array→checkGroup, else→booleanCheckbox), stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, mediaUploader, hidden
-
-usage (components/common/*Fields.tsx):
-```tsx
-<DomainFieldRenderer
-  domainJsonFields={domainConfig.fields}  // from domain.json
-  fields={customFields}                    // relations, overrides (domainFieldIndex)
-/>
-```
-
+formInput types: textInput, numberInput, textarea, select, multiSelect, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, mediaUploader, hidden
 ref: src/components/Form/DomainFieldRenderer/
 
 ## ERROR_HANDLING
@@ -161,7 +166,7 @@ UI: err(error, fallback) for display
 ## ENTITY_SCHEMA
 schema.ts: XxxBaseSchema, XxxCreateSchema, XxxUpdateSchema (server validation)
 form.ts: z.infer types only
-formEntities.ts (component-level): UI-only validation
+formEntities.ts (component-level): exports FormSchema, FormValues, DefaultValues
 drizzle.ts/firestore.ts: DB structure
 
 ## NAMING
@@ -192,9 +197,12 @@ src/lib/, src/features/core/, src/components/, scripts/domain-config/, src/style
 ## TOOLS
 playwright-mcp: use for CSS/UI verification, dynamic content, when WebSearch/WebFetch fails
 
-## DOCS
-!must-read/: architecture, component design, error handling
-concepts/: design decisions
-how-to/: step-by-step guides
-core-specs/: DB differences, service specs
-troubleshooting/: common issues
+## DOCS (on-demand reference, not auto-read)
+location: docs/
+use_when: edge cases, detailed checklists, implementation examples
+structure:
+- !must-read/: architecture details, component design, error handling patterns
+- concepts/: design decisions
+- how-to/: step-by-step guides
+- core-specs/: DB differences, service specs
+- troubleshooting/: common issues
