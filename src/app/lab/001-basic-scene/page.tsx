@@ -139,16 +139,24 @@ const DIALOGUES: Dialogue[] = [
   },
   {
     speaker: "tatsumi",
+    text: "ここにきて、思わぬ収穫があった…",
+  },
+  {
+    speaker: "tatsumi",
     text: "なんと…池袋に30名くらいまで余裕で収容できる格安のレンスペを見つけた！",
   },
   {
     speaker: "circus",
-    text: "はあ？いったい何の話をしている？",
-    commands: [{ type: "bgm", value: "tension" }],  // ← BGM変更コマンド
+    text: "………",
+  },
+  {
+    speaker: "circus",
+    text: "ん、レンスペ？いったい何の話をしている。",
   },
   {
     speaker: "tatsumi",
     text: "だからレンスペだよ！パーティ会場。",
+    commands: [{ type: "bgm", value: "tension" }],  // ← BGM変更コマンド
   },
   {
     speaker: "circus",
@@ -168,19 +176,23 @@ const DIALOGUES: Dialogue[] = [
   },
   {
     speaker: "circus",
-    text: "別に聞き取れなかったわけではない。",
+    text: "別に聞き取れなかったわけではないぞ。",
   },
   {
     speaker: "circus",
-    text: "それに、そんなこととはなんだ！ふざけてるのか！",
+    text: "それに、そんなこととはなんだ。ふざけてるのか！",
   },
   {
     speaker: "tatsumi",
-    text: "クリスマスパーティが……",
+    text: "うぅ…クリスマスパーティが…………",
   },
   {
     speaker: "tatsumi",
-    text: "したいだけなんだが！！",
+    text: "…………",
+  },
+  {
+    speaker: "tatsumi",
+    text: "したいだけなんだが！！！",
     commands: [{ type: "se", value: "jajaan" }],
   },
   {
@@ -198,9 +210,9 @@ const DIALOGUES: Dialogue[] = [
     text: "それはそれとして、教会って寒くないか？暖房とかないしな…",
     commands: [{ type: "se", value: "cold" }],
   },
-  { speaker: "circus", text: "おい、無理やり会場に案内しようとするな" },
+  { speaker: "circus", text: "おい、無理やりパーティ会場に案内しようとするな" },
   { speaker: "tatsumi", text: "神の前だからこそ正直に言うが、俺はまじめだ。" },
-  { speaker: "circus", text: "じゃあ、そのもさもさの付け髭と、とんがり帽子は何の真似だ？" },
+  { speaker: "circus", text: "だったら今おもむろに装着しだした、そのモサモサの付け髭と、とんがり帽子は何の真似だ？" },
   {
     speaker: "tatsumi",
     text: "雰囲気作り？鐘の音とか、ほら…それっぽいだろ。" ,
@@ -212,7 +224,7 @@ const DIALOGUES: Dialogue[] = [
     text: "まあまあ。クリスマスだし、心を清めようじゃないか。" ,
     commands: [{ type: "se", value: "cold" }],
   },
-  { speaker: "circus", text: "お前が一番清められるべき存在だと思うが？" },
+  { speaker: "circus", text: "心を清める前に今すぐ頭を冷やせ。" },
   { speaker: "tatsumi", text: "ひどいな。せっかくプレゼントも用意してるのに。" },
   { speaker: "circus", text: "……嫌な予感しかしないんだが。" },
   {
@@ -220,19 +232,14 @@ const DIALOGUES: Dialogue[] = [
     text: "安心しろ。ちゃんと\"爆発しない\"やつだ。",
     commands: [{ type: "se", value: "cheer" }],
   },
-  { speaker: "circus", text: "爆発だと！？もとよりそんな可能性は考慮していな…" },
+  { speaker: "circus", text: "爆発だと！？そんな可能性はもとより想定していな…" },
   {
     speaker: "circus",
     text: "（ドゴオオオーーーン）",
     commands: [{ type: "se", value: "explosion" }],
   },
-  { speaker: "tatsumi", text: "爆発オチなんてサイテー。" },
-  {
-    speaker: "circus",
-    text: "……ふう。AIのユーモアもまだ人間にはおよばないな。",
-    commands: [{ type: "se", value: "cold" }],
-  },
-
+  { speaker: "tatsumi", text: "爆発オチなんてサイテー……!" },
+  { speaker: "circus", text: "オチが思いつかない場合に、とりあえず爆発させて無理やり終わらせる合理的な手段だ。" },
 ]
 
 // アセットパス
