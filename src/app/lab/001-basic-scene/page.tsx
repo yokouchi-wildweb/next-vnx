@@ -796,6 +796,7 @@ export default function BasicScenePage() {
                               style={{
                                 background: `linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)`,
                                 backgroundSize: "200% 100%",
+                                animationDirection: side === "right" ? "reverse" : "normal",
                               }}
                             />
                           )}
