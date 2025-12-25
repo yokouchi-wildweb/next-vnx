@@ -47,6 +47,20 @@ const DIALOGUES: Dialogue[] = [
   { speaker: "tatsumi", text: "...実は、あの件について新しい情報が入ったんだ。" },
   { speaker: "marcus", text: "そんなことより。クリスマスの話をしよう。" },
   { speaker: "tatsumi", text: "ああそうだったな！メリクリメリクリ！" },
+  { speaker: "marcus", text: "……いや待て。今『あの件』って言いかけただろ。" },
+  { speaker: "tatsumi", text: "言いかけたな。" },
+  { speaker: "marcus", text: "続きは？" },
+  { speaker: "tatsumi", text: "それはそれとして、教会って寒くないか？暖房とか…" },
+  { speaker: "marcus", text: "話をそらすな！神に誓って今ごまかしただろ！" },
+  { speaker: "tatsumi", text: "神の前だからこそ正直に言うが、今はまだ言えない。" },
+  { speaker: "marcus", text: "じゃあ何で呼び出したんだよ！" },
+  { speaker: "tatsumi", text: "雰囲気作り？鐘の音とか、ほら…それっぽいだろ。" },
+  { speaker: "marcus", text: "それっぽさのために俺を使うな。" },
+  { speaker: "tatsumi", text: "まあまあ。クリスマスだし、心を清めようじゃないか。" },
+  { speaker: "marcus", text: "お前が一番清められるべき存在だと思うが？" },
+  { speaker: "tatsumi", text: "ひどいな。せっかくプレゼントも用意してるのに。" },
+  { speaker: "marcus", text: "……嫌な予感しかしないんだが。" },
+  { speaker: "tatsumi", text: "安心しろ。ちゃんと“爆発しない”やつだ。" },
 ]
 
 // アセットパス
@@ -75,7 +89,7 @@ const MESSAGE_AREA = {
 // キャラクター透明度設定
 const CHARACTER_ALPHA = {
   active: 1.0,    // アクティブ（発言中）
-  inactive: 0.8,  // 非アクティブ
+  inactive: 0.9,  // 非アクティブ
 }
 
 // キャラクター名表示設定
@@ -84,7 +98,7 @@ const CHARACTER_NAME_DISPLAY = {
   leftCharacterX: 18,     // 左キャラの名前X位置（画面左から%）
   rightCharacterX: 82,    // 右キャラの名前X位置（画面左から%）
   underlineWidth: 3,      // アンダーラインの太さ（px）
-  textShadow: "0 2px 4px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.9)",  // テキストシャドウ
+  textShadow: "1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 8px rgba(0,0,0,0.8)",  // テキストシャドウ（アウトライン + ぼかし）
 }
 
 // 下部オーバーレイ設定（システムパネル領域）
@@ -286,9 +300,7 @@ export default function BasicScenePage() {
               }}
             >
               <span
-                className={`inline-block px-3 py-1 text-lg font-bold transition-opacity duration-300 ${
-                  currentSpeaker === "marcus" ? "text-white" : "text-white/50"
-                }`}
+                className="inline-block px-3 py-1 text-lg font-bold text-white"
                 style={{
                   borderBottom: `${CHARACTER_NAME_DISPLAY.underlineWidth}px solid ${CHARACTERS.marcus.color}`,
                   textShadow: CHARACTER_NAME_DISPLAY.textShadow,
@@ -307,9 +319,7 @@ export default function BasicScenePage() {
               }}
             >
               <span
-                className={`inline-block px-3 py-1 text-lg font-bold transition-opacity duration-300 ${
-                  currentSpeaker === "tatsumi" ? "text-white" : "text-white/50"
-                }`}
+                className="inline-block px-3 py-1 text-lg font-bold text-white"
                 style={{
                   borderBottom: `${CHARACTER_NAME_DISPLAY.underlineWidth}px solid ${CHARACTERS.tatsumi.color}`,
                   textShadow: CHARACTER_NAME_DISPLAY.textShadow,
@@ -376,12 +386,13 @@ export default function BasicScenePage() {
                     >
                       {/* 発言者名 */}
                       <span
-                        className={`text-sm font-bold border-b-2 pb-0.5 ${
+                        className={`text-base font-bold border-b-2 pb-0.5 ${
                           side === "left" ? "text-left" : "text-right"
                         }`}
                         style={{
                           color: "rgba(255,255,255,0.9)",
                           borderColor: CHARACTERS[msg.speaker].color,
+                          textShadow: CHARACTER_NAME_DISPLAY.textShadow,
                         }}
                       >
                         {CHARACTERS[msg.speaker].name}
