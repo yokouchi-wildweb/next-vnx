@@ -775,18 +775,32 @@ export default function BasicScenePage() {
                       style={getBubbleStyle(msg.speaker)}
                     >
                       {/* 発言者名 */}
-                      <span
-                        className={`text-base font-bold border-b-2 pb-0.5 ${
-                          side === "left" ? "text-left" : "text-right"
-                        }`}
-                        style={{
-                          color: "rgba(255,255,255,0.9)",
-                          borderColor: CHARACTERS[msg.speaker].color,
-                          textShadow: CHARACTER_NAME_DISPLAY.textShadow,
-                        }}
-                      >
-                        {CHARACTERS[msg.speaker].name}
-                      </span>
+                      <div className={`relative inline-block ${side === "left" ? "text-left" : "text-right"}`}>
+                        <span
+                          className="text-base font-bold pb-0.5"
+                          style={{
+                            color: "rgba(255,255,255,0.9)",
+                            textShadow: CHARACTER_NAME_DISPLAY.textShadow,
+                          }}
+                        >
+                          {CHARACTERS[msg.speaker].name}
+                        </span>
+                        {/* アンダーライン + シマーエフェクト */}
+                        <div
+                          className="absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden"
+                          style={{ backgroundColor: CHARACTERS[msg.speaker].color }}
+                        >
+                          {isLatest && (
+                            <div
+                              className="absolute inset-0 animate-shimmer"
+                              style={{
+                                background: `linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)`,
+                                backgroundSize: "200% 100%",
+                              }}
+                            />
+                          )}
+                        </div>
+                      </div>
 
                       {/* 吹き出し */}
                       <div
