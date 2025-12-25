@@ -268,7 +268,7 @@ const MESSAGE_AREA = {
 // キャラクター透明度設定
 const CHARACTER_ALPHA = {
   active: 1.0,    // アクティブ（発言中）
-  inactive: 0.9,  // 非アクティブ
+  inactive: 0.7,  // 非アクティブ
 }
 
 // キャラクター名表示設定
@@ -276,8 +276,19 @@ const CHARACTER_NAME_DISPLAY = {
   bottomOffset: 8,        // 画面下からの距離（%）
   leftCharacterX: 18,     // 左キャラの名前X位置（画面左から%）
   rightCharacterX: 82,    // 右キャラの名前X位置（画面左から%）
-  underlineWidth: 3,      // アンダーラインの太さ（px）
   textShadow: "1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 8px rgba(0,0,0,0.8)",  // テキストシャドウ（アウトライン + ぼかし）
+}
+
+// 立ち絵下の名前アンダーライン設定
+const STANDING_NAME_UNDERLINE = {
+  width: 3,                 // ラインの太さ（px）
+}
+
+// メッセージボックス上の名前アンダーライン設定
+const MESSAGE_NAME_UNDERLINE = {
+  width: 3,                 // ラインの太さ（px）
+  gap: 6,                   // 名前とラインの間隔（px）
+  shimmerSpeed: 3.5,        // シマーが流れる速度（秒）- 小さいほど速い
 }
 
 // 下部オーバーレイ設定（システムパネル領域）
@@ -692,7 +703,7 @@ export default function BasicScenePage() {
               <span
                 className="inline-block px-3 py-1 text-lg font-bold text-white"
                 style={{
-                  borderBottom: `${CHARACTER_NAME_DISPLAY.underlineWidth}px solid ${CHARACTERS.circus.color}`,
+                  borderBottom: `${STANDING_NAME_UNDERLINE.width}px solid ${CHARACTERS.circus.color}`,
                   textShadow: CHARACTER_NAME_DISPLAY.textShadow,
                 }}
               >
@@ -711,7 +722,7 @@ export default function BasicScenePage() {
               <span
                 className="inline-block px-3 py-1 text-lg font-bold text-white"
                 style={{
-                  borderBottom: `${CHARACTER_NAME_DISPLAY.underlineWidth}px solid ${CHARACTERS.tatsumi.color}`,
+                  borderBottom: `${STANDING_NAME_UNDERLINE.width}px solid ${CHARACTERS.tatsumi.color}`,
                   textShadow: CHARACTER_NAME_DISPLAY.textShadow,
                 }}
               >
@@ -777,18 +788,22 @@ export default function BasicScenePage() {
                       {/* 発言者名 */}
                       <div className={`relative inline-block ${side === "left" ? "text-left" : "text-right"}`}>
                         <span
-                          className="text-base font-bold pb-0.5"
+                          className="inline-block text-base font-bold"
                           style={{
                             color: "rgba(255,255,255,0.9)",
                             textShadow: CHARACTER_NAME_DISPLAY.textShadow,
+                            paddingBottom: `${MESSAGE_NAME_UNDERLINE.gap}px`,
                           }}
                         >
                           {CHARACTERS[msg.speaker].name}
                         </span>
                         {/* アンダーライン + シマーエフェクト */}
                         <div
-                          className="absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden"
-                          style={{ backgroundColor: CHARACTERS[msg.speaker].color }}
+                          className="absolute bottom-0 left-0 right-0 overflow-hidden"
+                          style={{
+                            height: `${MESSAGE_NAME_UNDERLINE.width}px`,
+                            backgroundColor: CHARACTERS[msg.speaker].color,
+                          }}
                         >
                           {isLatest && (
                             <div
@@ -796,6 +811,7 @@ export default function BasicScenePage() {
                               style={{
                                 background: `linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)`,
                                 backgroundSize: "200% 100%",
+                                animationDuration: `${MESSAGE_NAME_UNDERLINE.shimmerSpeed}s`,
                                 animationDirection: side === "right" ? "reverse" : "normal",
                               }}
                             />
