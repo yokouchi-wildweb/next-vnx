@@ -123,7 +123,7 @@ src/
 `src/proxy.ts` は `src/proxies/` 配下のハンドラを順番に実行し、`NextResponse.next()` かハンドラが返すレスポンスを応答します。新しいネットワ
 ーク境界ロジックは `src/proxies/` にファイルを追加し、`src/proxies/index.ts` へ登録することで一元的に適用されます。
 
-より詳細なプロジェクトの構成は、[docs/concepts/ディレクトリ構造の全体図と構成ファイルの説明.md](docs/concepts/ディレクトリ構造の全体図と構成ファイルの説明.md) を参照してください。
+より詳細なプロジェクトの構成は、[docs/concepts/ディレクトリ構造の全体図と構成ファイルの説明.md](docs/!must-read/ディレクトリ構造の全体図.md) を参照してください。
 
 ---
 
