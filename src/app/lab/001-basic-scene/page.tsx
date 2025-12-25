@@ -56,7 +56,7 @@ const INITIAL_BGM: BGMKey = "main"
 // SE（効果音）定義
 // ============================================================
 
-type SEKey = "cheer" | "cold" | "jajaan"
+type SEKey = "cheer" | "cold" | "jajaan" | "explosion"
 
 const SE_TRACKS: Record<SEKey, { src: string; volume: number }> = {
   cheer: {
@@ -69,6 +69,10 @@ const SE_TRACKS: Record<SEKey, { src: string; volume: number }> = {
   },
   jajaan: {
     src: "/game/assets/se/ジャジャーン.mp3",
+    volume: 0.7,
+  },
+  explosion: {
+    src: "/game/assets/se/爆発2.mp3",
     volume: 0.7,
   },
 }
@@ -196,7 +200,7 @@ const DIALOGUES: Dialogue[] = [
   },
   { speaker: "circus", text: "おい、無理やり会場に案内しようとするな" },
   { speaker: "tatsumi", text: "神の前だからこそ正直に言うが、俺はまじめだ。" },
-  { speaker: "circus", text: "じゃあ、そのもさもさの付け髭と、とんがり帽子はなんだ？" },
+  { speaker: "circus", text: "じゃあ、そのもさもさの付け髭と、とんがり帽子は何の真似だ？" },
   {
     speaker: "tatsumi",
     text: "雰囲気作り？鐘の音とか、ほら…それっぽいだろ。" ,
@@ -216,6 +220,13 @@ const DIALOGUES: Dialogue[] = [
     text: "安心しろ。ちゃんと\"爆発しない\"やつだ。",
     commands: [{ type: "se", value: "cheer" }],
   },
+  { speaker: "circus", text: "爆発だと！？もとよりそんな可能性は考慮していな…" },
+  {
+    speaker: "circus",
+    text: "（ドゴオオオーーーン）",
+    commands: [{ type: "se", value: "explosion" }],
+  },
+  { speaker: "tatsumi", text: "爆発オチなんてサイテー。" },
   {
     speaker: "circus",
     text: "……ふう。AIのユーモアもまだ人間にはおよばないな。",
