@@ -770,9 +770,10 @@ export default function BasicScenePage() {
               {/* 初期表示（メッセージがない時） */}
               {displayedMessages.length === 0 && (
                 <div className="flex-1 flex items-center justify-center">
-                  <p className="text-white/50 text-lg animate-pulse">
-                    クリックして開始
-                  </p>
+                  <div className="text-center animate-pulse">
+                    <p className="text-white/50 text-lg">クリックして開始</p>
+                    <p className="text-white/30 text-sm">BGMが流れます</p>
+                  </div>
                 </div>
               )}
               </div>
