@@ -1,6 +1,10 @@
 /**
- * アセット解決ユーティリティ
- * マニフェストからIDまたはエイリアスを使ってアセットパスを解決
+ * シナリオ単位のアセット解決ユーティリティ
+ *
+ * 使用方法:
+ *   const resolver = createScenarioResolver('_sample')
+ *   const bgmPath = await resolver.bgm('存在しない街')
+ *   const sePath = await resolver.se('爆発2')
  */
 
 // マニフェストの型定義
@@ -14,16 +18,16 @@ interface AssetEntry {
 interface Manifest {
   version: number
   generatedAt: string
+  scenarioId: string
   assets: Record<string, AssetEntry>
   aliasMap: Record<string, string>
 }
 
-// マニフェストキャッシュ
-let manifestCache: Manifest | null = null
+// シナリオごとのマニフェストキャッシュ
+const manifestCache = new Map<string, Manifest>()
 
-// アセットベースパス
-const ASSET_BASE = '/game/assets'
-const SCENARIO_BASE = '/game/scenarios'
+// ベースパス
+const SCENARIOS_BASE = '/game/scenarios'
 
 // カテゴリプレフィックス
 const CATEGORY_PREFIX = {
@@ -34,123 +38,138 @@ const CATEGORY_PREFIX = {
 } as const
 
 /**
- * マニフェストを読み込む（初回のみ fetch、以降はキャッシュ）
+ * シナリオ単位のアセットリゾルバー
  */
-async function loadManifest(): Promise<Manifest> {
-  if (manifestCache) {
-    return manifestCache
+interface ScenarioResolver {
+  /** シナリオID */
+  scenarioId: string
+  /** アセットベースパス */
+  basePath: string
+  /** マニフェストを読み込む */
+  loadManifest: () => Promise<Manifest>
+  /** IDまたはエイリアスからフルパスを解決 */
+  asset: (idOrAlias: string) => Promise<string | null>
+  /** BGM用ヘルパー */
+  bgm: (name: string) => Promise<string | null>
+  /** SE用ヘルパー */
+  se: (name: string) => Promise<string | null>
+  /** 画像用ヘルパー */
+  img: (name: string) => Promise<string | null>
+  /** 動画用ヘルパー */
+  video: (name: string) => Promise<string | null>
+  /** キャラクター画像（マニフェスト管理外、直接パス） */
+  character: (path: string) => string
+  /** 背景画像（マニフェスト管理外、直接パス） */
+  background: (path: string) => string
+  /** キャッシュクリア */
+  clearCache: () => void
+}
+
+/**
+ * シナリオ単位のアセットリゾルバーを作成
+ *
+ * @param scenarioId - シナリオID（例: '_sample'）
+ * @returns ScenarioResolver
+ *
+ * @example
+ * const resolver = createScenarioResolver('_sample')
+ * const bgmPath = await resolver.bgm('存在しない街')
+ * // → '/game/scenarios/_sample/assets/bgm/存在しない街.mp3'
+ */
+function createScenarioResolver(scenarioId: string): ScenarioResolver {
+  const basePath = `${SCENARIOS_BASE}/${scenarioId}/assets`
+
+  /**
+   * マニフェストを読み込む（初回のみ fetch、以降はキャッシュ）
+   */
+  async function loadManifest(): Promise<Manifest> {
+    if (manifestCache.has(scenarioId)) {
+      return manifestCache.get(scenarioId)!
+    }
+
+    const response = await fetch(`${basePath}/manifest.json`)
+    if (!response.ok) {
+      throw new Error(`マニフェストの読み込みに失敗: ${scenarioId} (${response.status})`)
+    }
+
+    const manifest: Manifest = await response.json()
+    manifestCache.set(scenarioId, manifest)
+    return manifest
   }
 
-  const response = await fetch(`${ASSET_BASE}/manifest.json`)
-  if (!response.ok) {
-    throw new Error(`マニフェストの読み込みに失敗: ${response.status}`)
+  /**
+   * IDまたはエイリアスをメインIDに解決
+   */
+  function resolveId(manifest: Manifest, idOrAlias: string): string {
+    if (manifest.aliasMap[idOrAlias]) {
+      return manifest.aliasMap[idOrAlias]
+    }
+    return idOrAlias
   }
 
-  manifestCache = await response.json()
-  return manifestCache!
-}
+  /**
+   * IDまたはエイリアスからフルパスを解決
+   */
+  async function asset(idOrAlias: string): Promise<string | null> {
+    const manifest = await loadManifest()
+    const id = resolveId(manifest, idOrAlias)
+    const entry = manifest.assets[id]
 
-/**
- * IDまたはエイリアスをメインIDに解決
- */
-function resolveId(manifest: Manifest, idOrAlias: string): string {
-  // エイリアスならメインIDに変換
-  if (manifest.aliasMap[idOrAlias]) {
-    return manifest.aliasMap[idOrAlias]
+    if (!entry) {
+      console.warn(`アセットが見つかりません: ${idOrAlias} (シナリオ: ${scenarioId})`)
+      return null
+    }
+
+    return `${basePath}/${entry.path}`
   }
-  return idOrAlias
-}
 
-/**
- * IDまたはエイリアスからアセット情報を取得
- */
-async function getAssetEntry(idOrAlias: string): Promise<AssetEntry | null> {
-  const manifest = await loadManifest()
-  const id = resolveId(manifest, idOrAlias)
-  return manifest.assets[id] || null
-}
-
-/**
- * IDまたはエイリアスからフルパスを解決（メイン関数）
- */
-async function asset(idOrAlias: string): Promise<string | null> {
-  const entry = await getAssetEntry(idOrAlias)
-  if (!entry) {
-    console.warn(`アセットが見つかりません: ${idOrAlias}`)
-    return null
+  /**
+   * カテゴリ付きでアセット解決
+   */
+  async function resolveWithCategory(
+    category: keyof typeof CATEGORY_PREFIX,
+    name: string
+  ): Promise<string | null> {
+    const id = name.includes('/') ? name : `${CATEGORY_PREFIX[category]}/${name}`
+    return asset(id)
   }
-  return `${ASSET_BASE}/${entry.path}`
-}
 
-// ============================================
-// カテゴリ専用ヘルパー（プレフィックス省略可）
-// ============================================
+  /**
+   * キャッシュをクリア
+   */
+  function clearCache(): void {
+    manifestCache.delete(scenarioId)
+  }
 
-/**
- * SE用ヘルパー
- * @example se('爆発2') → asset('se/爆発2')
- * @example se('explosion-02') → エイリアス解決も可能
- */
-async function se(name: string): Promise<string | null> {
-  const id = name.includes('/') ? name : `${CATEGORY_PREFIX.se}/${name}`
-  return asset(id)
-}
+  /**
+   * キャラクター画像のパスを生成（マニフェスト管理外）
+   */
+  function character(path: string): string {
+    const fullPath = path.includes('.') ? path : `${path}.png`
+    return `${SCENARIOS_BASE}/${scenarioId}/characters/${fullPath}`
+  }
 
-/**
- * BGM用ヘルパー
- * @example bgm('かたまる脳みそ') → asset('bgm/かたまる脳みそ')
- */
-async function bgm(name: string): Promise<string | null> {
-  const id = name.includes('/') ? name : `${CATEGORY_PREFIX.bgm}/${name}`
-  return asset(id)
-}
+  /**
+   * 背景画像のパスを生成（マニフェスト管理外）
+   */
+  function background(path: string): string {
+    const fullPath = path.includes('.') ? path : `${path}.png`
+    return `${SCENARIOS_BASE}/${scenarioId}/backgrounds/${fullPath}`
+  }
 
-/**
- * 画像用ヘルパー
- * @example img('icon-play') → asset('img/icon-play')
- */
-async function img(name: string): Promise<string | null> {
-  const id = name.includes('/') ? name : `${CATEGORY_PREFIX.img}/${name}`
-  return asset(id)
-}
-
-/**
- * 動画用ヘルパー
- * @example video('intro') → asset('vid/intro')
- */
-async function video(name: string): Promise<string | null> {
-  const id = name.includes('/') ? name : `${CATEGORY_PREFIX.video}/${name}`
-  return asset(id)
-}
-
-// ============================================
-// シナリオ固有アセット（マニフェスト管理対象外）
-// ============================================
-
-/**
- * シナリオアセットのパスを生成
- * @example scenarioAsset('_sample', 'characters/circus_hartluhl/default.png')
- */
-function scenarioAsset(scenarioId: string, path: string): string {
-  return `${SCENARIO_BASE}/${scenarioId}/${path}`
-}
-
-/**
- * キャラクター画像のパスを生成
- * @example character('_sample', 'circus_hartluhl/default')
- */
-function character(scenarioId: string, path: string): string {
-  const fullPath = path.includes('.') ? path : `${path}.png`
-  return `${SCENARIO_BASE}/${scenarioId}/characters/${fullPath}`
-}
-
-/**
- * 背景画像のパスを生成
- * @example background('_sample', 'church/default')
- */
-function background(scenarioId: string, path: string): string {
-  const fullPath = path.includes('.') ? path : `${path}.png`
-  return `${SCENARIO_BASE}/${scenarioId}/backgrounds/${fullPath}`
+  return {
+    scenarioId,
+    basePath,
+    loadManifest,
+    asset,
+    bgm: (name) => resolveWithCategory('bgm', name),
+    se: (name) => resolveWithCategory('se', name),
+    img: (name) => resolveWithCategory('img', name),
+    video: (name) => resolveWithCategory('video', name),
+    character,
+    background,
+    clearCache,
+  }
 }
 
 // ============================================
@@ -158,66 +177,75 @@ function background(scenarioId: string, path: string): string {
 // ============================================
 
 /**
- * タイプでフィルタリングしてアセット一覧を取得
+ * 全シナリオのキャッシュをクリア
  */
-async function getAssetsByType(type: AssetEntry['type']): Promise<Record<string, AssetEntry>> {
-  const manifest = await loadManifest()
-  const filtered: Record<string, AssetEntry> = {}
+function clearAllManifestCache(): void {
+  manifestCache.clear()
+}
 
-  for (const [id, entry] of Object.entries(manifest.assets)) {
-    if (entry.type === type) {
-      filtered[id] = entry
-    }
+/**
+ * 指定シナリオのマニフェストがキャッシュされているか確認
+ */
+function isManifestCached(scenarioId: string): boolean {
+  return manifestCache.has(scenarioId)
+}
+
+// ============================================
+// 後方互換性のためのヘルパー（非推奨、移行用）
+// ============================================
+
+// デフォルトリゾルバー（_sample シナリオ用）
+let defaultResolver: ScenarioResolver | null = null
+
+function getDefaultResolver(): ScenarioResolver {
+  if (!defaultResolver) {
+    defaultResolver = createScenarioResolver('_sample')
   }
-
-  return filtered
+  return defaultResolver
 }
 
 /**
- * 全アセットIDを取得
+ * @deprecated createScenarioResolver を使用してください
  */
-async function getAllAssetIds(): Promise<string[]> {
-  const manifest = await loadManifest()
-  return Object.keys(manifest.assets)
+async function bgm(name: string): Promise<string | null> {
+  return getDefaultResolver().bgm(name)
 }
 
 /**
- * 全エイリアスを取得
+ * @deprecated createScenarioResolver を使用してください
  */
-async function getAllAliases(): Promise<Record<string, string>> {
-  const manifest = await loadManifest()
-  return manifest.aliasMap
+async function se(name: string): Promise<string | null> {
+  return getDefaultResolver().se(name)
 }
 
 /**
- * マニフェストキャッシュをクリア（開発用）
+ * @deprecated createScenarioResolver を使用してください
  */
-function clearManifestCache(): void {
-  manifestCache = null
+function character(scenarioId: string, path: string): string {
+  return createScenarioResolver(scenarioId).character(path)
+}
+
+/**
+ * @deprecated createScenarioResolver を使用してください
+ */
+function background(scenarioId: string, path: string): string {
+  return createScenarioResolver(scenarioId).background(path)
 }
 
 // エクスポート
 export {
   // メイン
-  asset,
-  // カテゴリ専用
-  se,
+  createScenarioResolver,
+  // ユーティリティ
+  clearAllManifestCache,
+  isManifestCached,
+  // 後方互換（非推奨）
   bgm,
-  img,
-  video,
-  // シナリオ固有
-  scenarioAsset,
+  se,
   character,
   background,
-  // ユーティリティ
-  loadManifest,
-  getAssetEntry,
-  getAssetsByType,
-  getAllAssetIds,
-  getAllAliases,
-  clearManifestCache,
-  ASSET_BASE,
-  SCENARIO_BASE,
+  // 定数
+  SCENARIOS_BASE,
 }
 
-export type { AssetEntry, Manifest }
+export type { AssetEntry, Manifest, ScenarioResolver }

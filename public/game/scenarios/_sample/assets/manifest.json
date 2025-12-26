@@ -1,6 +1,7 @@
 {
-  "version": 3,
-  "generatedAt": "2025-12-26T07:35:01.582Z",
+  "version": 1,
+  "generatedAt": "2025-12-26T12:51:51.746Z",
+  "scenarioId": "_sample",
   "assets": {
     "bgm/かたまる脳みそ": {
       "path": "bgm/かたまる脳みそ.mp3",
@@ -20,10 +21,7 @@
     "se/ジャジャーン": {
       "path": "se/ジャジャーン.mp3",
       "ext": "mp3",
-      "type": "audio",
-      "aliases": [
-        "jajaan"
-      ]
+      "type": "audio"
     },
     "se/スタジアムの歓声1": {
       "path": "se/スタジアムの歓声1.mp3",
@@ -33,14 +31,8 @@
     "se/爆発2": {
       "path": "se/爆発2.mp3",
       "ext": "mp3",
-      "type": "audio",
-      "aliases": [
-        "se/explosion-02"
-      ]
+      "type": "audio"
     }
   },
-  "aliasMap": {
-    "jajaan": "se/ジャジャーン",
-    "se/explosion-02": "se/爆発2"
-  }
+  "aliasMap": {}
 }
