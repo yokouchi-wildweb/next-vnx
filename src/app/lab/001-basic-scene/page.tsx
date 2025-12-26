@@ -25,11 +25,12 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Application, extend, useApplication } from "@pixi/react"
-import { Container, Sprite, BlurFilter, ColorMatrixFilter, Texture, Assets } from "pixi.js"
+import { Container, Sprite, Texture, Assets } from "pixi.js"
 import FullScreen from "@/components/Layout/FullScreen"
 import { useViewportSize } from "@/stores/useViewportSize"
 import MessageBubble from "./components/MessageBubble"
 import CharacterSprite from "./components/CharacterSprite"
+import BackgroundSprite from "./components/BackgroundSprite"
 import { character, background, bgm, se } from "@/engine/utils/assetResolver"
 import { defaultMessageBubbleStyle } from "./components/MessageBubble/defaults"
 
@@ -504,66 +505,6 @@ function useCommandExecutor(handlers: CommandHandlers) {
   )
 
   return { executeCommands }
-}
-
-// ============================================================
-// PixiJS 背景スプライトコンポーネント
-// ============================================================
-
-interface BackgroundSpriteProps {
-  texture: Texture
-  screenWidth: number
-  screenHeight: number
-}
-
-/**
- * 背景スプライト（ぼかし + 暗めフィルター適用）
- */
-function BackgroundSprite({
-  texture,
-  screenWidth,
-  screenHeight,
-}: BackgroundSpriteProps) {
-  // フィルターをメモ化
-  const filters = useMemo(() => {
-    const blurFilter = new BlurFilter({
-      strength: 4,
-      quality: 4,
-    })
-    const colorMatrix = new ColorMatrixFilter()
-    colorMatrix.brightness(0.6, false)
-    return [blurFilter, colorMatrix]
-  }, [])
-
-  // Cover方式でサイズ計算
-  const bgAspect = texture.width / texture.height
-  const screenAspect = screenWidth / screenHeight
-
-  let width: number, height: number
-  if (screenAspect > bgAspect) {
-    // 画面が横長: 幅に合わせる
-    width = screenWidth
-    height = screenWidth / bgAspect
-  } else {
-    // 画面が縦長: 高さに合わせる
-    height = screenHeight
-    width = screenHeight * bgAspect
-  }
-
-  // 中央配置
-  const x = (screenWidth - width) / 2
-  const y = (screenHeight - height) / 2
-
-  return (
-    <pixiSprite
-      texture={texture}
-      x={x}
-      y={y}
-      width={width}
-      height={height}
-      filters={filters}
-    />
-  )
 }
 
 // ============================================================
