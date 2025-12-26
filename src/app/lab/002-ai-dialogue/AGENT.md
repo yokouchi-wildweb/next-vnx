@@ -234,12 +234,12 @@ victim_last_words: {
 page.tsx                    # UI
 api/route.ts                # 汎用APIエンドポイント
 api/types.ts                # 型定義
-public/game/npcs/*.json     # NPC設定ファイル（開発用）
+public/game/scenarios/_sample/npcs/*.json  # NPC設定ファイル（開発用）
 ```
 
 ## next steps
 
 1. types.ts - 型定義確定
-2. public/game/npcs/grandpa.json - サンプルNPC設定
+2. public/game/scenarios/_sample/npcs/grandpa.json - サンプルNPC設定
 3. api/route.ts - 汎用API化
 4. page.tsx - 設定読み込み + リクエスト送信

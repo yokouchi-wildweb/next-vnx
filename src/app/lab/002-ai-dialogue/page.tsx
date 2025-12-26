@@ -121,7 +121,7 @@ export default function AIDialoguePage() {
 
       for (const npcId of NPC_FILES) {
         try {
-          const res = await fetch(`/game/npcs/${npcId}.json`)
+          const res = await fetch(`/game/scenarios/_sample/npcs/${npcId}.json`)
           if (res.ok) {
             const config: NPCConfig = await res.json()
             configs[npcId] = config
