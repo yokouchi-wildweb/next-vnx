@@ -5,7 +5,10 @@
  *   const resolver = createScenarioResolver('_sample')
  *   const bgmPath = await resolver.bgm('存在しない街')
  *   const sePath = await resolver.se('爆発2')
+ *   const scene = await resolver.loadScene('church')
  */
+
+import type { Scene, Scenario } from "@/engine/types"
 
 // マニフェストの型定義
 interface AssetEntry {
@@ -61,6 +64,10 @@ interface ScenarioResolver {
   character: (path: string) => string
   /** 背景画像（マニフェスト管理外、直接パス） */
   background: (path: string) => string
+  /** シナリオデータを読み込む */
+  loadScenario: () => Promise<Scenario>
+  /** シーンデータを読み込む */
+  loadScene: (sceneId: string) => Promise<Scene>
   /** キャッシュクリア */
   clearCache: () => void
 }
@@ -157,6 +164,30 @@ function createScenarioResolver(scenarioId: string): ScenarioResolver {
     return `${SCENARIOS_BASE}/${scenarioId}/backgrounds/${fullPath}`
   }
 
+  /**
+   * シナリオデータを読み込む
+   */
+  async function loadScenario(): Promise<Scenario> {
+    const scenarioPath = `${SCENARIOS_BASE}/${scenarioId}/scenario.json`
+    const response = await fetch(scenarioPath)
+    if (!response.ok) {
+      throw new Error(`シナリオの読み込みに失敗: ${scenarioId} (${response.status})`)
+    }
+    return response.json()
+  }
+
+  /**
+   * シーンデータを読み込む
+   */
+  async function loadScene(sceneId: string): Promise<Scene> {
+    const scenePath = `${SCENARIOS_BASE}/${scenarioId}/scenes/${sceneId}/scene.json`
+    const response = await fetch(scenePath)
+    if (!response.ok) {
+      throw new Error(`シーンの読み込みに失敗: ${sceneId} (${response.status})`)
+    }
+    return response.json()
+  }
+
   return {
     scenarioId,
     basePath,
@@ -168,6 +199,8 @@ function createScenarioResolver(scenarioId: string): ScenarioResolver {
     video: (name) => resolveWithCategory('video', name),
     character,
     background,
+    loadScenario,
+    loadScene,
     clearCache,
   }
 }

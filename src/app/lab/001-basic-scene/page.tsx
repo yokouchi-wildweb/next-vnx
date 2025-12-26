@@ -22,7 +22,7 @@
  */
 "use client"
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Application, extend, useApplication } from "@pixi/react"
 import { Container, Sprite, Texture, Assets } from "pixi.js"
@@ -31,239 +31,17 @@ import { useViewportSize } from "@/stores/useViewportSize"
 import MessageBubble from "./components/MessageBubble"
 import CharacterSprite from "./components/CharacterSprite"
 import BackgroundSprite from "./components/BackgroundSprite"
-import { character, background, bgm, se } from "@/engine/utils/assetResolver"
+import { createScenarioResolver, type ScenarioResolver } from "@/engine/utils/assetResolver"
 import { useBgmStore, playSe } from "@/engine/audio"
 import { defaultMessageBubbleStyle } from "./components/MessageBubble/defaults"
+import type { Scenario, Scene, Dialogue, SceneCommand } from "@/engine/types"
 
 // PixiJSコンポーネントを登録
 extend({ Container, Sprite })
 
-// ============================================================
-// BGM定義（SceneCommandより先に定義が必要）
-// ============================================================
-
-type BGMKey = "main" | "tension"
-
-const BGM_TRACKS: Record<BGMKey, { id: string; volume: number }> = {
-  main: {
-    id: "存在しない街",
-    volume: 0.5,
-  },
-  tension: {
-    id: "かたまる脳みそ",
-    volume: 0.5,
-  },
-}
-
-const INITIAL_BGM: BGMKey = "main"
-
-// ============================================================
-// SE（効果音）定義
-// ============================================================
-
-type SEKey = "cheer" | "cold" | "jajaan" | "explosion"
-
-const SE_TRACKS: Record<SEKey, { id: string; volume: number }> = {
-  cheer: {
-    id: "スタジアムの歓声1",
-    volume: 0.7,
-  },
-  cold: {
-    id: "「冷気よ！」",
-    volume: 0.7,
-  },
-  jajaan: {
-    id: "ジャジャーン",
-    volume: 0.7,
-  },
-  explosion: {
-    id: "爆発2",
-    volume: 0.7,
-  },
-}
-
-// ============================================================
-// シーンコマンド定義（拡張可能）
-// ============================================================
-
-/**
- * シーンコマンド型定義
- * 新しいコマンドを追加する場合はここに型を追加
- */
-type SceneCommand =
-  | { type: "bgm"; value: BGMKey }                              // BGM変更
-  | { type: "bgm_stop" }                                        // BGM停止
-  | { type: "se"; value: SEKey }                                // 効果音再生
-  // 以下は将来の拡張用（実装時にコメント解除）
-  // | { type: "shake"; intensity?: number; duration?: number } // 画面揺れ
-  // | { type: "flash"; color?: string; duration?: number }     // フラッシュ
-  // | { type: "wait"; duration: number }                       // 待機
-  // | { type: "background"; value: string }                    // 背景変更
-  // | { type: "expression"; character: string; value: string } // 表情変更
-
-// ============================================================
-// キャラクター定義
-// ============================================================
-
-type CharacterId = "circus" | "tatsumi"
-
-// キャラクター情報（名前・カラーを一元管理）
-const CHARACTERS: Record<CharacterId, { name: string; color: string }> = {
-  circus: { name: "サーカス", color: "#e63946" },      // 赤系
-  tatsumi: { name: "妻夫木 達巳", color: "#4361ee" },  // 青系
-}
-
-// ============================================================
-// ダイアログ定義
-// ============================================================
-
-interface Dialogue {
-  speaker: CharacterId
-  text: string
-  commands?: SceneCommand[]  // このダイアログ表示時に実行するコマンド
-}
-
-// ダミーセリフデータ
-const DIALOGUES: Dialogue[] = [
-  { speaker: "circus", text: "ここが噂の教会か...。思っていたより立派な建物だな。" },
-  { speaker: "tatsumi", text: "ああ、この地域では一番古い教会らしい。築200年以上だとか。" },
-  { speaker: "circus", text: "それにしても、こんな場所に呼び出すとは...一体何の用なんだ？" },
-  { speaker: "tatsumi", text: "まあ、そう急ぐな。少し話がしたかっただけさ。" },
-  { speaker: "circus", text: "話？お前がわざわざ呼び出すなんて、ただ事じゃないだろう。" },
-  {
-    speaker: "tatsumi",
-    text: "...実は、あの件について新しい情報が入ったんだ。",
-  },
-  {
-    speaker: "circus",
-    text: "なに…！？そんなに早く進展があったのか？",
-  },
-  {
-    speaker: "tatsumi",
-    text: "ああそうだ。",
-  },
-  {
-    speaker: "tatsumi",
-    text: "ここにきて、思わぬ収穫があった…",
-  },
-  {
-    speaker: "tatsumi",
-    text: "なんと…池袋に30名くらいまで余裕で収容できる格安のレンスペを見つけた！",
-  },
-  {
-    speaker: "circus",
-    text: "………",
-  },
-  {
-    speaker: "circus",
-    text: "ん、レンスペ？いったい何の話をしている。",
-  },
-  {
-    speaker: "tatsumi",
-    text: "だからレンスペだよ！パーティ会場。",
-    commands: [{ type: "bgm", value: "tension" }],  // ← BGM変更コマンド
-  },
-  {
-    speaker: "circus",
-    text: "パーティーなんてしているヒマはない。早く事件について話せ。",
-  },
-  {
-    speaker: "tatsumi",
-    text: "そんなことより。クリスマスの話をしよう。",
-  },
-  {
-    speaker: "circus",
-    text: "なに…！？",
-  },
-  {
-    speaker: "tatsumi",
-    text: "そんなことより。クリスマスの話をしよう。",
-  },
-  {
-    speaker: "circus",
-    text: "別に聞き取れなかったわけではないぞ。",
-  },
-  {
-    speaker: "circus",
-    text: "それに、そんなこととはなんだ。ふざけてるのか！",
-  },
-  {
-    speaker: "tatsumi",
-    text: "うぅ…クリスマスパーティが…………",
-  },
-  {
-    speaker: "tatsumi",
-    text: "…………",
-  },
-  {
-    speaker: "tatsumi",
-    text: "したいだけなんだが！！！",
-    commands: [{ type: "se", value: "jajaan" }],
-  },
-  {
-    speaker: "circus",
-    text: "だから、それが問題だと言っている。",
-  },
-  {
-    speaker: "tatsumi",
-    text: "あーはいはい！メリクリメリクリ！",
-    commands: [{ type: "se", value: "cheer" }],  // ← SE再生コマンド
-  },
-  { speaker: "circus", text: "……待て。お前正気か？" },
-  {
-    speaker: "tatsumi",
-    text: "それはそれとして、教会って寒くないか？暖房とかないしな…",
-    commands: [{ type: "se", value: "cold" }],
-  },
-  { speaker: "circus", text: "おい、無理やりパーティ会場に案内しようとするな" },
-  { speaker: "tatsumi", text: "神の前だからこそ正直に言うが、俺はまじめだ。" },
-  { speaker: "circus", text: "だったら今おもむろに装着しだした、そのモサモサの付け髭と、とんがり帽子は何の真似だ？" },
-  {
-    speaker: "tatsumi",
-    text: "雰囲気作り？鐘の音とか、ほら…それっぽいだろ。" ,
-    commands: [{ type: "se", value: "cold" }],
-  },
-  { speaker: "circus", text: "だからパーティをしに来たわけでは…" },
-  {
-    speaker: "tatsumi",
-    text: "まあまあ。クリスマスだし、心を清めようじゃないか。" ,
-    commands: [{ type: "se", value: "cold" }],
-  },
-  { speaker: "circus", text: "心を清める前に今すぐ頭を冷やせ。" },
-  { speaker: "tatsumi", text: "ひどいな。せっかくプレゼントも用意してるのに。" },
-  { speaker: "circus", text: "……嫌な予感しかしないんだが。" },
-  {
-    speaker: "tatsumi",
-    text: "安心しろ。ちゃんと\"爆発しない\"やつだ。",
-    commands: [{ type: "se", value: "cheer" }],
-  },
-  { speaker: "circus", text: "爆発だと！？そんな可能性はもとより想定していな…" },
-  {
-    speaker: "circus",
-    text: "（ドゴオオオーーーン）",
-    commands: [{ type: "se", value: "explosion" }],
-  },
-  { speaker: "tatsumi", text: "爆発オチなんてサイテー……!" },
-  { speaker: "circus", text: "オチが思いつかない場合に、とりあえず爆発させて無理やり終わらせる合理的な手段だ。" },
-]
-
-// シナリオID
+// シナリオ/シーン設定
 const SCENARIO_ID = "_sample"
-
-// アセットパス（シナリオ固有アセットは scenarios/ 配下）
-const ASSETS = {
-  background: background(SCENARIO_ID, "church/default"),
-  characters: {
-    circus: character(SCENARIO_ID, "circus_hartluhl/default"),
-    tatsumi: character(SCENARIO_ID, "tsumabuki_tatsumi/default"),
-  },
-}
-
-// キャラクター位置設定
-const CHARACTER_CONFIG = {
-  circus: { side: "left" as const },
-  tatsumi: { side: "right" as const },
-}
+const SCENE_ID = "church"
 
 // メッセージ領域配置設定（すべて相対値）
 const MESSAGE_AREA = {
@@ -298,104 +76,27 @@ const BOTTOM_OVERLAY = {
 }
 
 // ============================================================
-// BGM再生ヘルパー（アセット解決 + ストア呼び出し）
-// ============================================================
-
-/**
- * BGMを再生（アセットパス解決 → useBgmStore.play）
- */
-async function playBgmByKey(key: BGMKey) {
-  const track = BGM_TRACKS[key]
-  const src = await bgm(track.id)
-  if (!src) {
-    console.warn(`BGMアセットが見つかりません: ${track.id}`)
-    return
-  }
-  useBgmStore.getState().play(key, src, { volume: track.volume })
-}
-
-// ============================================================
-// SE再生ヘルパー（アセット解決 + playSe）
-// ============================================================
-
-/**
- * SEを再生（アセットパス解決 → playSe）
- */
-async function playSeByKey(key: SEKey) {
-  const track = SE_TRACKS[key]
-  const src = await se(track.id)
-  if (!src) {
-    console.warn(`SEアセットが見つかりません: ${track.id}`)
-    return
-  }
-  playSe(src, { volume: track.volume })
-}
-
-// ============================================================
-// コマンドハンドラ型定義
-// ============================================================
-
-/**
- * コマンドハンドラのマップ型
- * 新しいコマンドを追加する場合、ここにハンドラを定義
- */
-type CommandHandlers = {
-  [K in SceneCommand["type"]]: (
-    command: Extract<SceneCommand, { type: K }>
-  ) => void
-}
-
-// ============================================================
-// コマンド実行フック
-// ============================================================
-
-/**
- * シーンコマンド実行フック
- * ダイアログ表示時にコマンドを実行する
- *
- * @param handlers コマンドタイプごとのハンドラ関数
- * @returns executeCommands - コマンド配列を実行する関数
- */
-function useCommandExecutor(handlers: CommandHandlers) {
-  const executeCommands = useCallback(
-    (commands: SceneCommand[] | undefined) => {
-      if (!commands || commands.length === 0) return
-
-      for (const command of commands) {
-        const handler = handlers[command.type] as (cmd: SceneCommand) => void
-        if (handler) {
-          handler(command)
-        } else {
-          console.warn(`Unknown command type: ${command.type}`)
-        }
-      }
-    },
-    [handlers]
-  )
-
-  return { executeCommands }
-}
-
-// ============================================================
 // PixiJS シーンコンテナ
 // ============================================================
 
 interface SceneContainerProps {
-  currentSpeaker: CharacterId | null
+  currentSpeaker: string | null
+  scenario: Scenario
+  scene: Scene
+  resolver: ScenarioResolver
   onReady: () => void
 }
 
 interface LoadedAssets {
   background: Texture
-  circus: Texture
-  tatsumi: Texture
+  characters: Record<string, Texture>
 }
 
 /**
  * シーン全体を管理するPixiJSコンテナ
  * Assets.loadでアセットをロード
  */
-function SceneContainer({ currentSpeaker, onReady }: SceneContainerProps) {
+function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady }: SceneContainerProps) {
   const { app } = useApplication()
   const { width: viewportWidth, height: viewportHeight } = useViewportSize()
   const [assets, setAssets] = useState<LoadedAssets | null>(null)
@@ -404,23 +105,33 @@ function SceneContainer({ currentSpeaker, onReady }: SceneContainerProps) {
   const screenWidth = viewportWidth || app.screen.width
   const screenHeight = viewportHeight || app.screen.height
 
+  // シーンに登場するキャラクターIDリスト
+  const characterIds = Object.keys(scene.characters)
+
   // アセットをロード
   useEffect(() => {
     let mounted = true
 
     const loadAssets = async () => {
-      const [bgTexture, circusTexture, tatsumiTexture] = await Promise.all([
-        Assets.load(ASSETS.background),
-        Assets.load(ASSETS.characters.circus),
-        Assets.load(ASSETS.characters.tatsumi),
-      ])
+      // 背景をロード
+      const bgPath = resolver.background(scene.backgrounds[scene.initialBackground])
+      const bgTexture = await Assets.load(bgPath)
+
+      // キャラクター立ち絵をロード
+      const characterTextures: Record<string, Texture> = {}
+      for (const charId of characterIds) {
+        const charDef = scenario.characters[charId]
+        if (charDef) {
+          const spritePath = resolver.character(charDef.sprites.default)
+          characterTextures[charId] = await Assets.load(spritePath)
+        }
+      }
 
       if (!mounted) return
 
       setAssets({
         background: bgTexture,
-        circus: circusTexture,
-        tatsumi: tatsumiTexture,
+        characters: characterTextures,
       })
       onReady()
     }
@@ -430,7 +141,7 @@ function SceneContainer({ currentSpeaker, onReady }: SceneContainerProps) {
     return () => {
       mounted = false
     }
-  }, [onReady])
+  }, [resolver, scenario, scene, characterIds, onReady])
 
   // ビューポートサイズ変更時にrendererをリサイズ
   useEffect(() => {
@@ -441,6 +152,15 @@ function SceneContainer({ currentSpeaker, onReady }: SceneContainerProps) {
 
   if (!assets) {
     return null
+  }
+
+  // ポジションを side に変換（chat レイアウト用）
+  const positionToSide = (position: string | number): "left" | "right" => {
+    if (position === "left") return "left"
+    if (position === "right") return "right"
+    // 数値の場合は 0.5 を基準に左右判定
+    if (typeof position === "number") return position < 0.5 ? "left" : "right"
+    return "left"
   }
 
   return (
@@ -454,23 +174,25 @@ function SceneContainer({ currentSpeaker, onReady }: SceneContainerProps) {
 
       {/* キャラクターコンテナ */}
       <pixiContainer>
-        {/* サーカス（左側） */}
-        <CharacterSprite
-          texture={assets.circus}
-          side="left"
-          isActive={currentSpeaker === "circus" || currentSpeaker === null}
-          screenWidth={screenWidth}
-          screenHeight={screenHeight}
-        />
+        {characterIds.map((charId) => {
+          const charConfig = scene.characters[charId]
+          const texture = assets.characters[charId]
+          if (!texture) return null
 
-        {/* 妻夫木（右側） */}
-        <CharacterSprite
-          texture={assets.tatsumi}
-          side="right"
-          isActive={currentSpeaker === "tatsumi" || currentSpeaker === null}
-          screenWidth={screenWidth}
-          screenHeight={screenHeight}
-        />
+          const side = positionToSide(charConfig.position)
+          const isActive = currentSpeaker === charId || currentSpeaker === null
+
+          return (
+            <CharacterSprite
+              key={charId}
+              texture={texture}
+              side={side}
+              isActive={isActive}
+              screenWidth={screenWidth}
+              screenHeight={screenHeight}
+            />
+          )
+        })}
       </pixiContainer>
     </pixiContainer>
   )
@@ -483,10 +205,16 @@ function SceneContainer({ currentSpeaker, onReady }: SceneContainerProps) {
 export default function BasicScenePage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  // データ読み込み状態
+  const [scenario, setScenario] = useState<Scenario | null>(null)
+  const [scene, setScene] = useState<Scene | null>(null)
+  const [resolver, setResolver] = useState<ScenarioResolver | null>(null)
+
+  // ダイアログ進行状態
   const [dialogueIndex, setDialogueIndex] = useState(0)
   const [displayedMessages, setDisplayedMessages] = useState<Dialogue[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [currentSpeaker, setCurrentSpeaker] = useState<CharacterId | null>(null)
+  const [currentSpeaker, setCurrentSpeaker] = useState<string | null>(null)
 
   // ビューポートサイズを取得（FullScreenが更新する）
   const { width: viewportWidth, height: viewportHeight } = useViewportSize()
@@ -495,35 +223,90 @@ export default function BasicScenePage() {
   const bgmStop = useBgmStore((state) => state.stop)
   const bgmFadeOut = useBgmStore((state) => state.fadeOut)
 
-  // コマンドハンドラ定義（新しいコマンドはここに追加）
-  const commandHandlers: CommandHandlers = useMemo(() => ({
-    bgm: (cmd) => playBgmByKey(cmd.value),
-    bgm_stop: () => bgmFadeOut(),
-    se: (cmd) => playSeByKey(cmd.value),
-    // 将来の拡張例:
-    // shake: (cmd) => shakeScreen(cmd.intensity, cmd.duration),
-    // flash: (cmd) => flashScreen(cmd.color, cmd.duration),
-  }), [bgmFadeOut])
+  // シナリオ・シーンデータを読み込む
+  useEffect(() => {
+    const loadData = async () => {
+      const res = createScenarioResolver(SCENARIO_ID)
+      setResolver(res)
 
-  // コマンド実行フック
-  const { executeCommands } = useCommandExecutor(commandHandlers)
+      const [scenarioData, sceneData] = await Promise.all([
+        res.loadScenario(),
+        res.loadScene(SCENE_ID),
+      ])
 
-  const isLastDialogue = dialogueIndex >= DIALOGUES.length
+      setScenario(scenarioData)
+      setScene(sceneData)
+    }
+
+    loadData()
+  }, [])
+
+  // コマンド実行関数
+  const executeCommand = useCallback(async (command: SceneCommand) => {
+    if (!resolver) return
+
+    switch (command.type) {
+      case "bgm": {
+        const src = await resolver.bgm(command.assetId)
+        if (src) {
+          useBgmStore.getState().play(command.assetId, src, { volume: command.volume ?? 0.5 })
+        }
+        break
+      }
+      case "bgm_stop": {
+        bgmFadeOut(command.fadeOut)
+        break
+      }
+      case "se": {
+        const src = await resolver.se(command.assetId)
+        if (src) {
+          playSe(src, { volume: command.volume ?? 0.7 })
+        }
+        break
+      }
+      case "background": {
+        // 将来実装: 背景変更
+        console.log("背景変更コマンド（未実装）:", command)
+        break
+      }
+    }
+  }, [resolver, bgmFadeOut])
+
+  // コマンド配列を実行
+  const executeCommands = useCallback((commands: SceneCommand[] | undefined) => {
+    if (!commands || commands.length === 0) return
+    for (const cmd of commands) {
+      executeCommand(cmd)
+    }
+  }, [executeCommand])
+
+  // ダイアログ配列（シーンデータから取得）
+  const dialogues = scene?.dialogues ?? []
+  const isLastDialogue = dialogueIndex >= dialogues.length
 
   // PixiJSシーンの準備完了
   const handleSceneReady = useCallback(() => {
     setIsLoading(false)
   }, [])
 
+  // 初期BGM再生
+  const playInitialBgm = useCallback(async () => {
+    if (!resolver || !scene?.initialBgm) return
+    const src = await resolver.bgm(scene.initialBgm.assetId)
+    if (src) {
+      useBgmStore.getState().play(scene.initialBgm.assetId, src, { volume: scene.initialBgm.volume ?? 0.5 })
+    }
+  }, [resolver, scene])
+
   // 次のセリフへ進む
   const handleAdvance = useCallback(() => {
-    if (dialogueIndex < DIALOGUES.length) {
+    if (dialogueIndex < dialogues.length) {
       // 初回クリック時にBGM開始
       if (dialogueIndex === 0) {
-        playBgmByKey(INITIAL_BGM)
+        playInitialBgm()
       }
 
-      const newDialogue = DIALOGUES[dialogueIndex]
+      const newDialogue = dialogues[dialogueIndex]
       setDisplayedMessages((prev) => [...prev, newDialogue])
       setCurrentSpeaker(newDialogue.speaker)
       setDialogueIndex((prev) => prev + 1)
@@ -531,7 +314,7 @@ export default function BasicScenePage() {
       // ダイアログに紐づくコマンドを実行
       executeCommands(newDialogue.commands)
     }
-  }, [dialogueIndex, executeCommands])
+  }, [dialogueIndex, dialogues, playInitialBgm, executeCommands])
 
   // コンポーネントアンマウント時にBGM停止
   useEffect(() => {
@@ -544,6 +327,40 @@ export default function BasicScenePage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "instant" })
   }, [displayedMessages])
+
+  // ポジションを side に変換（chat レイアウト用）
+  const positionToSide = (position: string | number): "left" | "right" => {
+    if (position === "left") return "left"
+    if (position === "right") return "right"
+    if (typeof position === "number") return position < 0.5 ? "left" : "right"
+    return "left"
+  }
+
+  // キャラクター情報を取得（scenario.characters から）
+  const getCharacter = (charId: string) => scenario?.characters[charId]
+
+  // キャラクター位置を取得（scene.characters から）
+  const getCharacterPosition = (charId: string) => scene?.characters[charId]?.position ?? "left"
+
+  // シーンに登場するキャラクターリスト（位置でソート：left → right）
+  const characterEntries = scene
+    ? Object.entries(scene.characters).sort(([, a], [, b]) => {
+        const posA = a.position === "left" ? 0 : a.position === "right" ? 1 : typeof a.position === "number" ? a.position : 0.5
+        const posB = b.position === "left" ? 0 : b.position === "right" ? 1 : typeof b.position === "number" ? b.position : 0.5
+        return posA - posB
+      })
+    : []
+
+  // データ読み込み中
+  if (!scenario || !scene || !resolver) {
+    return (
+      <FullScreen layer="base" className="bg-black">
+        <div className="w-full h-full flex items-center justify-center">
+          <p className="text-white text-xl">データ読み込み中...</p>
+        </div>
+      </FullScreen>
+    )
+  }
 
   return (
     <FullScreen layer="base" className="bg-black">
@@ -563,6 +380,9 @@ export default function BasicScenePage() {
             >
               <SceneContainer
                 currentSpeaker={currentSpeaker}
+                scenario={scenario}
+                scene={scene}
+                resolver={resolver}
                 onReady={handleSceneReady}
               />
             </Application>
@@ -576,48 +396,35 @@ export default function BasicScenePage() {
           </div>
         )}
 
-        {/* キャラクター名前表示 */}
-        {!isLoading && (
-          <>
-            {/* 左キャラ名（サーカス） */}
-            <div
-              className="absolute z-30 -translate-x-1/2"
-              style={{
-                bottom: `${CHARACTER_NAME_DISPLAY.bottomOffset}%`,
-                left: `${CHARACTER_NAME_DISPLAY.leftCharacterX}%`,
-              }}
-            >
-              <span
-                className="inline-block px-3 py-1 text-lg font-bold text-white"
-                style={{
-                  borderBottom: `${STANDING_NAME_UNDERLINE.width}px solid ${CHARACTERS.circus.color}`,
-                  textShadow: CHARACTER_NAME_DISPLAY.textShadow,
-                }}
-              >
-                {CHARACTERS.circus.name}
-              </span>
-            </div>
+        {/* キャラクター名前表示（動的生成） */}
+        {!isLoading && characterEntries.map(([charId, charConfig]) => {
+          const charDef = getCharacter(charId)
+          if (!charDef) return null
 
-            {/* 右キャラ名（妻夫木） */}
+          const side = positionToSide(charConfig.position)
+          const xPos = side === "left" ? CHARACTER_NAME_DISPLAY.leftCharacterX : CHARACTER_NAME_DISPLAY.rightCharacterX
+
+          return (
             <div
+              key={charId}
               className="absolute z-30 -translate-x-1/2"
               style={{
                 bottom: `${CHARACTER_NAME_DISPLAY.bottomOffset}%`,
-                left: `${CHARACTER_NAME_DISPLAY.rightCharacterX}%`,
+                left: `${xPos}%`,
               }}
             >
               <span
                 className="inline-block px-3 py-1 text-lg font-bold text-white"
                 style={{
-                  borderBottom: `${STANDING_NAME_UNDERLINE.width}px solid ${CHARACTERS.tatsumi.color}`,
+                  borderBottom: `${STANDING_NAME_UNDERLINE.width}px solid ${charDef.color}`,
                   textShadow: CHARACTER_NAME_DISPLAY.textShadow,
                 }}
               >
-                {CHARACTERS.tatsumi.name}
+                {charDef.name}
               </span>
             </div>
-          </>
-        )}
+          )
+        })}
 
         {/* 下部オーバーレイ（システムパネル領域） */}
         {!isLoading && (
@@ -662,7 +469,8 @@ export default function BasicScenePage() {
               <AnimatePresence>
                 {displayedMessages.map((msg, index) => {
                   const isLatest = index === displayedMessages.length - 1
-                  const side = CHARACTER_CONFIG[msg.speaker].side
+                  const charDef = getCharacter(msg.speaker)
+                  const side = positionToSide(getCharacterPosition(msg.speaker))
 
                   return (
                     <motion.div
@@ -681,8 +489,8 @@ export default function BasicScenePage() {
                       }}
                     >
                       <MessageBubble
-                        speakerName={CHARACTERS[msg.speaker].name}
-                        speakerColor={CHARACTERS[msg.speaker].color}
+                        speakerName={charDef?.name ?? msg.speaker}
+                        speakerColor={charDef?.color ?? "#888888"}
                         text={msg.text}
                         side={side}
                         isLatest={isLatest}

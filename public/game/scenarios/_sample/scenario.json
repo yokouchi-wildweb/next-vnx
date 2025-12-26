@@ -1,0 +1,22 @@
+{
+  "id": "_sample",
+  "title": "サンプルシナリオ",
+  "type": "visual-novel",
+  "description": "クリスマスの教会で繰り広げられる会話",
+  "characters": {
+    "circus": {
+      "name": "サーカス",
+      "color": "#e63946",
+      "sprites": {
+        "default": "circus_hartluhl/default"
+      }
+    },
+    "tatsumi": {
+      "name": "妻夫木 達巳",
+      "color": "#4361ee",
+      "sprites": {
+        "default": "tsumabuki_tatsumi/default"
+      }
+    }
+  }
+}
