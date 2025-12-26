@@ -31,7 +31,7 @@ const NPC_LIST = [
     id: "suspicious",
     name: "佐藤隆",
     description: "怪しい男（容疑者候補）",
-    situation: "あなたは探偵。事件当日、公園付近をウロウロしていた不審な男・佐藤隆（45歳）から話を聞いている。態度が妙に defensive だが、本当に犯人なのか？真実を引き出せ。",
+    situation: "あなたは探偵。事件当日、公園付近をウロウロしていた不審な男・佐藤隆（45歳）から話を聞いている。態度が妙に 保守的 だが、本当に犯人なのか？真実を引き出せ。",
   },
 ] as const
 
@@ -115,7 +115,7 @@ export default function AIDialoguePage() {
       const newClueIds = revealedClues.filter((id) => !existingClueIds.has(id))
 
       if (newClueIds.length > 0 && clues) {
-        const newClues: ObtainedClue[] = newClueIds
+        const newClues = newClueIds
           .map((id) => {
             const clueInfo = clues.find((c) => c.id === id)
             if (!clueInfo) return null
@@ -123,7 +123,7 @@ export default function AIDialoguePage() {
               ...clueInfo,
               npcId: activeNpcId,
               npcName: activeNpc.name,
-            }
+            } as ObtainedClue
           })
           .filter((c): c is ObtainedClue => c !== null)
 

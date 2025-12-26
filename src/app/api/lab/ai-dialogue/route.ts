@@ -16,6 +16,27 @@ const API_CONFIG = {
   model: "claude-3-haiku-20240307",  // claude-3-haiku-20240307, claude-sonnet-4-20250514, claude-opus-4-20250514
   maxTokens: 1024,
   defaultNpcId: "grandpa",
+  debug: true,  // デバッグログを有効化
+}
+
+// ============================================================
+// デバッグユーティリティ
+// ============================================================
+
+function debugLog(label: string, data?: unknown) {
+  if (!API_CONFIG.debug) return
+  console.log(`[AI-Dialogue] ${label}`)
+  if (data !== undefined) {
+    console.log(typeof data === "string" ? data : JSON.stringify(data, null, 2))
+  }
+}
+
+function debugWarn(label: string, data?: unknown) {
+  if (!API_CONFIG.debug) return
+  console.warn(`[AI-Dialogue] ⚠️ ${label}`)
+  if (data !== undefined) {
+    console.warn(typeof data === "string" ? data : JSON.stringify(data, null, 2))
+  }
 }
 
 // ============================================================
@@ -89,7 +110,10 @@ ${npc.additionalPrompt || ""}
 利用可能な情報ID:
 ${cluesList}
 
-ツール呼び出しと同時に、キャラクターとしてのセリフも返してください。
+## 応答形式のルール（絶対厳守）
+- ツールを呼び出す場合でも、必ず同時にキャラクターとしてのセリフ（テキスト）を返すこと
+- ツールのみで応答を終えることは禁止
+- 必ず「テキスト + ツール呼び出し」または「テキストのみ」の形式で応答すること
 `
 }
 
@@ -108,11 +132,20 @@ interface RequestBody {
 }
 
 export async function POST(request: NextRequest) {
+  const requestId = Date.now().toString(36)  // リクエスト識別子
+
   try {
     const body: RequestBody = await request.json()
     const { messages, npcId = API_CONFIG.defaultNpcId } = body
 
+    // ========== リクエスト情報 ==========
+    debugLog(`[${requestId}] ===== 新規リクエスト =====`)
+    debugLog(`[${requestId}] NPC: ${npcId}`)
+    debugLog(`[${requestId}] メッセージ数: ${messages?.length ?? 0}`)
+    debugLog(`[${requestId}] 最新メッセージ:`, messages?.[messages.length - 1])
+
     if (!messages || messages.length === 0) {
+      debugWarn(`[${requestId}] メッセージが空`)
       return NextResponse.json(
         { error: "メッセージが必要です" },
         { status: 400 }
@@ -121,16 +154,25 @@ export async function POST(request: NextRequest) {
 
     const npc = NPC_MAP[npcId]
     if (!npc) {
+      debugWarn(`[${requestId}] NPCが見つからない: ${npcId}`)
       return NextResponse.json(
         { error: `NPC "${npcId}" が見つかりません` },
         { status: 400 }
       )
     }
 
+    debugLog(`[${requestId}] NPC名: ${npc.name}`)
+    debugLog(`[${requestId}] 利用可能な手がかり:`, npc.clues.map(c => c.id))
+
     const client = new Anthropic()
     const systemPrompt = buildSystemPrompt(npc)
     const tools = buildTools(npc)
 
+    debugLog(`[${requestId}] モデル: ${API_CONFIG.model}`)
+    debugLog(`[${requestId}] システムプロンプト長: ${systemPrompt.length}文字`)
+
+    // ========== API呼び出し ==========
+    const startTime = Date.now()
     const response = await client.messages.create({
       model: API_CONFIG.model,
       max_tokens: API_CONFIG.maxTokens,
@@ -141,6 +183,25 @@ export async function POST(request: NextRequest) {
       })),
       tools,
     })
+    const elapsed = Date.now() - startTime
+
+    // ========== レスポンス解析 ==========
+    debugLog(`[${requestId}] ===== AIレスポンス (${elapsed}ms) =====`)
+    debugLog(`[${requestId}] stop_reason: ${response.stop_reason}`)
+    debugLog(`[${requestId}] usage:`, response.usage)
+    debugLog(`[${requestId}] content blocks: ${response.content.length}個`)
+
+    // 各ブロックの詳細
+    response.content.forEach((block, i) => {
+      if (block.type === "text") {
+        debugLog(`[${requestId}] block[${i}] type=text, length=${block.text.length}`)
+        debugLog(`[${requestId}] block[${i}] text: "${block.text.substring(0, 100)}${block.text.length > 100 ? '...' : ''}"`)
+      } else if (block.type === "tool_use") {
+        debugLog(`[${requestId}] block[${i}] type=tool_use, name=${block.name}`, block.input)
+      } else {
+        debugLog(`[${requestId}] block[${i}] type=${(block as { type: string }).type}`)
+      }
+    })
 
     // レスポンス解析: テキストとツール呼び出しを分離
     let text = ""
@@ -150,7 +211,6 @@ export async function POST(request: NextRequest) {
       if (block.type === "text") {
         text += block.text
       } else if (block.type === "tool_use" && block.name === "reveal_clue") {
-        // AIが情報開示を明示的に宣言した
         const input = block.input as { clue_id: string }
         if (input.clue_id && !revealedClues.includes(input.clue_id)) {
           revealedClues.push(input.clue_id)
@@ -158,15 +218,37 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    // ========== 結果サマリー ==========
+    debugLog(`[${requestId}] ===== 解析結果 =====`)
+    debugLog(`[${requestId}] テキスト長: ${text.length}文字`)
+    debugLog(`[${requestId}] 開示された手がかり:`, revealedClues)
+
+    // テキストが空の場合の警告と対処
+    if (!text.trim()) {
+      debugWarn(`[${requestId}] テキストが空！stop_reason=${response.stop_reason}`)
+      debugWarn(`[${requestId}] 生content:`, response.content)
+      text = "..."
+    }
+
+    const result = {
       content: text,
       revealedClues,
       clues: npc.clues.map((c) => ({ id: c.id, label: c.label })),
-    })
+    }
+    debugLog(`[${requestId}] 最終レスポンス:`, { content: text.substring(0, 50) + "...", revealedClues })
+
+    return NextResponse.json(result)
   } catch (error) {
+    debugWarn(`[${requestId}] エラー発生:`, error)
     console.error("Claude API error:", error)
+
+    let errorMessage = "AIとの通信に失敗しました"
+    if (error instanceof Error) {
+      errorMessage = `${error.name}: ${error.message}`
+    }
+
     return NextResponse.json(
-      { error: "AIとの通信に失敗しました" },
+      { error: errorMessage },
       { status: 500 }
     )
   }
