@@ -9,9 +9,12 @@ export const defaultMessageBubbleStyle: MessageBubbleStyle = {
   // 親コンテナに対する幅（%）
   widthPercent: 70,
 
+  // 吹き出し同士の間隔（px）
+  gap: 15,
+
   // 名前部分
   name: {
-    fontSize: "text-base",
+    fontSize: "text-xl",
     fontWeight: "font-bold",
     color: "rgba(255,255,255,0.9)",
     textShadow:
@@ -28,12 +31,13 @@ export const defaultMessageBubbleStyle: MessageBubbleStyle = {
 
   // 吹き出し
   bubble: {
-    fontSize: "text-base",
+    fontSize: "text-xl",
     lineHeight: "leading-relaxed",
     textColor: "text-white",
     bgColor: "bg-gray-800/80",
     borderRadius: "rounded-2xl",
-    padding: "px-4 py-3",
+    paddingX: 16,
+    paddingY: 12,
   },
 
   // 次へインジケーター

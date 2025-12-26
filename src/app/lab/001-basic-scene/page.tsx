@@ -283,8 +283,9 @@ const MESSAGE_AREA = {
 
 // キャラクター透明度設定
 const CHARACTER_ALPHA = {
-  active: 1.0,    // アクティブ（発言中）
-  inactive: 0.7,  // 非アクティブ
+  active: 1.0,           // アクティブ（発言中）
+  inactive: 0.7,         // 非アクティブ
+  transitionDuration: 300, // トランジション時間（ms）
 }
 
 // キャラクター名表示設定
@@ -617,8 +618,29 @@ export default function BasicScenePage() {
     const { circus, tatsumi } = spritesRef.current
     if (!circus || !tatsumi) return
 
+    // アルファ値をアニメーションで変更
+    const animateAlpha = (sprite: Sprite, targetAlpha: number) => {
+      const startAlpha = sprite.alpha
+      const startTime = performance.now()
+      const duration = CHARACTER_ALPHA.transitionDuration
+
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime
+        const progress = Math.min(elapsed / duration, 1)
+        // イージング（ease-out）
+        const eased = 1 - Math.pow(1 - progress, 3)
+        sprite.alpha = startAlpha + (targetAlpha - startAlpha) * eased
+
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        }
+      }
+      requestAnimationFrame(animate)
+    }
+
     const applyEffect = (sprite: Sprite, isActive: boolean) => {
-      sprite.alpha = isActive ? CHARACTER_ALPHA.active : CHARACTER_ALPHA.inactive
+      const targetAlpha = isActive ? CHARACTER_ALPHA.active : CHARACTER_ALPHA.inactive
+      animateAlpha(sprite, targetAlpha)
     }
 
     if (currentSpeaker === "circus") {
@@ -835,8 +857,11 @@ export default function BasicScenePage() {
             >
               {/* 内部コンテナ: 下揃え用 */}
               <div
-                className="min-h-full flex flex-col justify-end gap-3 pt-6"
-                style={{ paddingBottom: `${MESSAGE_AREA.paddingBottomPercent}%` }}
+                className="min-h-full flex flex-col justify-end pt-6"
+                style={{
+                  gap: `${defaultMessageBubbleStyle.gap}px`,
+                  paddingBottom: `${MESSAGE_AREA.paddingBottomPercent}%`,
+                }}
               >
               {/* メッセージ一覧 */}
               <AnimatePresence>

@@ -43,8 +43,10 @@ export type BubbleStyle = {
   bgColor: string
   /** 角丸（Tailwindクラス） */
   borderRadius: string
-  /** パディング（Tailwindクラス） */
-  padding: string
+  /** 水平パディング（px） */
+  paddingX: number
+  /** 垂直パディング（px） */
+  paddingY: number
 }
 
 /** 次へインジケーターのスタイル設定 */
@@ -71,6 +73,8 @@ export type NextIndicatorStyle = {
 export type MessageBubbleStyle = {
   /** 親コンテナに対する幅（%） */
   widthPercent: number
+  /** 吹き出し同士の間隔（px） */
+  gap: number
   name: NameStyle
   underline: UnderlineStyle
   bubble: BubbleStyle

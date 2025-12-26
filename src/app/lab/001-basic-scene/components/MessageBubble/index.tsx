@@ -75,7 +75,10 @@ export default function MessageBubble({
 
       {/* 吹き出し */}
       <div
-        className={`w-full ${style.bubble.padding} ${style.bubble.borderRadius} ${style.bubble.bgColor} ${cornerRadius}`}
+        className={`w-full ${style.bubble.borderRadius} ${style.bubble.bgColor} ${cornerRadius}`}
+        style={{
+          padding: `${style.bubble.paddingY}px ${style.bubble.paddingX}px`,
+        }}
       >
         <p
           className={`${style.bubble.textColor} ${style.bubble.fontSize} ${style.bubble.lineHeight}`}
