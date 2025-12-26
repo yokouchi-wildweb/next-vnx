@@ -130,7 +130,7 @@
       "WebFetch(domain:openai.com)",
       "WebFetch(domain:intuitionlabs.ai)",
       "WebFetch(domain:docs.anthropic.com)",
-      "Bash(source .env.development:*)",
+      "Bash(source .env.development:*)"
     ],
     "deny": [
       "Bash(sudo:*)",
