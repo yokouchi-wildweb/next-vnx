@@ -242,12 +242,12 @@ const DIALOGUES: Dialogue[] = [
   { speaker: "circus", text: "オチが思いつかない場合に、とりあえず爆発させて無理やり終わらせる合理的な手段だ。" },
 ]
 
-// アセットパス
+// アセットパス（シナリオ固有アセットは scenarios/ 配下）
 const ASSETS = {
-  background: "/game/assets/backgrounds/church/default.png",
+  background: "/game/scenarios/_sample/backgrounds/church/default.png",
   characters: {
-    circus: "/game/assets/characters/circus_hartluhl/default.png",
-    tatsumi: "/game/assets/characters/tsumabuki_tatsumi/default.png",
+    circus: "/game/scenarios/_sample/characters/circus_hartluhl/default.png",
+    tatsumi: "/game/scenarios/_sample/characters/tsumabuki_tatsumi/default.png",
   },
 }
 
