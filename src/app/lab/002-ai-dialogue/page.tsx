@@ -275,7 +275,7 @@ export default function AIDialoguePage() {
           if (obtainedClues.some((c) => c.id === clueId)) return null
           return {
             ...clueInfo,
-            npcId: activeNpcId,
+            npcId: activeNpcId as string,
             npcName: activeNpc.name,
           }
         })
