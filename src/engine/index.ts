@@ -9,3 +9,6 @@
 // export { VNXPlayer } from './VNXPlayer'
 // export { useSceneStore } from './stores/useSceneStore'
 // export type { Scene, Dialogue, Character } from './types'
+
+// Audio
+export { useBgmStore, playSe, playSeSequence } from "./audio"

@@ -32,14 +32,11 @@ import MessageBubble from "./components/MessageBubble"
 import CharacterSprite from "./components/CharacterSprite"
 import BackgroundSprite from "./components/BackgroundSprite"
 import { character, background, bgm, se } from "@/engine/utils/assetResolver"
+import { useBgmStore, playSe } from "@/engine/audio"
 import { defaultMessageBubbleStyle } from "./components/MessageBubble/defaults"
 
 // PixiJSコンポーネントを登録
 extend({ Container, Sprite })
-
-// Howler.jsはブラウザ専用（SSR時にimportするとエラー）
-// 使用時に動的importする
-type HowlType = import("howler").Howl
 
 // ============================================================
 // BGM定義（SceneCommandより先に定義が必要）
@@ -56,10 +53,6 @@ const BGM_TRACKS: Record<BGMKey, { id: string; volume: number }> = {
     id: "かたまる脳みそ",
     volume: 0.5,
   },
-}
-
-const BGM_FADE = {
-  duration: 1500,  // フェード時間（ms）
 }
 
 const INITIAL_BGM: BGMKey = "main"
@@ -305,161 +298,37 @@ const BOTTOM_OVERLAY = {
 }
 
 // ============================================================
-// BGM管理フック
+// BGM再生ヘルパー（アセット解決 + ストア呼び出し）
 // ============================================================
 
 /**
- * BGM管理フック
- * - シーン開始時に自動再生（ループ）
- * - changeBGM()でクロスフェード切り替え
- * - アンマウント時に自動停止
+ * BGMを再生（アセットパス解決 → useBgmStore.play）
  */
-function useBGM() {
-  const currentHowlRef = useRef<HowlType | null>(null)
-  const currentKeyRef = useRef<BGMKey | null>(null)
-  const howlerRef = useRef<typeof import("howler") | null>(null)
-  const isMountedRef = useRef(true)
-
-  // BGMを再生（内部用）
-  const playBGM = useCallback(async (key: BGMKey, fadeIn: boolean = true) => {
-    // 既存のBGMを先に停止（二重再生防止）
-    if (currentHowlRef.current) {
-      currentHowlRef.current.stop()
-      currentHowlRef.current.unload()
-      currentHowlRef.current = null
-    }
-
-    // Howler.jsを動的インポート（ブラウザ環境でのみ）
-    if (!howlerRef.current) {
-      howlerRef.current = await import("howler")
-    }
-    const { Howl } = howlerRef.current
-
-    const track = BGM_TRACKS[key]
-
-    // アセットパスを解決
-    const src = await bgm(track.id)
-    if (!src) {
-      console.warn(`BGMアセットが見つかりません: ${track.id}`)
-      return
-    }
-
-    const howl = new Howl({
-      src: [src],
-      loop: true,
-      volume: 0,  // 常に0から開始
-      onload: () => {
-        // マウント解除後やBGM切り替え後は再生しない
-        if (!isMountedRef.current || currentHowlRef.current !== howl) {
-          howl.unload()
-          return
-        }
-        // ロード完了後に再生開始
-        howl.play()
-        if (fadeIn) {
-          howl.fade(0, track.volume, BGM_FADE.duration)
-        } else {
-          howl.volume(track.volume)
-        }
-      },
-    })
-
-    currentHowlRef.current = howl
-    currentKeyRef.current = key
-  }, [])
-
-  // BGMを切り替え（クロスフェード）
-  const changeBGM = useCallback((newKey: BGMKey) => {
-    // 同じBGMなら何もしない
-    if (currentKeyRef.current === newKey) return
-
-    const oldHowl = currentHowlRef.current
-
-    // 新しいBGMを開始（フェードイン）
-    playBGM(newKey, true)
-
-    // 古いBGMをフェードアウトして停止
-    if (oldHowl) {
-      const currentVolume = oldHowl.volume()
-      oldHowl.fade(currentVolume, 0, BGM_FADE.duration)
-      setTimeout(() => {
-        oldHowl.stop()
-        oldHowl.unload()
-      }, BGM_FADE.duration)
-    }
-  }, [playBGM])
-
-  // BGMを停止
-  const stopBGM = useCallback((fadeOut: boolean = true) => {
-    const howl = currentHowlRef.current
-    if (!howl) return
-
-    if (fadeOut) {
-      const currentVolume = howl.volume()
-      howl.fade(currentVolume, 0, BGM_FADE.duration)
-      setTimeout(() => {
-        howl.stop()
-        howl.unload()
-        currentHowlRef.current = null
-        currentKeyRef.current = null
-      }, BGM_FADE.duration)
-    } else {
-      howl.stop()
-      howl.unload()
-      currentHowlRef.current = null
-      currentKeyRef.current = null
-    }
-  }, [])
-
-  // アンマウント時に停止
-  useEffect(() => {
-    isMountedRef.current = true
-
-    return () => {
-      isMountedRef.current = false
-      // アンマウント時は即座に停止（フェードなし）
-      if (currentHowlRef.current) {
-        currentHowlRef.current.stop()
-        currentHowlRef.current.unload()
-        currentHowlRef.current = null
-      }
-    }
-  }, [])
-
-  return {
-    playBGM,     // 初回再生用に公開
-    changeBGM,
-    stopBGM,
-    currentBGM: currentKeyRef.current,
+async function playBgmByKey(key: BGMKey) {
+  const track = BGM_TRACKS[key]
+  const src = await bgm(track.id)
+  if (!src) {
+    console.warn(`BGMアセットが見つかりません: ${track.id}`)
+    return
   }
+  useBgmStore.getState().play(key, src, { volume: track.volume })
 }
 
 // ============================================================
-// SE（効果音）再生関数
+// SE再生ヘルパー（アセット解決 + playSe）
 // ============================================================
 
 /**
- * 効果音を再生する（ワンショット）
- * BGMと異なり状態管理不要なのでシンプルな関数として実装
+ * SEを再生（アセットパス解決 → playSe）
  */
-async function playSE(key: SEKey) {
-  // Howler.jsを動的インポート（ブラウザ環境でのみ）
-  const { Howl } = await import("howler")
-
+async function playSeByKey(key: SEKey) {
   const track = SE_TRACKS[key]
-
-  // アセットパスを解決
   const src = await se(track.id)
   if (!src) {
     console.warn(`SEアセットが見つかりません: ${track.id}`)
     return
   }
-
-  const howl = new Howl({
-    src: [src],
-    volume: track.volume,
-  })
-  howl.play()
+  playSe(src, { volume: track.volume })
 }
 
 // ============================================================
@@ -622,18 +491,19 @@ export default function BasicScenePage() {
   // ビューポートサイズを取得（FullScreenが更新する）
   const { width: viewportWidth, height: viewportHeight } = useViewportSize()
 
-  // BGM管理（クリックして開始時に再生開始）
-  const { playBGM, changeBGM, stopBGM } = useBGM()
+  // BGMストア（グローバル状態）
+  const bgmStop = useBgmStore((state) => state.stop)
+  const bgmFadeOut = useBgmStore((state) => state.fadeOut)
 
   // コマンドハンドラ定義（新しいコマンドはここに追加）
   const commandHandlers: CommandHandlers = useMemo(() => ({
-    bgm: (cmd) => changeBGM(cmd.value),
-    bgm_stop: () => stopBGM(),
-    se: (cmd) => playSE(cmd.value),
+    bgm: (cmd) => playBgmByKey(cmd.value),
+    bgm_stop: () => bgmFadeOut(),
+    se: (cmd) => playSeByKey(cmd.value),
     // 将来の拡張例:
     // shake: (cmd) => shakeScreen(cmd.intensity, cmd.duration),
     // flash: (cmd) => flashScreen(cmd.color, cmd.duration),
-  }), [changeBGM, stopBGM])
+  }), [bgmFadeOut])
 
   // コマンド実行フック
   const { executeCommands } = useCommandExecutor(commandHandlers)
@@ -650,7 +520,7 @@ export default function BasicScenePage() {
     if (dialogueIndex < DIALOGUES.length) {
       // 初回クリック時にBGM開始
       if (dialogueIndex === 0) {
-        playBGM(INITIAL_BGM, true)
+        playBgmByKey(INITIAL_BGM)
       }
 
       const newDialogue = DIALOGUES[dialogueIndex]
@@ -661,7 +531,14 @@ export default function BasicScenePage() {
       // ダイアログに紐づくコマンドを実行
       executeCommands(newDialogue.commands)
     }
-  }, [dialogueIndex, executeCommands, playBGM])
+  }, [dialogueIndex, executeCommands])
+
+  // コンポーネントアンマウント時にBGM停止
+  useEffect(() => {
+    return () => {
+      bgmStop()
+    }
+  }, [bgmStop])
 
   // メッセージ追加時に自動スクロール（instantでframer-motionのlayoutアニメーションと競合を避ける）
   useEffect(() => {
