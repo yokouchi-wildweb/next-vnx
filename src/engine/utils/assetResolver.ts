@@ -23,6 +23,7 @@ let manifestCache: Manifest | null = null
 
 // アセットベースパス
 const ASSET_BASE = '/game/assets'
+const SCENARIO_BASE = '/game/scenarios'
 
 // カテゴリプレフィックス
 const CATEGORY_PREFIX = {
@@ -187,6 +188,36 @@ function videoSync(name: string): string | null {
 }
 
 // ============================================
+// シナリオ固有アセット（マニフェスト管理対象外）
+// ============================================
+
+/**
+ * シナリオアセットのパスを生成
+ * @example scenarioAsset('_sample', 'characters/circus_hartluhl/default.png')
+ */
+function scenarioAsset(scenarioId: string, path: string): string {
+  return `${SCENARIO_BASE}/${scenarioId}/${path}`
+}
+
+/**
+ * キャラクター画像のパスを生成
+ * @example character('_sample', 'circus_hartluhl/default')
+ */
+function character(scenarioId: string, path: string): string {
+  const fullPath = path.includes('.') ? path : `${path}.png`
+  return `${SCENARIO_BASE}/${scenarioId}/characters/${fullPath}`
+}
+
+/**
+ * 背景画像のパスを生成
+ * @example background('_sample', 'church/default')
+ */
+function background(scenarioId: string, path: string): string {
+  const fullPath = path.includes('.') ? path : `${path}.png`
+  return `${SCENARIO_BASE}/${scenarioId}/backgrounds/${fullPath}`
+}
+
+// ============================================
 // ユーティリティ
 // ============================================
 
@@ -243,6 +274,10 @@ export {
   imgSync,
   video,
   videoSync,
+  // シナリオ固有
+  scenarioAsset,
+  character,
+  background,
   // ユーティリティ
   loadManifest,
   getManifestSync,
@@ -253,6 +288,7 @@ export {
   getAllAliases,
   clearManifestCache,
   ASSET_BASE,
+  SCENARIO_BASE,
 }
 
 export type { AssetEntry, Manifest }

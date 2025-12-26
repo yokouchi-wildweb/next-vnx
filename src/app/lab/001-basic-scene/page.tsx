@@ -28,6 +28,7 @@ import { Application, Assets, Sprite, Container, BlurFilter, ColorMatrixFilter, 
 import FullScreen from "@/components/Layout/FullScreen"
 import { useViewportSize } from "@/stores/useViewportSize"
 import MessageBubble from "./components/MessageBubble"
+import { character, background, bgm, se } from "@/engine/utils/assetResolver"
 import { defaultMessageBubbleStyle } from "./components/MessageBubble/defaults"
 
 // Howler.jsはブラウザ専用（SSR時にimportするとエラー）
@@ -40,13 +41,13 @@ type HowlType = import("howler").Howl
 
 type BGMKey = "main" | "tension"
 
-const BGM_TRACKS: Record<BGMKey, { src: string; volume: number }> = {
+const BGM_TRACKS: Record<BGMKey, { id: string; volume: number }> = {
   main: {
-    src: "/game/assets/audio/存在しない街.mp3",
+    id: "存在しない街",
     volume: 0.5,
   },
   tension: {
-    src: "/game/assets/audio/かたまる脳みそ.mp3",
+    id: "かたまる脳みそ",
     volume: 0.5,
   },
 }
@@ -63,21 +64,21 @@ const INITIAL_BGM: BGMKey = "main"
 
 type SEKey = "cheer" | "cold" | "jajaan" | "explosion"
 
-const SE_TRACKS: Record<SEKey, { src: string; volume: number }> = {
+const SE_TRACKS: Record<SEKey, { id: string; volume: number }> = {
   cheer: {
-    src: "/game/assets/se/スタジアムの歓声1.mp3",
+    id: "スタジアムの歓声1",
     volume: 0.7,
   },
   cold: {
-    src: "/game/assets/se/「冷気よ！」.mp3",
+    id: "「冷気よ！」",
     volume: 0.7,
   },
   jajaan: {
-    src: "/game/assets/se/ジャジャーン.mp3",
+    id: "ジャジャーン",
     volume: 0.7,
   },
   explosion: {
-    src: "/game/assets/se/爆発2.mp3",
+    id: "爆発2",
     volume: 0.7,
   },
 }
@@ -247,12 +248,15 @@ const DIALOGUES: Dialogue[] = [
   { speaker: "circus", text: "オチが思いつかない場合に、とりあえず爆発させて無理やり終わらせる合理的な手段だ。" },
 ]
 
+// シナリオID
+const SCENARIO_ID = "_sample"
+
 // アセットパス（シナリオ固有アセットは scenarios/ 配下）
 const ASSETS = {
-  background: "/game/scenarios/_sample/backgrounds/church/default.png",
+  background: background(SCENARIO_ID, "church/default"),
   characters: {
-    circus: "/game/scenarios/_sample/characters/circus_hartluhl/default.png",
-    tatsumi: "/game/scenarios/_sample/characters/tsumabuki_tatsumi/default.png",
+    circus: character(SCENARIO_ID, "circus_hartluhl/default"),
+    tatsumi: character(SCENARIO_ID, "tsumabuki_tatsumi/default"),
   },
 }
 
@@ -340,8 +344,16 @@ function useBGM() {
     const { Howl } = howlerRef.current
 
     const track = BGM_TRACKS[key]
+
+    // アセットパスを解決
+    const src = await bgm(track.id)
+    if (!src) {
+      console.warn(`BGMアセットが見つかりません: ${track.id}`)
+      return
+    }
+
     const howl = new Howl({
-      src: [track.src],
+      src: [src],
       loop: true,
       volume: 0,  // 常に0から開始
       onload: () => {
@@ -443,8 +455,16 @@ async function playSE(key: SEKey) {
   const { Howl } = await import("howler")
 
   const track = SE_TRACKS[key]
+
+  // アセットパスを解決
+  const src = await se(track.id)
+  if (!src) {
+    console.warn(`SEアセットが見つかりません: ${track.id}`)
+    return
+  }
+
   const howl = new Howl({
-    src: [track.src],
+    src: [src],
     volume: track.volume,
   })
   howl.play()
