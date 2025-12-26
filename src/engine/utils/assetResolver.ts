@@ -1,6 +1,6 @@
 /**
  * アセット解決ユーティリティ
- * マニフェストからIDを使ってアセットパスを解決
+ * マニフェストからIDまたはエイリアスを使ってアセットパスを解決
  */
 
 // マニフェストの型定義
@@ -8,12 +8,14 @@ interface AssetEntry {
   path: string
   ext: string
   type: 'audio' | 'image' | 'video' | 'unknown'
+  aliases?: string[]
 }
 
 interface Manifest {
   version: number
   generatedAt: string
   assets: Record<string, AssetEntry>
+  aliasMap: Record<string, string>
 }
 
 // マニフェストキャッシュ
@@ -55,44 +57,57 @@ function getManifestSync(): Manifest | null {
 }
 
 /**
- * IDからアセット情報を取得
+ * IDまたはエイリアスをメインIDに解決
  */
-async function getAssetEntry(id: string): Promise<AssetEntry | null> {
+function resolveId(manifest: Manifest, idOrAlias: string): string {
+  // エイリアスならメインIDに変換
+  if (manifest.aliasMap[idOrAlias]) {
+    return manifest.aliasMap[idOrAlias]
+  }
+  return idOrAlias
+}
+
+/**
+ * IDまたはエイリアスからアセット情報を取得
+ */
+async function getAssetEntry(idOrAlias: string): Promise<AssetEntry | null> {
   const manifest = await loadManifest()
+  const id = resolveId(manifest, idOrAlias)
   return manifest.assets[id] || null
 }
 
 /**
- * IDからアセット情報を同期的に取得
+ * IDまたはエイリアスからアセット情報を同期的に取得
  */
-function getAssetEntrySync(id: string): AssetEntry | null {
+function getAssetEntrySync(idOrAlias: string): AssetEntry | null {
   const manifest = getManifestSync()
   if (!manifest) {
     console.warn('マニフェストが読み込まれていません。先に loadManifest() を呼んでください。')
     return null
   }
+  const id = resolveId(manifest, idOrAlias)
   return manifest.assets[id] || null
 }
 
 /**
- * IDからフルパスを解決（メイン関数）
+ * IDまたはエイリアスからフルパスを解決（メイン関数）
  */
-async function asset(id: string): Promise<string | null> {
-  const entry = await getAssetEntry(id)
+async function asset(idOrAlias: string): Promise<string | null> {
+  const entry = await getAssetEntry(idOrAlias)
   if (!entry) {
-    console.warn(`アセットが見つかりません: ${id}`)
+    console.warn(`アセットが見つかりません: ${idOrAlias}`)
     return null
   }
   return `${ASSET_BASE}/${entry.path}`
 }
 
 /**
- * IDからフルパスを同期的に解決
+ * IDまたはエイリアスからフルパスを同期的に解決
  */
-function assetSync(id: string): string | null {
-  const entry = getAssetEntrySync(id)
+function assetSync(idOrAlias: string): string | null {
+  const entry = getAssetEntrySync(idOrAlias)
   if (!entry) {
-    console.warn(`アセットが見つかりません: ${id}`)
+    console.warn(`アセットが見つかりません: ${idOrAlias}`)
     return null
   }
   return `${ASSET_BASE}/${entry.path}`
@@ -105,6 +120,7 @@ function assetSync(id: string): string | null {
 /**
  * SE用ヘルパー
  * @example se('爆発2') → asset('se/爆発2')
+ * @example se('explosion-02') → エイリアス解決も可能
  */
 async function se(name: string): Promise<string | null> {
   const id = name.includes('/') ? name : `${CATEGORY_PREFIX.se}/${name}`
@@ -121,7 +137,7 @@ function seSync(name: string): string | null {
 
 /**
  * BGM用ヘルパー
- * @example bgm('かたまる脳みそ') → asset('audio/かたまる脳みそ')
+ * @example bgm('かたまる脳みそ') → asset('bgm/かたまる脳みそ')
  */
 async function bgm(name: string): Promise<string | null> {
   const id = name.includes('/') ? name : `${CATEGORY_PREFIX.bgm}/${name}`
@@ -138,7 +154,7 @@ function bgmSync(name: string): string | null {
 
 /**
  * 画像用ヘルパー
- * @example img('icon-play') → asset('images/icon-play')
+ * @example img('icon-play') → asset('img/icon-play')
  */
 async function img(name: string): Promise<string | null> {
   const id = name.includes('/') ? name : `${CATEGORY_PREFIX.img}/${name}`
@@ -155,7 +171,7 @@ function imgSync(name: string): string | null {
 
 /**
  * 動画用ヘルパー
- * @example video('intro') → asset('videos/intro')
+ * @example video('intro') → asset('vid/intro')
  */
 async function video(name: string): Promise<string | null> {
   const id = name.includes('/') ? name : `${CATEGORY_PREFIX.video}/${name}`
@@ -199,6 +215,14 @@ async function getAllAssetIds(): Promise<string[]> {
 }
 
 /**
+ * 全エイリアスを取得
+ */
+async function getAllAliases(): Promise<Record<string, string>> {
+  const manifest = await loadManifest()
+  return manifest.aliasMap
+}
+
+/**
  * マニフェストキャッシュをクリア（開発用）
  */
 function clearManifestCache(): void {
@@ -226,6 +250,7 @@ export {
   getAssetEntrySync,
   getAssetsByType,
   getAllAssetIds,
+  getAllAliases,
   clearManifestCache,
   ASSET_BASE,
 }
