@@ -5,7 +5,7 @@
  * UI: チャットアプリ風メッセージ表示（革新的VN UI）
  *
  * 検証項目:
- * - PixiJS + Next.js SSR の統合
+ * - @pixi/react + Next.js SSR の統合
  * - 背景画像の表示（ぼかし + 暗めフィルター）
  * - キャラクター立ち絵の左右固定表示
  * - チャット風メッセージUI + スクロール
@@ -22,14 +22,19 @@
  */
 "use client"
 
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Application, Assets, Sprite, Container, BlurFilter, ColorMatrixFilter, Texture } from "pixi.js"
+import { Application, extend, useApplication } from "@pixi/react"
+import { Container, Sprite, BlurFilter, ColorMatrixFilter, Texture, Assets } from "pixi.js"
 import FullScreen from "@/components/Layout/FullScreen"
 import { useViewportSize } from "@/stores/useViewportSize"
 import MessageBubble from "./components/MessageBubble"
+import CharacterSprite from "./components/CharacterSprite"
 import { character, background, bgm, se } from "@/engine/utils/assetResolver"
 import { defaultMessageBubbleStyle } from "./components/MessageBubble/defaults"
+
+// PixiJSコンポーネントを登録
+extend({ Container, Sprite })
 
 // Howler.jsはブラウザ専用（SSR時にimportするとエラー）
 // 使用時に動的importする
@@ -266,13 +271,6 @@ const CHARACTER_CONFIG = {
   tatsumi: { side: "right" as const },
 }
 
-// キャラクタースプライト配置設定（相対値）
-const CHARACTER_LAYOUT = {
-  widthPercent: 40,       // 画面幅の何%（キャラクター幅）
-  verticalPullUp: 0.8,    // 画面高さの何%上に引き上げ
-  horizontalOverflow: 0.1, // 幅の何%を画面外に見切れさせる
-}
-
 // メッセージ領域配置設定（すべて相対値）
 const MESSAGE_AREA = {
   topOffset: 0,       // 上端（画面上から %）
@@ -283,13 +281,6 @@ const MESSAGE_AREA = {
   fadeTop: 20,        // 上部フェード終了位置（%）
   fadeBottom: 90,     // 下部フェード開始位置（%）
   paddingBottomPercent: 5,  // 下部パディング（画面高さの %）
-}
-
-// キャラクター透明度設定
-const CHARACTER_ALPHA = {
-  active: 1.0,           // アクティブ（発言中）
-  inactive: 0.7,         // 非アクティブ
-  transitionDuration: 300, // トランジション時間（ms）
 }
 
 // キャラクター名表示設定
@@ -515,27 +506,171 @@ function useCommandExecutor(handlers: CommandHandlers) {
   return { executeCommands }
 }
 
+// ============================================================
+// PixiJS 背景スプライトコンポーネント
+// ============================================================
+
+interface BackgroundSpriteProps {
+  texture: Texture
+  screenWidth: number
+  screenHeight: number
+}
+
+/**
+ * 背景スプライト（ぼかし + 暗めフィルター適用）
+ */
+function BackgroundSprite({
+  texture,
+  screenWidth,
+  screenHeight,
+}: BackgroundSpriteProps) {
+  // フィルターをメモ化
+  const filters = useMemo(() => {
+    const blurFilter = new BlurFilter({
+      strength: 4,
+      quality: 4,
+    })
+    const colorMatrix = new ColorMatrixFilter()
+    colorMatrix.brightness(0.6, false)
+    return [blurFilter, colorMatrix]
+  }, [])
+
+  // Cover方式でサイズ計算
+  const bgAspect = texture.width / texture.height
+  const screenAspect = screenWidth / screenHeight
+
+  let width: number, height: number
+  if (screenAspect > bgAspect) {
+    // 画面が横長: 幅に合わせる
+    width = screenWidth
+    height = screenWidth / bgAspect
+  } else {
+    // 画面が縦長: 高さに合わせる
+    height = screenHeight
+    width = screenHeight * bgAspect
+  }
+
+  // 中央配置
+  const x = (screenWidth - width) / 2
+  const y = (screenHeight - height) / 2
+
+  return (
+    <pixiSprite
+      texture={texture}
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      filters={filters}
+    />
+  )
+}
+
+// ============================================================
+// PixiJS シーンコンテナ
+// ============================================================
+
+interface SceneContainerProps {
+  currentSpeaker: CharacterId | null
+  onReady: () => void
+}
+
+interface LoadedAssets {
+  background: Texture
+  circus: Texture
+  tatsumi: Texture
+}
+
+/**
+ * シーン全体を管理するPixiJSコンテナ
+ * Assets.loadでアセットをロード
+ */
+function SceneContainer({ currentSpeaker, onReady }: SceneContainerProps) {
+  const { app } = useApplication()
+  const { width: viewportWidth, height: viewportHeight } = useViewportSize()
+  const [assets, setAssets] = useState<LoadedAssets | null>(null)
+
+  // 実際の画面サイズ（ビューポートサイズがまだ0の場合はappサイズを使用）
+  const screenWidth = viewportWidth || app.screen.width
+  const screenHeight = viewportHeight || app.screen.height
+
+  // アセットをロード
+  useEffect(() => {
+    let mounted = true
+
+    const loadAssets = async () => {
+      const [bgTexture, circusTexture, tatsumiTexture] = await Promise.all([
+        Assets.load(ASSETS.background),
+        Assets.load(ASSETS.characters.circus),
+        Assets.load(ASSETS.characters.tatsumi),
+      ])
+
+      if (!mounted) return
+
+      setAssets({
+        background: bgTexture,
+        circus: circusTexture,
+        tatsumi: tatsumiTexture,
+      })
+      onReady()
+    }
+
+    loadAssets()
+
+    return () => {
+      mounted = false
+    }
+  }, [onReady])
+
+  // ビューポートサイズ変更時にrendererをリサイズ
+  useEffect(() => {
+    if (viewportWidth > 0 && viewportHeight > 0 && app.renderer) {
+      app.renderer.resize(viewportWidth, viewportHeight)
+    }
+  }, [app, viewportWidth, viewportHeight])
+
+  if (!assets) {
+    return null
+  }
+
+  return (
+    <pixiContainer>
+      {/* 背景 */}
+      <BackgroundSprite
+        texture={assets.background}
+        screenWidth={screenWidth}
+        screenHeight={screenHeight}
+      />
+
+      {/* キャラクターコンテナ */}
+      <pixiContainer>
+        {/* サーカス（左側） */}
+        <CharacterSprite
+          texture={assets.circus}
+          side="left"
+          isActive={currentSpeaker === "circus" || currentSpeaker === null}
+          screenWidth={screenWidth}
+          screenHeight={screenHeight}
+        />
+
+        {/* 妻夫木（右側） */}
+        <CharacterSprite
+          texture={assets.tatsumi}
+          side="right"
+          isActive={currentSpeaker === "tatsumi" || currentSpeaker === null}
+          screenWidth={screenWidth}
+          screenHeight={screenHeight}
+        />
+      </pixiContainer>
+    </pixiContainer>
+  )
+}
+
+// ============================================================
+// メインページコンポーネント
+// ============================================================
+
 export default function BasicScenePage() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const appRef = useRef<Application | null>(null)
-  const spritesRef = useRef<{
-    circus: Sprite | null
-    tatsumi: Sprite | null
-    background: Sprite | null
-  }>({
-    circus: null,
-    tatsumi: null,
-    background: null,
-  })
-  const texturesRef = useRef<{
-    background: Texture | null
-    circus: Texture | null
-    tatsumi: Texture | null
-  }>({
-    background: null,
-    circus: null,
-    tatsumi: null,
-  })
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const [dialogueIndex, setDialogueIndex] = useState(0)
@@ -546,69 +681,28 @@ export default function BasicScenePage() {
   // ビューポートサイズを取得（FullScreenが更新する）
   const { width: viewportWidth, height: viewportHeight } = useViewportSize()
 
-  // スプライトのレイアウトを更新する関数
-  const updateLayout = useCallback((width: number, height: number) => {
-    const app = appRef.current
-    const { background, circus, tatsumi } = spritesRef.current
-    const textures = texturesRef.current
-
-    if (!app || !background || !circus || !tatsumi) return
-    if (!textures.background || !textures.circus || !textures.tatsumi) return
-
-    // 背景: 画面全体をカバー（cover方式）
-    const bgTexture = textures.background
-    const bgAspect = bgTexture.width / bgTexture.height
-    const screenAspect = width / height
-
-    if (screenAspect > bgAspect) {
-      // 画面が横長: 幅に合わせる
-      background.width = width
-      background.height = width / bgAspect
-    } else {
-      // 画面が縦長: 高さに合わせる
-      background.height = height
-      background.width = height * bgAspect
-    }
-    // 中央配置
-    background.x = (width - background.width) / 2
-    background.y = (height - background.height) / 2
-
-    // キャラクター配置
-    const characterWidth = width * (CHARACTER_LAYOUT.widthPercent / 100)
-    const overflow = characterWidth * CHARACTER_LAYOUT.horizontalOverflow
-
-    // マーカス（左側）
-    const circusScale = characterWidth / textures.circus.width
-    circus.scale.set(circusScale)
-    circus.anchor.set(0, 0)
-    circus.x = -overflow
-    circus.y = height - (height * CHARACTER_LAYOUT.verticalPullUp)
-
-    // 妻夫木（右側）
-    const tatsumiScale = characterWidth / textures.tatsumi.width
-    tatsumi.scale.set(tatsumiScale)
-    tatsumi.anchor.set(1, 0)
-    tatsumi.x = width + overflow
-    tatsumi.y = height - (height * CHARACTER_LAYOUT.verticalPullUp)
-  }, [])
-
   // BGM管理（クリックして開始時に再生開始）
   const { playBGM, changeBGM, stopBGM } = useBGM()
 
   // コマンドハンドラ定義（新しいコマンドはここに追加）
-  const commandHandlers: CommandHandlers = {
+  const commandHandlers: CommandHandlers = useMemo(() => ({
     bgm: (cmd) => changeBGM(cmd.value),
     bgm_stop: () => stopBGM(),
     se: (cmd) => playSE(cmd.value),
     // 将来の拡張例:
     // shake: (cmd) => shakeScreen(cmd.intensity, cmd.duration),
     // flash: (cmd) => flashScreen(cmd.color, cmd.duration),
-  }
+  }), [changeBGM, stopBGM])
 
   // コマンド実行フック
   const { executeCommands } = useCommandExecutor(commandHandlers)
 
   const isLastDialogue = dialogueIndex >= DIALOGUES.length
+
+  // PixiJSシーンの準備完了
+  const handleSceneReady = useCallback(() => {
+    setIsLoading(false)
+  }, [])
 
   // 次のセリフへ進む
   const handleAdvance = useCallback(() => {
@@ -633,166 +727,29 @@ export default function BasicScenePage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "instant" })
   }, [displayedMessages])
 
-  // 発言者に応じてキャラクターのエフェクトを更新
-  useEffect(() => {
-    const { circus, tatsumi } = spritesRef.current
-    if (!circus || !tatsumi) return
-
-    // アルファ値をアニメーションで変更
-    const animateAlpha = (sprite: Sprite, targetAlpha: number) => {
-      const startAlpha = sprite.alpha
-      const startTime = performance.now()
-      const duration = CHARACTER_ALPHA.transitionDuration
-
-      const animate = (currentTime: number) => {
-        const elapsed = currentTime - startTime
-        const progress = Math.min(elapsed / duration, 1)
-        // イージング（ease-out）
-        const eased = 1 - Math.pow(1 - progress, 3)
-        sprite.alpha = startAlpha + (targetAlpha - startAlpha) * eased
-
-        if (progress < 1) {
-          requestAnimationFrame(animate)
-        }
-      }
-      requestAnimationFrame(animate)
-    }
-
-    const applyEffect = (sprite: Sprite, isActive: boolean) => {
-      const targetAlpha = isActive ? CHARACTER_ALPHA.active : CHARACTER_ALPHA.inactive
-      animateAlpha(sprite, targetAlpha)
-    }
-
-    if (currentSpeaker === "circus") {
-      applyEffect(circus, true)
-      applyEffect(tatsumi, false)
-    } else if (currentSpeaker === "tatsumi") {
-      applyEffect(circus, false)
-      applyEffect(tatsumi, true)
-    } else {
-      applyEffect(circus, true)
-      applyEffect(tatsumi, true)
-    }
-  }, [currentSpeaker])
-
-  // PixiJS 初期化
-  useEffect(() => {
-    if (!containerRef.current) return
-
-    let mounted = true
-    const container = containerRef.current
-
-    const initPixi = async () => {
-      // 初期サイズ（ビューポートサイズがまだ0の場合はwindowサイズを使用）
-      const initialWidth = window.visualViewport?.width ?? window.innerWidth
-      const initialHeight = window.visualViewport?.height ?? window.innerHeight
-
-      // Application 作成
-      const app = new Application()
-      await app.init({
-        width: initialWidth,
-        height: initialHeight,
-        backgroundColor: 0x000000,
-        resolution: window.devicePixelRatio || 1,
-        autoDensity: true,
-        resizeTo: container, // コンテナサイズに自動リサイズ
-      })
-
-      if (!mounted) {
-        app.destroy(true)
-        return
-      }
-
-      appRef.current = app
-      container.appendChild(app.canvas)
-
-      // アセットロード
-      const [bgTexture, circusTexture, tatsumiTexture] = await Promise.all([
-        Assets.load(ASSETS.background),
-        Assets.load(ASSETS.characters.circus),
-        Assets.load(ASSETS.characters.tatsumi),
-      ])
-
-      if (!mounted) {
-        app.destroy(true)
-        return
-      }
-
-      // テクスチャを保存（リサイズ時に使用）
-      texturesRef.current = {
-        background: bgTexture,
-        circus: circusTexture,
-        tatsumi: tatsumiTexture,
-      }
-
-      // 背景（ぼかし + 暗めフィルター）
-      const background = new Sprite(bgTexture)
-
-      // ぼかしフィルター
-      const blurFilter = new BlurFilter({
-        strength: 4,
-        quality: 4,
-      })
-
-      // 暗めフィルター
-      const colorMatrix = new ColorMatrixFilter()
-      colorMatrix.brightness(0.6, false)
-
-      background.filters = [blurFilter, colorMatrix]
-      app.stage.addChild(background)
-      spritesRef.current.background = background
-
-      // キャラクターコンテナ
-      const charactersContainer = new Container()
-      app.stage.addChild(charactersContainer)
-
-      // マーカス（左側）
-      const circus = new Sprite(circusTexture)
-      charactersContainer.addChild(circus)
-      spritesRef.current.circus = circus
-
-      // 妻夫木（右側）
-      const tatsumi = new Sprite(tatsumiTexture)
-      charactersContainer.addChild(tatsumi)
-      spritesRef.current.tatsumi = tatsumi
-
-      // 初期レイアウト設定
-      updateLayout(app.screen.width, app.screen.height)
-
-      setIsLoading(false)
-    }
-
-    initPixi()
-
-    return () => {
-      mounted = false
-      if (appRef.current) {
-        appRef.current.destroy(true)
-        appRef.current = null
-      }
-    }
-  }, [updateLayout])
-
-  // ビューポートサイズ変更時にレイアウト更新
-  useEffect(() => {
-    if (viewportWidth === 0 || viewportHeight === 0) return
-    if (!appRef.current) return
-
-    // PixiJSのrendererサイズを更新
-    appRef.current.renderer.resize(viewportWidth, viewportHeight)
-
-    // スプライトのレイアウトを更新
-    updateLayout(viewportWidth, viewportHeight)
-  }, [viewportWidth, viewportHeight, updateLayout])
-
   return (
     <FullScreen layer="base" className="bg-black">
       <div
         className="relative w-full h-full cursor-pointer"
         onClick={handleAdvance}
       >
-        {/* PixiJS Canvas コンテナ */}
-        <div ref={containerRef} className="absolute inset-0" />
+        {/* @pixi/react Application */}
+        <div className="absolute inset-0">
+          {viewportWidth > 0 && viewportHeight > 0 && (
+            <Application
+              width={viewportWidth}
+              height={viewportHeight}
+              backgroundColor={0x000000}
+              resolution={typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1}
+              autoDensity
+            >
+              <SceneContainer
+                currentSpeaker={currentSpeaker}
+                onReady={handleSceneReady}
+              />
+            </Application>
+          )}
+        </div>
 
         {/* ローディング表示 */}
         {isLoading && (
@@ -804,7 +761,7 @@ export default function BasicScenePage() {
         {/* キャラクター名前表示 */}
         {!isLoading && (
           <>
-            {/* 左キャラ名（マーカス） */}
+            {/* 左キャラ名（サーカス） */}
             <div
               className="absolute z-30 -translate-x-1/2"
               style={{
