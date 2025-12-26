@@ -11,6 +11,7 @@
  * - チャット風メッセージUI + スクロール
  * - 発言者強調（非発言者を暗く）
  * - BGM再生（Howler.js）
+ * - 完全レスポンシブ対応（FullScreen + 相対レイアウト）
  *
  * 完了後の抽出先:
  * - src/engine/renderer/
@@ -23,7 +24,11 @@
 
 import { useEffect, useRef, useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Application, Assets, Sprite, Container, BlurFilter, ColorMatrixFilter } from "pixi.js"
+import { Application, Assets, Sprite, Container, BlurFilter, ColorMatrixFilter, Texture } from "pixi.js"
+import FullScreen from "@/components/Layout/FullScreen"
+import { useViewportSize } from "@/stores/useViewportSize"
+import MessageBubble from "./components/MessageBubble"
+import { defaultMessageBubbleStyle } from "./components/MessageBubble/defaults"
 
 // Howler.jsはブラウザ専用（SSR時にimportするとエラー）
 // 使用時に動的importする
@@ -257,14 +262,23 @@ const CHARACTER_CONFIG = {
   tatsumi: { side: "right" as const },
 }
 
-// メッセージ領域配置設定
+// キャラクタースプライト配置設定（相対値）
+const CHARACTER_LAYOUT = {
+  widthPercent: 40,       // 画面幅の何%（キャラクター幅）
+  verticalPullUp: 0.8,    // 画面高さの何%上に引き上げ
+  horizontalOverflow: 0.1, // 幅の何%を画面外に見切れさせる
+}
+
+// メッセージ領域配置設定（すべて相対値）
 const MESSAGE_AREA = {
   topOffset: 0,       // 上端（画面上から %）
   bottomOffset: 35,   // 下端（画面下から %）
-  width: 500,         // 幅（px）
+  widthPercent: 40,   // 幅（画面幅の %）
+  minWidth: 300,      // 最小幅（px）
+  maxWidth: 600,      // 最大幅（px）
   fadeTop: 20,        // 上部フェード終了位置（%）
   fadeBottom: 90,     // 下部フェード開始位置（%）
-  paddingBottom: 40,  // 下部パディング（px）
+  paddingBottomPercent: 5,  // 下部パディング（画面高さの %）
 }
 
 // キャラクター透明度設定
@@ -284,24 +298,6 @@ const CHARACTER_NAME_DISPLAY = {
 // 立ち絵下の名前アンダーライン設定
 const STANDING_NAME_UNDERLINE = {
   width: 3,                 // ラインの太さ（px）
-}
-
-// メッセージボックス上の名前アンダーライン設定
-const MESSAGE_NAME_UNDERLINE = {
-  width: 3,                 // ラインの太さ（px）
-  gap: 6,                   // 名前とラインの間隔（px）
-  shimmerSpeed: 3.5,        // シマーが流れる速度（秒）- 小さいほど速い
-}
-
-// 次へインジケーター設定（テキスト末尾のダイヤモンド）
-const NEXT_INDICATOR = {
-  symbol: "◆",              // 表示するシンボル
-  size: "text-xs",          // サイズ（Tailwindクラス）
-  baselineOffset: 2,        // ベースラインオフセット（px）- 正で下、負で上
-  bounceDuration: 1.2,      // バウンドアニメーション周期（秒）
-  bounceHeight: 3,          // バウンドの高さ（px）
-  pulseDuration: 2.1,       // 明滅アニメーション周期（秒）
-  minOpacity: 0.4,          // 明滅時の最小不透明度
 }
 
 // 下部オーバーレイ設定（システムパネル領域）
@@ -501,7 +497,21 @@ function useCommandExecutor(handlers: CommandHandlers) {
 export default function BasicScenePage() {
   const containerRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<Application | null>(null)
-  const spritesRef = useRef<{ circus: Sprite | null; tatsumi: Sprite | null }>({
+  const spritesRef = useRef<{
+    circus: Sprite | null
+    tatsumi: Sprite | null
+    background: Sprite | null
+  }>({
+    circus: null,
+    tatsumi: null,
+    background: null,
+  })
+  const texturesRef = useRef<{
+    background: Texture | null
+    circus: Texture | null
+    tatsumi: Texture | null
+  }>({
+    background: null,
     circus: null,
     tatsumi: null,
   })
@@ -511,6 +521,55 @@ export default function BasicScenePage() {
   const [displayedMessages, setDisplayedMessages] = useState<Dialogue[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [currentSpeaker, setCurrentSpeaker] = useState<CharacterId | null>(null)
+
+  // ビューポートサイズを取得（FullScreenが更新する）
+  const { width: viewportWidth, height: viewportHeight } = useViewportSize()
+
+  // スプライトのレイアウトを更新する関数
+  const updateLayout = useCallback((width: number, height: number) => {
+    const app = appRef.current
+    const { background, circus, tatsumi } = spritesRef.current
+    const textures = texturesRef.current
+
+    if (!app || !background || !circus || !tatsumi) return
+    if (!textures.background || !textures.circus || !textures.tatsumi) return
+
+    // 背景: 画面全体をカバー（cover方式）
+    const bgTexture = textures.background
+    const bgAspect = bgTexture.width / bgTexture.height
+    const screenAspect = width / height
+
+    if (screenAspect > bgAspect) {
+      // 画面が横長: 幅に合わせる
+      background.width = width
+      background.height = width / bgAspect
+    } else {
+      // 画面が縦長: 高さに合わせる
+      background.height = height
+      background.width = height * bgAspect
+    }
+    // 中央配置
+    background.x = (width - background.width) / 2
+    background.y = (height - background.height) / 2
+
+    // キャラクター配置
+    const characterWidth = width * (CHARACTER_LAYOUT.widthPercent / 100)
+    const overflow = characterWidth * CHARACTER_LAYOUT.horizontalOverflow
+
+    // マーカス（左側）
+    const circusScale = characterWidth / textures.circus.width
+    circus.scale.set(circusScale)
+    circus.anchor.set(0, 0)
+    circus.x = -overflow
+    circus.y = height - (height * CHARACTER_LAYOUT.verticalPullUp)
+
+    // 妻夫木（右側）
+    const tatsumiScale = characterWidth / textures.tatsumi.width
+    tatsumi.scale.set(tatsumiScale)
+    tatsumi.anchor.set(1, 0)
+    tatsumi.x = width + overflow
+    tatsumi.y = height - (height * CHARACTER_LAYOUT.verticalPullUp)
+  }, [])
 
   // BGM管理（クリックして開始時に再生開始）
   const { playBGM, changeBGM, stopBGM } = useBGM()
@@ -582,14 +641,19 @@ export default function BasicScenePage() {
     const container = containerRef.current
 
     const initPixi = async () => {
+      // 初期サイズ（ビューポートサイズがまだ0の場合はwindowサイズを使用）
+      const initialWidth = window.visualViewport?.width ?? window.innerWidth
+      const initialHeight = window.visualViewport?.height ?? window.innerHeight
+
       // Application 作成
       const app = new Application()
       await app.init({
-        width: 1280,
-        height: 720,
+        width: initialWidth,
+        height: initialHeight,
         backgroundColor: 0x000000,
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
+        resizeTo: container, // コンテナサイズに自動リサイズ
       })
 
       if (!mounted) {
@@ -612,10 +676,15 @@ export default function BasicScenePage() {
         return
       }
 
+      // テクスチャを保存（リサイズ時に使用）
+      texturesRef.current = {
+        background: bgTexture,
+        circus: circusTexture,
+        tatsumi: tatsumiTexture,
+      }
+
       // 背景（ぼかし + 暗めフィルター）
       const background = new Sprite(bgTexture)
-      background.width = app.screen.width
-      background.height = app.screen.height
 
       // ぼかしフィルター
       const blurFilter = new BlurFilter({
@@ -629,37 +698,24 @@ export default function BasicScenePage() {
 
       background.filters = [blurFilter, colorMatrix]
       app.stage.addChild(background)
+      spritesRef.current.background = background
 
       // キャラクターコンテナ
       const charactersContainer = new Container()
       app.stage.addChild(charactersContainer)
 
-      // キャラクター配置設定
-      const characterWidthRatio = 0.4 // 画面幅の30%
-      const verticalPullUp = 0.8 // 画面高さの80%上に引き上げ
-      const horizontalOverflow = 0.1 // 幅の10%を画面外に見切れさせる
-
       // マーカス（左側）
       const circus = new Sprite(circusTexture)
-      const circusTargetWidth = app.screen.width * characterWidthRatio
-      const circusScale = circusTargetWidth / circusTexture.width
-      circus.scale.set(circusScale)
-      circus.anchor.set(0, 0) // 左上基準
-      circus.x = -circusTargetWidth * horizontalOverflow // 少し左に見切れ
-      circus.y = app.screen.height - (app.screen.height * verticalPullUp) // top 100%から80%上へ
       charactersContainer.addChild(circus)
       spritesRef.current.circus = circus
 
-      // 辻吹（右側）
+      // 妻夫木（右側）
       const tatsumi = new Sprite(tatsumiTexture)
-      const tatsumiTargetWidth = app.screen.width * characterWidthRatio
-      const tatsumiScale = tatsumiTargetWidth / tatsumiTexture.width
-      tatsumi.scale.set(tatsumiScale)
-      tatsumi.anchor.set(1, 0) // 右上基準
-      tatsumi.x = app.screen.width + tatsumiTargetWidth * horizontalOverflow // 少し右に見切れ
-      tatsumi.y = app.screen.height - (app.screen.height * verticalPullUp) // top 100%から80%上へ
       charactersContainer.addChild(tatsumi)
       spritesRef.current.tatsumi = tatsumi
+
+      // 初期レイアウト設定
+      updateLayout(app.screen.width, app.screen.height)
 
       setIsLoading(false)
     }
@@ -673,23 +729,24 @@ export default function BasicScenePage() {
         appRef.current = null
       }
     }
-  }, [])
+  }, [updateLayout])
 
-  // 吹き出しのスタイルを取得
-  const getBubbleStyle = (speaker: CharacterId) => {
-    const side = CHARACTER_CONFIG[speaker].side
-    return {
-      alignSelf: side === "left" ? "flex-start" : "flex-end",
-      marginLeft: side === "left" ? "0" : "auto",
-      marginRight: side === "right" ? "0" : "auto",
-    }
-  }
+  // ビューポートサイズ変更時にレイアウト更新
+  useEffect(() => {
+    if (viewportWidth === 0 || viewportHeight === 0) return
+    if (!appRef.current) return
+
+    // PixiJSのrendererサイズを更新
+    appRef.current.renderer.resize(viewportWidth, viewportHeight)
+
+    // スプライトのレイアウトを更新
+    updateLayout(viewportWidth, viewportHeight)
+  }, [viewportWidth, viewportHeight, updateLayout])
 
   return (
-    <main className="min-h-screen bg-black flex items-center justify-center">
+    <FullScreen layer="base" className="bg-black">
       <div
-        className="relative cursor-pointer"
-        style={{ width: 1280, height: 720 }}
+        className="relative w-full h-full cursor-pointer"
         onClick={handleAdvance}
       >
         {/* PixiJS Canvas コンテナ */}
@@ -769,7 +826,7 @@ export default function BasicScenePage() {
             <div
               className="max-h-full overflow-y-auto pointer-events-auto px-4 [&::-webkit-scrollbar]:hidden"
               style={{
-                width: MESSAGE_AREA.width,
+                width: `clamp(${MESSAGE_AREA.minWidth}px, ${MESSAGE_AREA.widthPercent}%, ${MESSAGE_AREA.maxWidth}px)`,
                 scrollbarWidth: "none", // Firefox
                 msOverflowStyle: "none", // IE/Edge
                 WebkitMaskImage: `linear-gradient(to bottom, transparent 0%, black ${MESSAGE_AREA.fadeTop}%, black ${MESSAGE_AREA.fadeBottom}%, transparent 100%)`,
@@ -779,7 +836,7 @@ export default function BasicScenePage() {
               {/* 内部コンテナ: 下揃え用 */}
               <div
                 className="min-h-full flex flex-col justify-end gap-3 pt-6"
-                style={{ paddingBottom: `${MESSAGE_AREA.paddingBottom}px` }}
+                style={{ paddingBottom: `${MESSAGE_AREA.paddingBottomPercent}%` }}
               >
               {/* メッセージ一覧 */}
               <AnimatePresence>
@@ -792,88 +849,25 @@ export default function BasicScenePage() {
                       key={index}
                       layout
                       initial={{ opacity: 0, y: 50 }}
-                      animate={{ opacity: isLatest ? 1 : 0.7, y: 0 }}
+                      animate={{ opacity: 1, y: 0 }}
                       transition={{
                         duration: 0.3,
                         ease: "easeOut",
                         layout: { duration: 0.3, ease: "easeOut" }
                       }}
-                      className="flex flex-col gap-1"
-                      style={getBubbleStyle(msg.speaker)}
+                      style={{
+                        width: `${defaultMessageBubbleStyle.widthPercent}%`,
+                        alignSelf: side === "left" ? "flex-start" : "flex-end",
+                      }}
                     >
-                      {/* 発言者名 */}
-                      <div className={`relative inline-block ${side === "left" ? "text-left" : "text-right"}`}>
-                        <span
-                          className="inline-block text-base font-bold"
-                          style={{
-                            color: "rgba(255,255,255,0.9)",
-                            textShadow: CHARACTER_NAME_DISPLAY.textShadow,
-                            paddingBottom: `${MESSAGE_NAME_UNDERLINE.gap}px`,
-                          }}
-                        >
-                          {CHARACTERS[msg.speaker].name}
-                        </span>
-                        {/* アンダーライン + シマーエフェクト */}
-                        <div
-                          className="absolute bottom-0 left-0 right-0 overflow-hidden"
-                          style={{
-                            height: `${MESSAGE_NAME_UNDERLINE.width}px`,
-                            backgroundColor: CHARACTERS[msg.speaker].color,
-                          }}
-                        >
-                          {isLatest && (
-                            <div
-                              className="absolute inset-0 animate-shimmer"
-                              style={{
-                                background: `linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)`,
-                                backgroundSize: "200% 100%",
-                                animationDuration: `${MESSAGE_NAME_UNDERLINE.shimmerSpeed}s`,
-                                animationDirection: side === "right" ? "reverse" : "normal",
-                              }}
-                            />
-                          )}
-                        </div>
-                      </div>
-
-                      {/* 吹き出し */}
-                      <div
-                        className={`w-[350px] px-4 py-3 rounded-2xl bg-gray-800/80 ${
-                          side === "left" ? "rounded-tl-sm" : "rounded-tr-sm"
-                        }`}
-                      >
-                        <p className="text-white text-base leading-relaxed">
-                          {msg.text}
-                          {/* 次へインジケーター（アクティブ時のみ） */}
-                          {isLatest && (
-                            <motion.span
-                              className={`inline-block ml-2 ${NEXT_INDICATOR.size}`}
-                              style={{
-                                color: CHARACTERS[msg.speaker].color,
-                                position: "relative",
-                                top: `${NEXT_INDICATOR.baselineOffset}px`,
-                              }}
-                              animate={{
-                                y: [0, -NEXT_INDICATOR.bounceHeight, 0],
-                                opacity: [1, NEXT_INDICATOR.minOpacity, 1],
-                              }}
-                              transition={{
-                                y: {
-                                  duration: NEXT_INDICATOR.bounceDuration,
-                                  repeat: Infinity,
-                                  ease: "easeInOut",
-                                },
-                                opacity: {
-                                  duration: NEXT_INDICATOR.pulseDuration,
-                                  repeat: Infinity,
-                                  ease: "easeInOut",
-                                },
-                              }}
-                            >
-                              {NEXT_INDICATOR.symbol}
-                            </motion.span>
-                          )}
-                        </p>
-                      </div>
+                      <MessageBubble
+                        speakerName={CHARACTERS[msg.speaker].name}
+                        speakerColor={CHARACTERS[msg.speaker].color}
+                        text={msg.text}
+                        side={side}
+                        isLatest={isLatest}
+                        opacity={isLatest ? 1 : 0.7}
+                      />
                     </motion.div>
                   )
                 })}
@@ -898,7 +892,7 @@ export default function BasicScenePage() {
 
         {/* 進行インジケーター */}
         {!isLoading && displayedMessages.length > 0 && (
-          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30">
+          <div className="absolute left-1/2 -translate-x-1/2 z-30" style={{ bottom: "10%" }}>
             {!isLastDialogue ? (
               <span className="text-white/60 text-sm animate-pulse">
                 ▼ クリックで次へ
@@ -909,6 +903,6 @@ export default function BasicScenePage() {
           </div>
         )}
       </div>
-    </main>
+    </FullScreen>
   )
 }
