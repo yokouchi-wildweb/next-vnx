@@ -51,13 +51,6 @@ async function loadManifest(): Promise<Manifest> {
 }
 
 /**
- * マニフェストを同期的に取得（事前にloadManifestを呼んでおく必要あり）
- */
-function getManifestSync(): Manifest | null {
-  return manifestCache
-}
-
-/**
  * IDまたはエイリアスをメインIDに解決
  */
 function resolveId(manifest: Manifest, idOrAlias: string): string {
@@ -78,35 +71,10 @@ async function getAssetEntry(idOrAlias: string): Promise<AssetEntry | null> {
 }
 
 /**
- * IDまたはエイリアスからアセット情報を同期的に取得
- */
-function getAssetEntrySync(idOrAlias: string): AssetEntry | null {
-  const manifest = getManifestSync()
-  if (!manifest) {
-    console.warn('マニフェストが読み込まれていません。先に loadManifest() を呼んでください。')
-    return null
-  }
-  const id = resolveId(manifest, idOrAlias)
-  return manifest.assets[id] || null
-}
-
-/**
  * IDまたはエイリアスからフルパスを解決（メイン関数）
  */
 async function asset(idOrAlias: string): Promise<string | null> {
   const entry = await getAssetEntry(idOrAlias)
-  if (!entry) {
-    console.warn(`アセットが見つかりません: ${idOrAlias}`)
-    return null
-  }
-  return `${ASSET_BASE}/${entry.path}`
-}
-
-/**
- * IDまたはエイリアスからフルパスを同期的に解決
- */
-function assetSync(idOrAlias: string): string | null {
-  const entry = getAssetEntrySync(idOrAlias)
   if (!entry) {
     console.warn(`アセットが見つかりません: ${idOrAlias}`)
     return null
@@ -129,28 +97,12 @@ async function se(name: string): Promise<string | null> {
 }
 
 /**
- * SE用ヘルパー（同期版）
- */
-function seSync(name: string): string | null {
-  const id = name.includes('/') ? name : `${CATEGORY_PREFIX.se}/${name}`
-  return assetSync(id)
-}
-
-/**
  * BGM用ヘルパー
  * @example bgm('かたまる脳みそ') → asset('bgm/かたまる脳みそ')
  */
 async function bgm(name: string): Promise<string | null> {
   const id = name.includes('/') ? name : `${CATEGORY_PREFIX.bgm}/${name}`
   return asset(id)
-}
-
-/**
- * BGM用ヘルパー（同期版）
- */
-function bgmSync(name: string): string | null {
-  const id = name.includes('/') ? name : `${CATEGORY_PREFIX.bgm}/${name}`
-  return assetSync(id)
 }
 
 /**
@@ -163,28 +115,12 @@ async function img(name: string): Promise<string | null> {
 }
 
 /**
- * 画像用ヘルパー（同期版）
- */
-function imgSync(name: string): string | null {
-  const id = name.includes('/') ? name : `${CATEGORY_PREFIX.img}/${name}`
-  return assetSync(id)
-}
-
-/**
  * 動画用ヘルパー
  * @example video('intro') → asset('vid/intro')
  */
 async function video(name: string): Promise<string | null> {
   const id = name.includes('/') ? name : `${CATEGORY_PREFIX.video}/${name}`
   return asset(id)
-}
-
-/**
- * 動画用ヘルパー（同期版）
- */
-function videoSync(name: string): string | null {
-  const id = name.includes('/') ? name : `${CATEGORY_PREFIX.video}/${name}`
-  return assetSync(id)
 }
 
 // ============================================
@@ -264,25 +200,18 @@ function clearManifestCache(): void {
 export {
   // メイン
   asset,
-  assetSync,
   // カテゴリ専用
   se,
-  seSync,
   bgm,
-  bgmSync,
   img,
-  imgSync,
   video,
-  videoSync,
   // シナリオ固有
   scenarioAsset,
   character,
   background,
   // ユーティリティ
   loadManifest,
-  getManifestSync,
   getAssetEntry,
-  getAssetEntrySync,
   getAssetsByType,
   getAllAssetIds,
   getAllAliases,
