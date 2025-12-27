@@ -6,7 +6,7 @@ import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { MenuIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
-import { useAdminLayoutStore } from "@/stores/useAdminLayoutStore";
+import { useAdminLayoutStore } from "@/stores/adminLayout";
 
 import { InsaneResizableArea } from "./InsaneResizableArea";
 
@@ -16,7 +16,7 @@ type InsaneProtectedLayoutProps = {
 
 export function InsaneProtectedLayout({ children }: InsaneProtectedLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const setExtraClassName = useAdminLayoutStore((s) => s.setExtraClassName);
+  const { setExtraClassName } = useAdminLayoutStore();
 
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => !prev);

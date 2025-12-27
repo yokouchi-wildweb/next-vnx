@@ -6,7 +6,7 @@ import { type CSSProperties, type ReactNode, useMemo } from "react";
 
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import { cn } from "@/lib/cn";
-import { useAdminLayoutStore } from "@/stores/useAdminLayoutStore";
+import { useAdminLayoutStore } from "@/stores/adminLayout";
 
 import { Footer } from "../Sections/Footer";
 import { Header } from "../Sections/Header";
@@ -30,7 +30,7 @@ export function AdminOuterLayout({
   className,
 }: AdminLayoutClientProps) {
   const headerHeight = useHeaderHeight();
-  const extraClassName = useAdminLayoutStore((s) => s.extraClassName);
+  const { extraClassName } = useAdminLayoutStore();
 
   const layoutStyle: AdminLayoutCSSVariables = useMemo(
     () => ({

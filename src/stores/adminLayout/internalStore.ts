@@ -1,4 +1,4 @@
-// src/stores/useAdminLayoutStore.ts
+// stores/adminLayout/internalStore.ts
 
 "use client";
 
@@ -11,11 +11,7 @@ type AdminLayoutState = {
   setExtraClassName: (className: string | undefined) => void;
 };
 
-/**
- * AdminOuterLayout に追加クラスを適用するためのストア
- * 子コンポーネントから親レイアウトのスタイルを制御する用途
- */
-export const useAdminLayoutStore = create<AdminLayoutState>((set) => ({
+export const internalStore = create<AdminLayoutState>((set) => ({
   extraClassName: undefined,
   setExtraClassName: (className) => set({ extraClassName: className }),
 }));
