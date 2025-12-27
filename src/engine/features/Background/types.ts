@@ -1,10 +1,8 @@
-// src/app/lab/001-basic-scene/components/BackgroundSprite/types.ts
+/**
+ * Background Feature 型定義
+ */
 
 import type { Texture } from "pixi.js"
-
-/**
- * BackgroundSprite コンポーネントの型定義
- */
 
 /** ぼかしフィルター設定 */
 export type BlurStyle = {
@@ -20,14 +18,14 @@ export type BrightnessStyle = {
   value: number
 }
 
-/** BackgroundSprite 全体のスタイル設定 */
-export type BackgroundSpriteStyle = {
+/** Switcher スプライトのスタイル設定 */
+export type SwitcherStyle = {
   blur: BlurStyle
   brightness: BrightnessStyle
 }
 
-/** BackgroundSprite コンポーネントのProps */
-export type BackgroundSpriteProps = {
+/** Switcher スプライトのProps */
+export type SwitcherProps = {
   /** テクスチャ */
   texture: Texture
   /** 画面幅 */
@@ -35,5 +33,5 @@ export type BackgroundSpriteProps = {
   /** 画面高さ */
   screenHeight: number
   /** スタイル設定（部分的にオーバーライド可能） */
-  style?: Partial<BackgroundSpriteStyle>
+  style?: Partial<SwitcherStyle>
 }

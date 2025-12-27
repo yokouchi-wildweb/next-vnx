@@ -29,7 +29,7 @@ import { Container, Sprite, Texture, Assets } from "pixi.js"
 import { GameScreen, PixiCanvas, useGameSize, type DisplayConfig } from "@/engine/components/Screen"
 import MessageBubble from "./components/MessageBubble"
 import CharacterSprite from "./components/CharacterSprite"
-import BackgroundSprite from "./components/BackgroundSprite"
+import { BgSwitcherSprite } from "@/engine/features/Background"
 import { createScenarioResolver, type ScenarioResolver } from "@/engine/utils/assetResolver"
 import { bgmManager, playSe } from "@/engine/audio"
 import { defaultMessageBubbleStyle } from "./components/MessageBubble/defaults"
@@ -157,7 +157,7 @@ function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady }: 
   return (
     <pixiContainer>
       {/* 背景 */}
-      <BackgroundSprite
+      <BgSwitcherSprite
         texture={assets.background}
         screenWidth={screenWidth}
         screenHeight={screenHeight}

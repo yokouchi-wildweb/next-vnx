@@ -1,28 +1,27 @@
-// src/app/lab/001-basic-scene/components/BackgroundSprite/index.tsx
+/**
+ * Switcher - 背景切り替えスプライト
+ *
+ * 純粋な PixiJS コンポーネント（@pixi/react用）
+ * - ぼかし + 暗めフィルター適用
+ * - Cover方式で画面全体をカバー
+ * - 中央配置
+ */
 
 "use client"
 
 import { useMemo } from "react"
 import { BlurFilter, ColorMatrixFilter } from "pixi.js"
 import { mergeStyles } from "@/engine/utils/styleUtils"
-import { defaultBackgroundSpriteStyle } from "./defaults"
-import type { BackgroundSpriteProps } from "./types"
+import { defaultSwitcherStyle } from "../defaults"
+import type { SwitcherProps } from "../types"
 
-/**
- * BackgroundSprite - 背景スプライト
- *
- * @pixi/react 用のコンポーネント
- * - ぼかし + 暗めフィルター適用
- * - Cover方式で画面全体をカバー
- * - 中央配置
- */
-export default function BackgroundSprite({
+export function Switcher({
   texture,
   screenWidth,
   screenHeight,
   style: styleOverrides,
-}: BackgroundSpriteProps) {
-  const style = mergeStyles(defaultBackgroundSpriteStyle, styleOverrides)
+}: SwitcherProps) {
+  const style = mergeStyles(defaultSwitcherStyle, styleOverrides)
 
   // フィルターをメモ化
   const filters = useMemo(() => {
