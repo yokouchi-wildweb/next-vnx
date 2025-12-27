@@ -26,9 +26,7 @@ import { useEffect, useRef, useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Application, extend, useApplication } from "@pixi/react"
 import { Container, Sprite, Texture, Assets } from "pixi.js"
-import FullScreen from "@/components/Layout/FullScreen"
-import { useViewportSizeStore } from "@/stores/viewportSize"
-import { GameContainer, type GameSize } from "@/engine/components"
+import { GameScreen, useGameSize, type DisplayConfig } from "@/engine/components"
 import MessageBubble from "./components/MessageBubble"
 import CharacterSprite from "./components/CharacterSprite"
 import BackgroundSprite from "./components/BackgroundSprite"
@@ -86,8 +84,6 @@ interface SceneContainerProps {
   scene: Scene
   resolver: ScenarioResolver
   onReady: () => void
-  gameWidth: number
-  gameHeight: number
 }
 
 interface LoadedAssets {
@@ -99,13 +95,12 @@ interface LoadedAssets {
  * シーン全体を管理するPixiJSコンテナ
  * Assets.loadでアセットをロード
  */
-function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady, gameWidth, gameHeight }: SceneContainerProps) {
+function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady }: SceneContainerProps) {
   const { app } = useApplication()
   const [assets, setAssets] = useState<LoadedAssets | null>(null)
 
-  // ゲームサイズを使用（propsから渡される固定アスペクト比のサイズ）
-  const screenWidth = gameWidth
-  const screenHeight = gameHeight
+  // ゲームサイズを取得（GameScreenのContextから）
+  const { width: screenWidth, height: screenHeight } = useGameSize()
 
   // シーンに登場するキャラクターIDリスト
   const characterIds = Object.keys(scene.characters)
@@ -147,10 +142,10 @@ function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady, ga
 
   // ゲームサイズ変更時にrendererをリサイズ
   useEffect(() => {
-    if (gameWidth > 0 && gameHeight > 0 && app.renderer) {
-      app.renderer.resize(gameWidth, gameHeight)
+    if (screenWidth > 0 && screenHeight > 0 && app.renderer) {
+      app.renderer.resize(screenWidth, screenHeight)
     }
-  }, [app, gameWidth, gameHeight])
+  }, [app, screenWidth, screenHeight])
 
   if (!assets) {
     return null
@@ -201,6 +196,50 @@ function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady, ga
 }
 
 // ============================================================
+// PixiJS Application ラッパー
+// ============================================================
+
+interface PixiAppProps {
+  currentSpeaker: string | null
+  scenario: Scenario
+  scene: Scene
+  resolver: ScenarioResolver
+  onReady: () => void
+}
+
+/**
+ * PixiJS Applicationをラップ
+ * useGameSizeでサイズを取得し、Applicationに渡す
+ */
+function PixiApp({ currentSpeaker, scenario, scene, resolver, onReady }: PixiAppProps) {
+  const { width, height } = useGameSize()
+
+  if (width <= 0 || height <= 0) {
+    return null
+  }
+
+  return (
+    <div className="absolute inset-0">
+      <Application
+        width={width}
+        height={height}
+        backgroundColor={0x000000}
+        resolution={typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1}
+        autoDensity
+      >
+        <SceneContainer
+          currentSpeaker={currentSpeaker}
+          scenario={scenario}
+          scene={scene}
+          resolver={resolver}
+          onReady={onReady}
+        />
+      </Application>
+    </div>
+  )
+}
+
+// ============================================================
 // メインページコンポーネント
 // ============================================================
 
@@ -218,16 +257,8 @@ export default function BasicScenePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [currentSpeaker, setCurrentSpeaker] = useState<string | null>(null)
 
-  // ゲームサイズ（GameContainerから更新される）
-  const [gameSize, setGameSize] = useState<GameSize>({ width: 0, height: 0, scale: 1 })
-
-  // ビューポートサイズを取得（FullScreenが更新する）
-  const { width: viewportWidth, height: viewportHeight } = useViewportSizeStore()
-
-  // ゲームサイズ変更時のコールバック
-  const handleGameSizeChange = useCallback((size: GameSize) => {
-    setGameSize(size)
-  }, [])
+  // display設定（scenarioから取得）
+  const displayConfig: DisplayConfig | undefined = scenario?.display as DisplayConfig | undefined
 
 
   // シナリオ・シーンデータを読み込む
@@ -361,49 +392,28 @@ export default function BasicScenePage() {
   // データ読み込み中
   if (!scenario || !scene || !resolver) {
     return (
-      <FullScreen layer="base" className="bg-black">
+      <GameScreen>
         <div className="w-full h-full flex items-center justify-center">
           <p className="text-white text-xl">データ読み込み中...</p>
         </div>
-      </FullScreen>
+      </GameScreen>
     )
   }
 
   return (
-    <FullScreen layer="base" className="bg-black">
-      {/* 固定アスペクト比のゲームコンテナ */}
-      <GameContainer
-        viewportWidth={viewportWidth}
-        viewportHeight={viewportHeight}
-        onSizeChange={handleGameSizeChange}
-        className="cursor-pointer"
+    <GameScreen displayConfig={displayConfig}>
+      <div
+        className="relative w-full h-full cursor-pointer"
+        onClick={handleAdvance}
       >
-        <div
-          className="relative w-full h-full"
-          onClick={handleAdvance}
-        >
-          {/* @pixi/react Application */}
-          <div className="absolute inset-0">
-            {gameSize.width > 0 && gameSize.height > 0 && (
-              <Application
-                width={gameSize.width}
-                height={gameSize.height}
-                backgroundColor={0x000000}
-                resolution={typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1}
-                autoDensity
-              >
-                <SceneContainer
-                  currentSpeaker={currentSpeaker}
-                  scenario={scenario}
-                  scene={scene}
-                  resolver={resolver}
-                  onReady={handleSceneReady}
-                  gameWidth={gameSize.width}
-                  gameHeight={gameSize.height}
-                />
-              </Application>
-            )}
-          </div>
+        {/* @pixi/react Application */}
+        <PixiApp
+          currentSpeaker={currentSpeaker}
+          scenario={scenario}
+          scene={scene}
+          resolver={resolver}
+          onReady={handleSceneReady}
+        />
 
         {/* ローディング表示 */}
         {isLoading && (
@@ -534,20 +544,19 @@ export default function BasicScenePage() {
           </div>
         )}
 
-          {/* 進行インジケーター */}
-          {!isLoading && displayedMessages.length > 0 && (
-            <div className="absolute left-1/2 -translate-x-1/2 z-30" style={{ bottom: "10%" }}>
-              {!isLastDialogue ? (
-                <span className="text-white/60 text-sm animate-pulse">
-                  ▼ クリックで次へ
-                </span>
-              ) : (
-                <span className="text-white/40 text-sm">— END —</span>
-              )}
-            </div>
-          )}
-        </div>
-      </GameContainer>
-    </FullScreen>
+        {/* 進行インジケーター */}
+        {!isLoading && displayedMessages.length > 0 && (
+          <div className="absolute left-1/2 -translate-x-1/2 z-30" style={{ bottom: "10%" }}>
+            {!isLastDialogue ? (
+              <span className="text-white/60 text-sm animate-pulse">
+                ▼ クリックで次へ
+              </span>
+            ) : (
+              <span className="text-white/40 text-sm">— END —</span>
+            )}
+          </div>
+        )}
+      </div>
+    </GameScreen>
   )
 }

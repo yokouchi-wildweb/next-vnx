@@ -5,6 +5,8 @@
  * キャラクター定義などの共通設定を持つ
  */
 
+import type { DisplayConfig } from "@/engine/components"
+
 // ============================================================
 // シナリオタイプ
 // ============================================================
@@ -61,6 +63,8 @@ export interface Scenario {
   type: ScenarioType
   /** 説明文（省略可） */
   description?: string
+  /** 表示設定（アスペクト比、レターボックスなど） */
+  display?: DisplayConfig
   /** キャラクター定義 */
   characters: CharacterDefs
 }

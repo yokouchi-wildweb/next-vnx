@@ -3,6 +3,10 @@
   "title": "サンプルシナリオ",
   "type": "visual-novel",
   "description": "クリスマスの教会で繰り広げられる会話",
+  "display": {
+    "aspectRatio": { "width": 16, "height": 9 },
+    "letterbox": { "color": "#0a0a0a" }
+  },
   "characters": {
     "circus": {
       "name": "サーカス",
