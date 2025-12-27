@@ -196,6 +196,7 @@ services: camelCase.ts
 entities: lowercase files, PascalCase types
 routes: kebab-case or (group)
 constants: UPPER_SNAKE_CASE
+index.ts: re-export only (no implementation logic)
 
 ## PROHIBITED
 - fetch on client-side (use axios)
