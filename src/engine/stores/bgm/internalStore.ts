@@ -1,12 +1,12 @@
-// src/engine/stores/useBgmStore.ts
+// src/engine/stores/bgm/internalStore.ts
+"use client"
 
 import { create } from "zustand"
 
 /**
  * BGMストアの状態型
- * 純粋な状態のみ、ロジックは bgmManager に分離
  */
-type BgmState = {
+export type BgmState = {
   /** 現在再生中のBGMキー（nullなら未再生） */
   currentBgmKey: string | null
   /** 現在の音量（0-1） */
@@ -15,6 +15,9 @@ type BgmState = {
   isPlaying: boolean
 }
 
+/**
+ * BGMストアのアクション型
+ */
 type BgmActions = {
   /** 状態を更新（内部用） */
   _setState: (state: Partial<BgmState>) => void
@@ -31,11 +34,12 @@ const initialState: BgmState = {
 }
 
 /**
- * useBgmStore - BGM状態管理
+ * BGM状態ストア（内部実装）
  *
- * 状態のみを管理。実際の再生ロジックは bgmManager を使用すること。
+ * 直接使用禁止。useStore.ts 経由でアクセスすること。
+ * 例外: bgmManager（エンジン内部ロジック）からの getState/setState
  */
-export const useBgmStore = create<BgmState & BgmActions>((set) => ({
+export const internalStore = create<BgmState & BgmActions>((set) => ({
   ...initialState,
 
   _setState: (state) => set(state),

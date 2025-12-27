@@ -13,7 +13,7 @@
 
 // BGM
 export { bgmManager } from "./bgmManager"
-export { useBgmStore } from "../stores/useBgmStore"
+export { useBgmStore } from "../stores/bgm"
 
 // SE
 export { playSe, playSeSequence } from "./se"

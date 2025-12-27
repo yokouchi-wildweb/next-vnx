@@ -1,7 +1,7 @@
 // src/engine/audio/bgmManager.ts
 
 import { Howl } from "howler"
-import { useBgmStore } from "../stores/useBgmStore"
+import { bgmInternalStore } from "../stores/bgm"
 
 /**
  * BGM再生オプション
@@ -17,7 +17,7 @@ type BgmPlayOptions = {
  * BgmManager - BGM再生ロジック
  *
  * Howler.js を使った実際の再生制御を担当。
- * 状態は useBgmStore で管理し、このクラスは実行時インスタンスのみ保持。
+ * 状態は stores/bgm で管理し、このクラスは実行時インスタンスのみ保持。
  */
 class BgmManager {
   private howl: Howl | null = null
@@ -27,7 +27,7 @@ class BgmManager {
    */
   play(key: string, src: string, options: BgmPlayOptions = {}): void {
     const { loop = true, volume } = options
-    const state = useBgmStore.getState()
+    const state = bgmInternalStore.getState()
     const effectiveVolume = volume ?? state.volume
 
     // 同じBGMが既に再生中なら何もしない
@@ -48,7 +48,7 @@ class BgmManager {
 
     this.howl.play()
 
-    useBgmStore.getState()._setState({
+    bgmInternalStore.getState()._setState({
       currentBgmKey: key,
       volume: effectiveVolume,
       isPlaying: true,
@@ -60,7 +60,7 @@ class BgmManager {
    */
   stop(): void {
     this.cleanup()
-    useBgmStore.getState()._setState({
+    bgmInternalStore.getState()._setState({
       currentBgmKey: null,
       isPlaying: false,
     })
@@ -72,7 +72,7 @@ class BgmManager {
   pause(): void {
     if (this.howl) {
       this.howl.pause()
-      useBgmStore.getState()._setState({ isPlaying: false })
+      bgmInternalStore.getState()._setState({ isPlaying: false })
     }
   }
 
@@ -82,7 +82,7 @@ class BgmManager {
   resume(): void {
     if (this.howl) {
       this.howl.play()
-      useBgmStore.getState()._setState({ isPlaying: true })
+      bgmInternalStore.getState()._setState({ isPlaying: true })
     }
   }
 
@@ -93,7 +93,7 @@ class BgmManager {
     if (this.howl) {
       this.howl.volume(volume)
     }
-    useBgmStore.getState().setVolume(volume)
+    bgmInternalStore.getState().setVolume(volume)
   }
 
   /**
