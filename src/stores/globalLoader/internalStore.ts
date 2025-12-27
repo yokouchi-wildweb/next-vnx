@@ -1,4 +1,4 @@
-// src/stores/useGlobalLoaderStore.ts
+// stores/globalLoader/internalStore.ts
 
 "use client";
 
@@ -22,7 +22,7 @@ type GlobalLoaderState = {
   setOptions: (options: LoaderOptions) => void;
 };
 
-export const useGlobalLoaderStore = create<GlobalLoaderState>((set) => ({
+export const internalStore = create<GlobalLoaderState>((set) => ({
   isVisible: false,
   options: {},
   setVisible: (visible) => set({ isVisible: visible }),

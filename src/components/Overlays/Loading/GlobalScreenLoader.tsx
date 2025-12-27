@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
-import { useGlobalLoaderStore } from "@/stores/useGlobalLoaderStore";
+import { useGlobalLoaderStore } from "@/stores/globalLoader";
 
 /**
  * グローバルローダーをPortalでbody直下に描画するコンポーネント。

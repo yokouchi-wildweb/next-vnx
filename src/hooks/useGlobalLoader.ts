@@ -3,7 +3,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useGlobalLoaderStore, type LoaderOptions } from "@/stores/useGlobalLoaderStore";
+import { useGlobalLoaderStore, type LoaderOptions } from "@/stores/globalLoader";
 
 /**
  * グローバルローダーを制御するフック。
@@ -23,8 +23,7 @@ import { useGlobalLoaderStore, type LoaderOptions } from "@/stores/useGlobalLoad
  * });
  */
 export function useGlobalLoader() {
-  const setVisible = useGlobalLoaderStore((s) => s.setVisible);
-  const setOptions = useGlobalLoaderStore((s) => s.setOptions);
+  const { setVisible, setOptions } = useGlobalLoaderStore();
 
   const showLoader = useCallback(
     (options?: string | LoaderOptions) => {
