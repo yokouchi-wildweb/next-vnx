@@ -1,6 +1,7 @@
 // Screen barrel export
 
 export { default as GameScreen } from "./GameScreen"
+export { default as PixiCanvas } from "./PixiCanvas"
 export { useGameScreen, useGameSize } from "./useGameScreen"
 export type {
   DisplayConfig,

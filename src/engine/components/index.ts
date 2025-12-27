@@ -3,6 +3,7 @@
 // Screen
 export {
   GameScreen,
+  PixiCanvas,
   useGameScreen,
   useGameSize,
   DEFAULT_DISPLAY_CONFIG,

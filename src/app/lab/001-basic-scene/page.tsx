@@ -24,9 +24,9 @@
 
 import { useEffect, useRef, useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Application, extend, useApplication } from "@pixi/react"
+import { extend } from "@pixi/react"
 import { Container, Sprite, Texture, Assets } from "pixi.js"
-import { GameScreen, useGameSize, type DisplayConfig } from "@/engine/components"
+import { GameScreen, PixiCanvas, useGameSize, type DisplayConfig } from "@/engine/components"
 import MessageBubble from "./components/MessageBubble"
 import CharacterSprite from "./components/CharacterSprite"
 import BackgroundSprite from "./components/BackgroundSprite"
@@ -96,7 +96,6 @@ interface LoadedAssets {
  * Assets.loadでアセットをロード
  */
 function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady }: SceneContainerProps) {
-  const { app } = useApplication()
   const [assets, setAssets] = useState<LoadedAssets | null>(null)
 
   // ゲームサイズを取得（GameScreenのContextから）
@@ -140,12 +139,7 @@ function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady }: 
     }
   }, [resolver, scenario, scene, characterIds, onReady])
 
-  // ゲームサイズ変更時にrendererをリサイズ
-  useEffect(() => {
-    if (screenWidth > 0 && screenHeight > 0 && app.renderer) {
-      app.renderer.resize(screenWidth, screenHeight)
-    }
-  }, [app, screenWidth, screenHeight])
+  // リサイズ処理はPixiCanvasが担当するため削除
 
   if (!assets) {
     return null
@@ -192,50 +186,6 @@ function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady }: 
         })}
       </pixiContainer>
     </pixiContainer>
-  )
-}
-
-// ============================================================
-// PixiJS Application ラッパー
-// ============================================================
-
-interface PixiAppProps {
-  currentSpeaker: string | null
-  scenario: Scenario
-  scene: Scene
-  resolver: ScenarioResolver
-  onReady: () => void
-}
-
-/**
- * PixiJS Applicationをラップ
- * useGameSizeでサイズを取得し、Applicationに渡す
- */
-function PixiApp({ currentSpeaker, scenario, scene, resolver, onReady }: PixiAppProps) {
-  const { width, height } = useGameSize()
-
-  if (width <= 0 || height <= 0) {
-    return null
-  }
-
-  return (
-    <div className="absolute inset-0">
-      <Application
-        width={width}
-        height={height}
-        backgroundColor={0x000000}
-        resolution={typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1}
-        autoDensity
-      >
-        <SceneContainer
-          currentSpeaker={currentSpeaker}
-          scenario={scenario}
-          scene={scene}
-          resolver={resolver}
-          onReady={onReady}
-        />
-      </Application>
-    </div>
   )
 }
 
@@ -406,14 +356,16 @@ export default function BasicScenePage() {
         className="relative w-full h-full cursor-pointer"
         onClick={handleAdvance}
       >
-        {/* @pixi/react Application */}
-        <PixiApp
-          currentSpeaker={currentSpeaker}
-          scenario={scenario}
-          scene={scene}
-          resolver={resolver}
-          onReady={handleSceneReady}
-        />
+        {/* PixiJS描画レイヤー */}
+        <PixiCanvas>
+          <SceneContainer
+            currentSpeaker={currentSpeaker}
+            scenario={scenario}
+            scene={scene}
+            resolver={resolver}
+            onReady={handleSceneReady}
+          />
+        </PixiCanvas>
 
         {/* ローディング表示 */}
         {isLoading && (
