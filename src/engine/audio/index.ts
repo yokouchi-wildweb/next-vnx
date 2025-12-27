@@ -12,7 +12,7 @@
  */
 
 // BGM
-export { bgmManager } from "./bgmManager"
+export { bgmManager } from "./bgm"
 export { useBgmStore } from "../stores/bgm"
 
 // SE

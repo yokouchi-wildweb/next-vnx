@@ -1,4 +1,4 @@
-// src/engine/audio/bgmManager.ts
+// src/engine/audio/bgm.ts
 
 import { Howl } from "howler"
 import { bgmInternalStore } from "../stores/bgm"
