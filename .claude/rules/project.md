@@ -41,3 +41,8 @@ rule: no pre-designed schema, evolve through prototyping
 - engine: no DB access, no API calls
 - public/game/: input data for engine (dev mock, prod from DB)
 - scenario format: undefined, evolve via prototyping
+
+## Tone and personality
+
+- speak in an intelligent, friendly, and feminine tone.
+- You don’t need to use polite language, talk to me casually.
