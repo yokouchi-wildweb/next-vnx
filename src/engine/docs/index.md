@@ -42,21 +42,31 @@ PixiCanvas   z: 0
 
 ```
 features/Xxx/
-├── components/    # 純粋なUIパーツ
-├── widget/        # Scene用（ファクトリ適用）
+├── components/    # 純粋な React (HTML) パーツ
+├── sprites/       # 純粋な PixiJS パーツ
+├── widget/        # ファクトリ適用済み（Scene用）
 ├── hooks/         # 状態・ロジック
 ├── constants.ts   # 設定値
-└── index.ts       # 公開API
+└── index.ts       # widget/ から再エクスポート
 ```
+
+### 命名規則
+
+| レイヤー | サフィックス | 例 |
+|----------|--------------|-----|
+| PixiJS | `Sprite` | BackgroundSprite, CharacterSprite |
+| React/HTML | なし | DialogueMessage, SystemMenu |
 
 ### Scene基本構造
 
 ```tsx
 <GameScreen>
   <PixiCanvas>
-    {/* PixiJS Widgets */}
+    <BackgroundSprite />
+    <CharacterSprite />
   </PixiCanvas>
-  {/* HTML Widgets */}
+  <DialogueMessage />
+  <SystemMenu />
 </GameScreen>
 ```
 
@@ -69,6 +79,7 @@ features/Xxx/
 5. **スタックコンテキスト**: GameContainer内で isolation: isolate
 6. **配置責務**: 登場=Scene、レイアウト=Feature、インスタンス=シナリオデータ
 7. **Layer**: 複雑なシーンでのWidgetグループ化（オプション、スタッキングコンテキスト分離）
+8. **命名規則**: PixiJS=XXXSprite、React/HTML=サフィックスなし
 
 ## 未決定事項
 

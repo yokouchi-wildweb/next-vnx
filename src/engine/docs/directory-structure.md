@@ -42,44 +42,39 @@ engine/
 
 ```
 features/Dialogue/
-├── components/         # 純粋なUIパーツ
+├── components/         # 純粋な React (HTML) パーツ
 │   ├── MessageBox.tsx
-│   ├── CharacterName.tsx
-│   └── index.ts
-├── widget/             # Scene用（ファクトリで生成）
-│   ├── DialogueWidget.tsx
-│   └── index.ts
-├── hooks/              # 状態・ロジック
-│   ├── useDialogue.ts
-│   └── index.ts
-├── constants.ts        # 設定値
-├── types.ts            # 型定義
-└── index.ts            # 公開API
+│   └── SpeakerName.tsx
+├── sprites/            # 純粋な PixiJS パーツ
+│   └── Character.tsx
+├── widget/             # ファクトリ適用済み（Scene用）
+│   ├── DialogueMessage.tsx         # createWidget
+│   └── DialogueCharacterSprite.tsx # createSprite
+├── hooks/
+│   └── useDialogue.ts
+├── constants.ts
+├── types.ts
+└── index.ts            # widget/ から再エクスポート
 ```
 
 ### フォルダ役割
 
-| フォルダ | 役割 | 命名規則 |
-|----------|------|----------|
-| `components/` | 純粋なUIパーツ（配置を意識しない） | XxxBox, XxxArea |
-| `widget/` | Scene配置用（ファクトリ適用済み） | XxxWidget |
-| `hooks/` | 状態管理・ロジック | useXxx |
+| フォルダ | 役割 | ファクトリ | 命名規則 |
+|----------|------|------------|----------|
+| `components/` | 純粋な React (HTML) パーツ | - | 自由 |
+| `sprites/` | 純粋な PixiJS パーツ | - | 自由 |
+| `widget/` | Scene用（ファクトリ適用済み） | createWidget / createSprite | サフィックスで区別 |
+| `hooks/` | 状態管理・ロジック | - | useXxx |
 
-### PixiJS / HTML の分離
+### widget/ 内の命名規則
 
-Featureが両方を持つ場合:
+| レイヤー | サフィックス | 例 |
+|----------|--------------|-----|
+| PixiJS | `Sprite` | DialogueCharacterSprite |
+| React/HTML | なし | DialogueMessage, SystemMenu |
 
-```
-features/Dialogue/
-├── components/
-│   ├── canvas/              # PixiJS部分
-│   │   └── DialogueCharacters.tsx
-│   └── ui/                  # HTML部分
-│       └── DialogueMessageArea.tsx
-├── widget/
-│   ├── DialogueCanvasWidget.tsx
-│   └── DialogueUIWidget.tsx
-```
+widget/ 内は全てファクトリで生成された安全なコンポーネント。
+サフィックスでどちらのレイヤーか判別可能。
 
 ## src/features/ との違い
 
@@ -98,7 +93,29 @@ features/Dialogue/
 |------|------|-----|
 | フォルダ | PascalCase | Dialogue/, SystemMenu/ |
 | コンポーネント | PascalCase | MessageBox.tsx |
-| Widget | XxxWidget | DialogueWidget.tsx |
 | Hook | useCamelCase | useDialogue.ts |
 | 定数 | UPPER_SNAKE | DIALOGUE_LAYOUT |
 | 型 | PascalCase | DialogueState |
+
+### エクスポート名の命名規則
+
+レイヤーに応じたサフィックスで区別する:
+
+| レイヤー | サフィックス | 例 |
+|----------|--------------|-----|
+| PixiJS（Canvas内） | `Sprite` | BackgroundSprite, CharacterSprite |
+| React/HTML | なし | DialogueMessage, SystemMenu, Choice |
+
+```tsx
+// PixiJS層: XXXSprite
+BackgroundSprite
+DialogueCharacterSprite
+EffectSprite
+
+// HTML層: サフィックスなし（標準Reactコンポーネント）
+DialogueMessage
+SystemMenu
+Choice
+```
+
+**ルール**: `Sprite` がついていれば PixiJS、なければ普通の React コンポーネント

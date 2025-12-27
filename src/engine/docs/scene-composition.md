@@ -9,27 +9,34 @@ Sceneは Feature や Widget を組み合わせて画面を構成する。
 
 ```tsx
 // scenes/NovelScene.tsx
-import { GameScreen, PixiCanvas } from "@/engine/components"
-import { BackgroundCanvasWidget } from "@/engine/features/Background"
-import { DialogueCanvasWidget, DialogueUIWidget } from "@/engine/features/Dialogue"
-import { SystemMenuWidget } from "@/engine/features/SystemMenu"
+import { GameScreen, PixiCanvas } from "@/engine/components/Screen"
+import { BackgroundSprite } from "@/engine/features/Background"
+import { DialogueCharacterSprite, DialogueMessage } from "@/engine/features/Dialogue"
+import { SystemMenu } from "@/engine/features/SystemMenu"
 
 export default function NovelScene() {
   return (
     <GameScreen displayConfig={displayConfig}>
-      {/* PixiJS層 (z: 0) */}
+      {/* PixiJS層 (z: 0) - XXXSprite */}
       <PixiCanvas>
-        <BackgroundCanvasWidget />
-        <DialogueCanvasWidget />
+        <BackgroundSprite />
+        <DialogueCharacterSprite />
       </PixiCanvas>
 
-      {/* HTML層 (z: 10+) */}
-      <DialogueUIWidget />
-      <SystemMenuWidget />
+      {/* HTML層 (z: 10+) - サフィックスなし */}
+      <DialogueMessage />
+      <SystemMenu />
     </GameScreen>
   )
 }
 ```
+
+### 命名規則
+
+| レイヤー | サフィックス | 例 |
+|----------|--------------|-----|
+| PixiJS（Canvas内） | `Sprite` | BackgroundSprite, CharacterSprite |
+| React/HTML | なし | DialogueMessage, SystemMenu |
 
 ## Sceneの責務
 
@@ -57,11 +64,11 @@ export default function NovelScene() {
   return (
     <GameScreen>
       <PixiCanvas>
-        <BackgroundCanvasWidget />
-        <DialogueCanvasWidget />
+        <BackgroundSprite />
+        <DialogueCharacterSprite />
       </PixiCanvas>
-      <DialogueUIWidget />
-      <SystemMenuWidget />
+      <DialogueMessage />
+      <SystemMenu />
     </GameScreen>
   )
 }
@@ -74,10 +81,10 @@ export default function TitleScene() {
   return (
     <GameScreen>
       <PixiCanvas>
-        <BackgroundCanvasWidget />
-        <TitleLogoWidget />
+        <BackgroundSprite />
+        <TitleLogoSprite />
       </PixiCanvas>
-      <TitleMenuWidget />
+      <TitleMenu />
     </GameScreen>
   )
 }
@@ -90,12 +97,12 @@ export default function ChoiceScene() {
   return (
     <GameScreen>
       <PixiCanvas>
-        <BackgroundCanvasWidget />
-        <DialogueCanvasWidget />
+        <BackgroundSprite />
+        <DialogueCharacterSprite />
       </PixiCanvas>
-      <DialogueUIWidget />
-      <ChoiceWidget />  {/* 選択肢を追加 */}
-      <SystemMenuWidget />
+      <DialogueMessage />
+      <Choice />  {/* 選択肢を追加 */}
+      <SystemMenu />
     </GameScreen>
   )
 }
@@ -103,21 +110,21 @@ export default function ChoiceScene() {
 
 ## 動的な構成
 
-シナリオデータに基づいてWidgetを動的に表示/非表示:
+シナリオデータに基づいてコンポーネントを動的に表示/非表示:
 
 ```tsx
 export default function NovelScene({ sceneData }) {
   return (
     <GameScreen>
       <PixiCanvas>
-        <BackgroundCanvasWidget />
-        <DialogueCanvasWidget />
-        {sceneData.hasEffect && <EffectCanvasWidget />}
+        <BackgroundSprite />
+        <DialogueCharacterSprite />
+        {sceneData.hasEffect && <EffectSprite />}
       </PixiCanvas>
 
-      <DialogueUIWidget />
-      {sceneData.showChoice && <ChoiceWidget />}
-      <SystemMenuWidget />
+      <DialogueMessage />
+      {sceneData.showChoice && <Choice />}
+      <SystemMenu />
     </GameScreen>
   )
 }
@@ -128,18 +135,18 @@ export default function NovelScene({ sceneData }) {
 特定のシーンでz-indexを変更したい場合:
 
 ```tsx
-<DialogueUIWidget zIndex={20} />  {/* デフォルト10を上書き */}
-<ChoiceWidget zIndex={30} />
+<DialogueMessage zIndex={20} />  {/* デフォルト10を上書き */}
+<Choice zIndex={30} />
 ```
 
 ## Layerによるグループ化
 
-複雑なシーンでは、関連するWidgetをLayerでグループ化できる。
+複雑なシーンでは、関連するコンポーネントをLayerでグループ化できる。
 
 ### 基本的な使用
 
 ```tsx
-import { Layer } from "@/engine/components"
+import { Layer } from "@/engine/components/Layer"
 
 function ComplexScene() {
   return (
@@ -148,18 +155,18 @@ function ComplexScene() {
 
       {/* 会話系をグループ化 */}
       <Layer zIndex={10}>
-        <DialogueUIWidget />
-        <CharacterNameWidget />
+        <DialogueMessage />
+        <SpeakerName />
       </Layer>
 
       {/* 選択系 */}
       <Layer zIndex={50} visible={showChoice}>
-        <ChoiceWidget />
+        <Choice />
       </Layer>
 
       {/* システム系 */}
       <Layer zIndex={100}>
-        <SystemMenuWidget />
+        <SystemMenu />
       </Layer>
     </GameScreen>
   )
@@ -217,10 +224,10 @@ function NovelScene() {
   return (
     <GameScreen>
       <PixiCanvas>
-        <BackgroundCanvasWidget filter={background.filter} />
-        <DialogueCanvasWidget speaker={dialogue.currentSpeaker} />
+        <BackgroundSprite filter={background.filter} />
+        <DialogueCharacterSprite speaker={dialogue.currentSpeaker} />
       </PixiCanvas>
-      <DialogueUIWidget messages={dialogue.messages} />
+      <DialogueMessage messages={dialogue.messages} />
     </GameScreen>
   )
 }
@@ -228,14 +235,14 @@ function NovelScene() {
 
 ## Feature以外の要素
 
-Sceneには Feature Widget 以外も配置可能:
+SceneにはFeatureコンポーネント以外も配置可能:
 
 ```tsx
 function DebugScene() {
   return (
     <GameScreen>
       <PixiCanvas>...</PixiCanvas>
-      <DialogueWidget />
+      <DialogueMessage />
 
       {/* Feature外の要素も混在OK */}
       <DebugOverlay />

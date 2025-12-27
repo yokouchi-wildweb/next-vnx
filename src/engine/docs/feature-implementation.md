@@ -5,15 +5,17 @@
 Featureは「機能単位」のモジュール。
 1つのFeatureが PixiJS部分 + HTML部分 + 共有状態 を持つことができる。
 
-## createWidget ファクトリ
+## ファクトリ
 
-### 定義
+### createWidget（HTML用）
 
 ```tsx
-// engine/factories/createWidget.tsx
+// engine/components/createWidget.tsx
+import { cn } from "@/lib/cn"
+
 type WidgetConfig = {
   zIndex: number
-  name: string  // デバッグ用
+  name: string
 }
 
 export function createWidget<P extends object>(
@@ -37,28 +39,73 @@ export function createWidget<P extends object>(
 }
 ```
 
+### createSprite（PixiJS用）
+
+```tsx
+// engine/components/createSprite.tsx
+type SpriteConfig = {
+  name: string
+}
+
+export function createSprite<P extends object>(
+  Component: React.ComponentType<P>,
+  config: SpriteConfig
+) {
+  function Sprite(props: P) {
+    return <Component {...props} />
+  }
+  Sprite.displayName = `${config.name}Sprite`
+  return Sprite
+}
+```
+
 ### 使用例
 
 ```tsx
-// features/Dialogue/widget/DialogueWidget.tsx
-import { createWidget } from "@/engine/factories/createWidget"
-import { DialogueUI } from "../components/DialogueUI"
+// features/Dialogue/widget/DialogueMessage.tsx
+import { createWidget } from "@/engine/components/createWidget"
+import { MessageBox } from "../components/MessageBox"
 
-export const DialogueWidget = createWidget(DialogueUI, {
+export const DialogueMessage = createWidget(MessageBox, {
   zIndex: 10,
-  name: "Dialogue",
+  name: "DialogueMessage",
 })
+
+// features/Dialogue/widget/DialogueCharacterSprite.tsx
+import { createSprite } from "@/engine/components/createSprite"
+import { Character } from "../sprites/Character"
+
+export const DialogueCharacterSprite = createSprite(Character, {
+  name: "DialogueCharacter",
+})
+
+// features/Dialogue/index.ts
+export { DialogueMessage } from "./widget/DialogueMessage"
+export { DialogueCharacterSprite } from "./widget/DialogueCharacterSprite"
+export { useDialogue } from "./hooks"
 ```
 
 ## Feature公開インターフェース
+
+### 命名規則
+
+| レイヤー | サフィックス | 例 |
+|----------|--------------|-----|
+| PixiJS（Canvas内） | `Sprite` | CharacterSprite, BackgroundSprite |
+| React/HTML | なし | DialogueMessage, SystemMenu |
+
+**ルール**: `Sprite` がついていれば PixiJS、なければ普通の React コンポーネント
 
 ### 推奨パターン
 
 ```tsx
 // features/Dialogue/index.ts
-// Widgets
-export { DialogueWidget } from "./widget"
-export { DialogueCanvasWidget } from "./widget"
+
+// PixiJS層（Spriteサフィックス）
+export { DialogueCharacterSprite } from "./components/canvas"
+
+// HTML層（サフィックスなし）
+export { DialogueMessage } from "./components/ui"
 
 // Hooks
 export { useDialogue, useCurrentSpeaker } from "./hooks"
@@ -68,21 +115,6 @@ export type { DialogueState, DialogueMessage } from "./types"
 
 // Constants (必要な場合)
 export { DIALOGUE_LAYOUT } from "./constants"
-```
-
-### オブジェクトとしてエクスポート（オプション）
-
-```tsx
-// features/Dialogue/index.ts
-import { DialogueWidget, DialogueCanvasWidget } from "./widget"
-import { useDialogue, useCurrentSpeaker } from "./hooks"
-
-export const Dialogue = {
-  Widget: DialogueWidget,
-  CanvasWidget: DialogueCanvasWidget,
-  useDialogue,
-  useCurrentSpeaker,
-}
 ```
 
 ## 配置の責務
@@ -137,30 +169,32 @@ Dialogueのような、PixiJSとHTMLの両方を持つFeature:
 
 ```
 features/Dialogue/
-├── components/
-│   ├── canvas/
-│   │   └── DialogueCharacters.tsx  # PixiJS: 立ち絵
-│   └── ui/
-│       ├── DialogueMessageArea.tsx # HTML: メッセージ
-│       └── DialogueSpeakerName.tsx # HTML: 話者名
-├── widget/
-│   ├── DialogueCanvasWidget.tsx    # PixiCanvas内用
-│   └── DialogueUIWidget.tsx        # HTML層用
+├── components/                     # 純粋な React (HTML) パーツ
+│   ├── MessageBox.tsx
+│   └── SpeakerName.tsx
+├── sprites/                        # 純粋な PixiJS パーツ
+│   └── Character.tsx
+├── widget/                         # ファクトリ適用済み（Scene用）
+│   ├── DialogueMessage.tsx         # createWidget
+│   └── DialogueCharacterSprite.tsx # createSprite
 ├── hooks/
-│   └── useDialogue.ts              # 共有状態
+│   └── useDialogue.ts
+└── index.ts                        # widget/ から再エクスポート
 ```
 
 ### Scene側での使用
 
 ```tsx
+import { DialogueCharacterSprite, DialogueMessage } from "@/engine/features/Dialogue"
+
 function NovelScene() {
   return (
     <GameScreen>
       <PixiCanvas>
-        <Dialogue.CanvasWidget />   {/* 立ち絵 */}
+        <DialogueCharacterSprite />   {/* 立ち絵 */}
       </PixiCanvas>
 
-      <Dialogue.UIWidget />         {/* メッセージ */}
+      <DialogueMessage />             {/* メッセージ */}
     </GameScreen>
   )
 }
@@ -190,16 +224,15 @@ Canvas側とUI側の両方がこのhookを使用して状態を共有する。
 
 ```tsx
 // features/Dialogue/index.ts
-export { DialogueCanvasWidget, DialogueUIWidget } from "./widget"
+export { DialogueCharacterSprite } from "./components/canvas"
+export { DialogueMessage } from "./components/ui"
 export { useDialogue } from "./hooks"
 export { DIALOGUE_LAYOUT } from "./constants"
 
 // scenes/NovelScene.tsx
-import {
-  DialogueCanvasWidget,
-  DialogueUIWidget,
-  useDialogue
-} from "@/engine/features/Dialogue"
+import { BackgroundSprite } from "@/engine/features/Background"
+import { DialogueCharacterSprite, DialogueMessage, useDialogue } from "@/engine/features/Dialogue"
+import { SystemMenu } from "@/engine/features/SystemMenu"
 
 function NovelScene() {
   const dialogue = useDialogue()
@@ -207,12 +240,12 @@ function NovelScene() {
   return (
     <GameScreen>
       <PixiCanvas>
-        <BackgroundCanvasWidget />
-        <DialogueCanvasWidget speaker={dialogue.currentSpeaker} />
+        <BackgroundSprite />
+        <DialogueCharacterSprite speaker={dialogue.currentSpeaker} />
       </PixiCanvas>
 
-      <DialogueUIWidget messages={dialogue.messages} />
-      <SystemMenuWidget />
+      <DialogueMessage messages={dialogue.messages} />
+      <SystemMenu />
     </GameScreen>
   )
 }
