@@ -5,7 +5,7 @@
  * キャラクター定義などの共通設定を持つ
  */
 
-import type { DisplayConfig } from "@/engine/components"
+import type { DisplayConfig } from "@/engine/components/Screen"
 
 // ============================================================
 // シナリオタイプ

@@ -102,6 +102,65 @@ PixiCanvas   z: 0
 <DialogueWidget zIndex={20} />
 ```
 
+## Layer契約
+
+Layerは複数のWidgetをグループ化するオプショナルなコンテナ。
+
+### 定義
+
+```tsx
+// engine/components/Layer.tsx
+type LayerProps = {
+  zIndex?: number
+  visible?: boolean
+  children: React.ReactNode
+}
+
+export function Layer({ zIndex = 0, visible = true, children }: LayerProps) {
+  if (!visible) return null
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none"
+      style={{ zIndex }}
+    >
+      {children}
+    </div>
+  )
+}
+```
+
+### 保証項目
+
+| 項目 | 値 | 説明 |
+|------|-----|------|
+| position | absolute | GameContainer基準で配置 |
+| inset | 0 | 全領域をカバー |
+| pointer-events | none | 子要素に委譲 |
+| スタッキングコンテキスト | 自動生成 | 子のz-indexを分離 |
+
+### スタッキングコンテキストの分離
+
+`position: absolute` + `z-index` の組み合わせにより、
+Layerは自動的に新しいスタッキングコンテキストを生成する。
+
+```
+Layer(zIndex=100) ─────────────
+  │ 内部: z-index: 1 でも上
+  │
+Layer(zIndex=50) ──────────────
+  │ 内部: z-index: 9999 でも下
+  │
+```
+
+**効果**: Layer内でどんな z-index を指定しても、
+他のLayerには絶対に干渉しない。安全にレイヤー管理が可能。
+
+### 使い分け
+
+- シンプルなシーン: Widgetを直接配置
+- 複雑なシーン: Layerでグループ化
+- Layer は必須ではなくオプション
+
 ## Screen階層
 
 ```
@@ -111,6 +170,8 @@ GameScreen (Scene側が使うインターフェース)
 ├── Letterbox (装飾)
 └── GameContainer (Widget契約の実装)
     ├── PixiCanvas (z: 0)
+    ├── Layer (オプション、グループ化用)
+    │   └── Widgets
     └── Widgets (z: 10+)
 ```
 

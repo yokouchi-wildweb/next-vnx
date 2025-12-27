@@ -132,6 +132,72 @@ export default function NovelScene({ sceneData }) {
 <ChoiceWidget zIndex={30} />
 ```
 
+## Layerによるグループ化
+
+複雑なシーンでは、関連するWidgetをLayerでグループ化できる。
+
+### 基本的な使用
+
+```tsx
+import { Layer } from "@/engine/components"
+
+function ComplexScene() {
+  return (
+    <GameScreen>
+      <PixiCanvas>...</PixiCanvas>
+
+      {/* 会話系をグループ化 */}
+      <Layer zIndex={10}>
+        <DialogueUIWidget />
+        <CharacterNameWidget />
+      </Layer>
+
+      {/* 選択系 */}
+      <Layer zIndex={50} visible={showChoice}>
+        <ChoiceWidget />
+      </Layer>
+
+      {/* システム系 */}
+      <Layer zIndex={100}>
+        <SystemMenuWidget />
+      </Layer>
+    </GameScreen>
+  )
+}
+```
+
+### Layerの特徴
+
+| 特徴 | 説明 |
+|------|------|
+| スタッキングコンテキスト | Layer内のz-indexは外部に影響しない |
+| グループ表示制御 | `visible={false}` でグループ全体を非表示 |
+| z-index分離 | Layer間の積層順序が確実に保証される |
+
+### スタッキングコンテキストの効果
+
+```tsx
+<Layer zIndex={50}>
+  <div style={{ zIndex: 9999 }}>どんなに大きくても...</div>
+</Layer>
+
+<Layer zIndex={100}>
+  <div style={{ zIndex: 1 }}>こちらの方が上</div>
+</Layer>
+```
+
+Layer内でどんな z-index を指定しても、他のLayerには絶対に干渉しない。
+
+### 使い分け
+
+| シーン構成 | 推奨 |
+|------------|------|
+| シンプル（Widget数個） | Widgetを直接配置 |
+| 複雑・条件付き表示 | Layerでグループ化 |
+| デバッグ時 | Layerで関心事を分離 |
+
+Layerは必須ではなく、必要な時に使うオプション。
+
 ## Feature間の状態共有
 
 Featureの状態を別のFeatureで使う場合、Scene側で接続:

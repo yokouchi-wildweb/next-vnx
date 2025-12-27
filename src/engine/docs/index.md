@@ -27,6 +27,7 @@ PixiJS層（下）: 背景、立ち絵、エフェクト
 | GameContainer | Widget配置のコンテナ（内部） |
 | PixiCanvas | PixiJSアプリケーションラッパー |
 | createWidget | Widget生成ファクトリ |
+| Layer | Widgetグループ化（オプション） |
 
 ### z-index（GameContainer内）
 
@@ -67,6 +68,7 @@ features/Xxx/
 4. **Widget契約**: createWidget ファクトリで強制
 5. **スタックコンテキスト**: GameContainer内で isolation: isolate
 6. **配置責務**: 登場=Scene、レイアウト=Feature、インスタンス=シナリオデータ
+7. **Layer**: 複雑なシーンでのWidgetグループ化（オプション、スタッキングコンテキスト分離）
 
 ## 未決定事項
 

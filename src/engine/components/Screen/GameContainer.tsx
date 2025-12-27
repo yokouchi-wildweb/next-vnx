@@ -50,6 +50,7 @@ export default function GameContainer({ className, children }: Props) {
         height: gameSize.height,
         left,
         top,
+        isolation: "isolate", // スタッキングコンテキストを確立
       }}
     >
       {children}
