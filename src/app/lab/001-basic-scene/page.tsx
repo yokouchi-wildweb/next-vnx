@@ -32,7 +32,7 @@ import MessageBubble from "./components/MessageBubble"
 import CharacterSprite from "./components/CharacterSprite"
 import BackgroundSprite from "./components/BackgroundSprite"
 import { createScenarioResolver, type ScenarioResolver } from "@/engine/utils/assetResolver"
-import { useBgmStore, playSe } from "@/engine/audio"
+import { bgmManager, playSe } from "@/engine/audio"
 import { defaultMessageBubbleStyle } from "./components/MessageBubble/defaults"
 import type { Scenario, Scene, Dialogue, SceneCommand } from "@/engine/types"
 
@@ -219,9 +219,6 @@ export default function BasicScenePage() {
   // ビューポートサイズを取得（FullScreenが更新する）
   const { width: viewportWidth, height: viewportHeight } = useViewportSize()
 
-  // BGMストア（グローバル状態）
-  const bgmStop = useBgmStore((state) => state.stop)
-  const bgmFadeOut = useBgmStore((state) => state.fadeOut)
 
   // シナリオ・シーンデータを読み込む
   useEffect(() => {
@@ -249,12 +246,12 @@ export default function BasicScenePage() {
       case "bgm": {
         const src = await resolver.bgm(command.assetId)
         if (src) {
-          useBgmStore.getState().play(command.assetId, src, { volume: command.volume ?? 0.5 })
+          bgmManager.play(command.assetId, src, { volume: command.volume ?? 0.5 })
         }
         break
       }
       case "bgm_stop": {
-        bgmFadeOut(command.fadeOut)
+        bgmManager.fadeOut(command.fadeOut)
         break
       }
       case "se": {
@@ -270,7 +267,7 @@ export default function BasicScenePage() {
         break
       }
     }
-  }, [resolver, bgmFadeOut])
+  }, [resolver])
 
   // コマンド配列を実行
   const executeCommands = useCallback((commands: SceneCommand[] | undefined) => {
@@ -294,7 +291,7 @@ export default function BasicScenePage() {
     if (!resolver || !scene?.initialBgm) return
     const src = await resolver.bgm(scene.initialBgm.assetId)
     if (src) {
-      useBgmStore.getState().play(scene.initialBgm.assetId, src, { volume: scene.initialBgm.volume ?? 0.5 })
+      bgmManager.play(scene.initialBgm.assetId, src, { volume: scene.initialBgm.volume ?? 0.5 })
     }
   }, [resolver, scene])
 
@@ -319,9 +316,9 @@ export default function BasicScenePage() {
   // コンポーネントアンマウント時にBGM停止
   useEffect(() => {
     return () => {
-      bgmStop()
+      bgmManager.stop()
     }
-  }, [bgmStop])
+  }, [])
 
   // メッセージ追加時に自動スクロール（instantでframer-motionのlayoutアニメーションと競合を避ける）
   useEffect(() => {

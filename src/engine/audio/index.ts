@@ -3,12 +3,17 @@
 /**
  * Audio Module - BGM/SE管理
  *
- * BGM: useBgmStore でグローバル状態管理（同時1曲のみ）
- * SE: playSe/playSeSequence で単発再生（同時複数可）
+ * BGM:
+ *   - bgmManager: 再生ロジック（play, stop, pause, resume, fadeOut）
+ *   - useBgmStore: 状態参照（currentBgmKey, volume, isPlaying）
+ *
+ * SE:
+ *   - playSe/playSeSequence: 単発再生（同時複数可）
  */
 
-// BGMストア
-export { useBgmStore } from "./stores/useBgmStore"
+// BGM
+export { bgmManager } from "./bgmManager"
+export { useBgmStore } from "../stores/useBgmStore"
 
-// SE操作
+// SE
 export { playSe, playSeSequence } from "./se"

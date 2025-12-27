@@ -11,4 +11,4 @@
 // export type { Scene, Dialogue, Character } from './types'
 
 // Audio
-export { useBgmStore, playSe, playSeSequence } from "./audio"
+export { bgmManager, useBgmStore, playSe, playSeSequence } from "./audio"
