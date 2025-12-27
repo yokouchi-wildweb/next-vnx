@@ -9,37 +9,55 @@ Featureは「機能単位」のモジュール。
 
 ### createWidget（HTML用）
 
+元のコンポーネントに `position: absolute` と `zIndex` を注入する。
+ラッパー要素は作成せず、元のコンポーネントに直接スタイルを適用。
+
 ```tsx
 // engine/components/createWidget.tsx
-import { cn } from "@/lib/cn"
-
 type WidgetConfig = {
   zIndex: number
   name: string
 }
 
 export function createWidget<P extends object>(
-  Component: React.ComponentType<P>,
+  Component: React.ComponentType<P & { style?: CSSProperties }>,
   config: WidgetConfig
 ) {
-  function Widget(props: P & { zIndex?: number; className?: string }) {
-    const { zIndex = config.zIndex, className, ...rest } = props
+  function Widget(props: P & { zIndex?: number }) {
+    const { zIndex = config.zIndex, ...rest } = props
+    const existingStyle = (rest as any).style || {}
+
     return (
-      <div
-        className={cn("absolute inset-0 pointer-events-none", className)}
-        style={{ zIndex }}
+      <Component
+        {...(rest as P)}
+        style={{ ...existingStyle, position: "absolute", zIndex }}
         data-widget={config.name}
-      >
-        <Component {...(rest as P)} />
-      </div>
+      />
     )
   }
   Widget.displayName = `${config.name}Widget`
+  Widget.defaultZIndex = config.zIndex
   return Widget
 }
 ```
 
+**契約**: Widget として使うコンポーネントは `style` prop を受け取り、
+ルート要素に適用する必要がある。
+
+```tsx
+// 元のコンポーネント側
+function MessageBox({ style, ...props }: Props & { style?: CSSProperties }) {
+  return (
+    <div style={style}>  {/* ルート要素に適用 */}
+      ...
+    </div>
+  )
+}
+```
+
 ### createSprite（PixiJS用）
+
+displayName を付与するだけのパススルー。ラッパーなし。
 
 ```tsx
 // engine/components/createSprite.tsx
@@ -59,11 +77,46 @@ export function createSprite<P extends object>(
 }
 ```
 
+### createScene（シーン用）
+
+Widget 配置領域（absolute + inset: 0）を保証するファクトリ。
+全シーンに共通機能を一括追加できる拡張ポイント。
+
+```tsx
+// engine/components/createScene.tsx
+type SceneOptions = {
+  name: string
+  // 将来の拡張用
+  // transition?: "fade" | "slide" | "none"
+  // preload?: string[]
+}
+
+export function createScene(
+  options: SceneOptions,
+  render: () => ReactNode
+) {
+  function Scene() {
+    return (
+      <div style={{ position: "absolute", inset: 0 }} data-scene={options.name}>
+        {render()}
+      </div>
+    )
+  }
+  Scene.displayName = `${options.name}Scene`
+  Scene.sceneName = options.name
+  return Scene
+}
+```
+
+**責務の分離**:
+- Scene（createScene）: absolute + inset: 0 で親にフィット
+- Widget（createWidget）: absolute + zIndex で配置
+
 ### 使用例
 
 ```tsx
 // features/Dialogue/widget/DialogueMessage.tsx
-import { createWidget } from "@/engine/components/createWidget"
+import { createWidget } from "@/engine/components/factories"
 import { MessageBox } from "../components/MessageBox"
 
 export const DialogueMessage = createWidget(MessageBox, {
@@ -72,7 +125,7 @@ export const DialogueMessage = createWidget(MessageBox, {
 })
 
 // features/Dialogue/widget/DialogueCharacterSprite.tsx
-import { createSprite } from "@/engine/components/createSprite"
+import { createSprite } from "@/engine/components/factories"
 import { Character } from "../sprites/Character"
 
 export const DialogueCharacterSprite = createSprite(Character, {

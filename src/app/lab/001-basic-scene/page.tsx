@@ -28,8 +28,8 @@ import { extend } from "@pixi/react"
 import { Container, Sprite, Texture, Assets } from "pixi.js"
 import { GameScreen, PixiCanvas, useGameSize, type DisplayConfig } from "@/engine/components/Screen"
 import MessageBubble from "./components/MessageBubble"
-import CharacterSprite from "./components/CharacterSprite"
 import { BgSwitcherSprite } from "@/engine/features/Background"
+import { CharacterSprite, CharacterNameCard } from "@/engine/features/Character"
 import { createScenarioResolver, type ScenarioResolver } from "@/engine/utils/assetResolver"
 import { bgmManager, playSe } from "@/engine/audio"
 import { defaultMessageBubbleStyle } from "./components/MessageBubble/defaults"
@@ -54,17 +54,19 @@ const MESSAGE_AREA = {
   paddingBottomPercent: 5,  // 下部パディング（画面高さの %）
 }
 
-// キャラクター名表示設定
-const CHARACTER_NAME_DISPLAY = {
-  bottomOffset: 8,        // 画面下からの距離（%）
-  leftCharacterX: 18,     // 左キャラの名前X位置（画面左から%）
-  rightCharacterX: 82,    // 右キャラの名前X位置（画面左から%）
-  textShadow: "1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 8px rgba(0,0,0,0.8)",  // テキストシャドウ（アウトライン + ぼかし）
+// キャラクター配置設定（チャット型レイアウト）
+const CHARACTER_LAYOUT = {
+  left: { x: 0.18, y: 1.0 },   // 左キャラ位置（相対座標）
+  right: { x: 0.82, y: 1.0 },  // 右キャラ位置（相対座標）
+  scale: 0.8,                   // 基本スケール
+  activeOpacity: 1.0,           // アクティブ時の透明度
+  inactiveOpacity: 0.7,         // 非アクティブ時の透明度
 }
 
-// 立ち絵下の名前アンダーライン設定
-const STANDING_NAME_UNDERLINE = {
-  width: 3,                 // ラインの太さ（px）
+// キャラクター名表示設定
+const CHARACTER_NAME_DISPLAY = {
+  left: { x: 0.18, y: 0.92 },   // 左キャラの名前位置
+  right: { x: 0.82, y: 0.92 },  // 右キャラの名前位置
 }
 
 // 下部オーバーレイ設定（システムパネル領域）
@@ -172,15 +174,16 @@ function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady }: 
 
           const side = positionToSide(charConfig.position)
           const isActive = currentSpeaker === charId || currentSpeaker === null
+          const position = side === "left" ? CHARACTER_LAYOUT.left : CHARACTER_LAYOUT.right
+          const opacity = isActive ? CHARACTER_LAYOUT.activeOpacity : CHARACTER_LAYOUT.inactiveOpacity
 
           return (
             <CharacterSprite
               key={charId}
               texture={texture}
-              side={side}
-              isActive={isActive}
-              screenWidth={screenWidth}
-              screenHeight={screenHeight}
+              position={position}
+              scale={CHARACTER_LAYOUT.scale}
+              opacity={opacity}
             />
           )
         })}
@@ -380,27 +383,16 @@ export default function BasicScenePage() {
           if (!charDef) return null
 
           const side = positionToSide(charConfig.position)
-          const xPos = side === "left" ? CHARACTER_NAME_DISPLAY.leftCharacterX : CHARACTER_NAME_DISPLAY.rightCharacterX
+          const namePosition = side === "left" ? CHARACTER_NAME_DISPLAY.left : CHARACTER_NAME_DISPLAY.right
 
           return (
-            <div
+            <CharacterNameCard
               key={charId}
-              className="absolute z-30 -translate-x-1/2"
-              style={{
-                bottom: `${CHARACTER_NAME_DISPLAY.bottomOffset}%`,
-                left: `${xPos}%`,
-              }}
-            >
-              <span
-                className="inline-block px-3 py-1 text-lg font-bold text-white"
-                style={{
-                  borderBottom: `${STANDING_NAME_UNDERLINE.width}px solid ${charDef.color}`,
-                  textShadow: CHARACTER_NAME_DISPLAY.textShadow,
-                }}
-              >
-                {charDef.name}
-              </span>
-            </div>
+              name={charDef.name}
+              color={charDef.color}
+              position={namePosition}
+              variant="underline"
+            />
           )
         })}
 
