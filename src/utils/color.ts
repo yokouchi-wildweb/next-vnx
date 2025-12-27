@@ -25,13 +25,12 @@ export const parseCssHex = (hex: string): RGB => {
   }
 }
 
-/** 0x000000 → RGB */
-export const parseCodeHex = (hex: string): RGB => {
-  const clean = hex.replace('0x', '').replace('0X', '')
+/** 0xff5500 (number) → RGB */
+export const parseCodeHex = (hex: number): RGB => {
   return {
-    r: parseInt(clean.slice(0, 2), 16),
-    g: parseInt(clean.slice(2, 4), 16),
-    b: parseInt(clean.slice(4, 6), 16),
+    r: (hex >> 16) & 0xff,
+    g: (hex >> 8) & 0xff,
+    b: hex & 0xff,
   }
 }
 
@@ -53,10 +52,9 @@ export const rgbToCssHex = ({ r, g, b }: RGB, options?: CssHexOptions): string =
   return withHash ? `#${hex}` : hex
 }
 
-/** RGB → 0x000000 */
-export const rgbToCodeHex = ({ r, g, b }: RGB): string => {
-  const toHex = (n: number) => n.toString(16).padStart(2, '0')
-  return `0x${toHex(r)}${toHex(g)}${toHex(b)}`
+/** RGB → number (0xff5500 形式の数値) */
+export const rgbToCodeHex = ({ r, g, b }: RGB): number => {
+  return (r << 16) | (g << 8) | b
 }
 
 /** RGB → "0, 0, 0" */
@@ -68,13 +66,13 @@ export const rgbToString = ({ r, g, b }: RGB): string => {
 // 直接変換（ショートカット）
 // ============================================================
 
-/** #000000 または 000000 → 0x000000 */
-export const cssHexToCodeHex = (hex: string): string => {
+/** #000000 または 000000 → number */
+export const cssHexToCodeHex = (hex: string): number => {
   return rgbToCodeHex(parseCssHex(hex))
 }
 
-/** 0x000000 → #000000 または 000000（withHash: false で # なし） */
-export const codeHexToCssHex = (hex: string, options?: CssHexOptions): string => {
+/** number → #000000 または 000000（withHash: false で # なし） */
+export const codeHexToCssHex = (hex: number, options?: CssHexOptions): string => {
   return rgbToCssHex(parseCodeHex(hex), options)
 }
 
@@ -88,13 +86,13 @@ export const rgbStringToCssHex = (rgb: string, options?: CssHexOptions): string 
   return rgbToCssHex(parseRgbString(rgb), options)
 }
 
-/** 0x000000 → "0, 0, 0" */
-export const codeHexToRgbString = (hex: string): string => {
+/** number → "0, 0, 0" */
+export const codeHexToRgbString = (hex: number): string => {
   return rgbToString(parseCodeHex(hex))
 }
 
-/** "0, 0, 0" → 0x000000 */
-export const rgbStringToCodeHex = (rgb: string): string => {
+/** "0, 0, 0" → number */
+export const rgbStringToCodeHex = (rgb: string): number => {
   return rgbToCodeHex(parseRgbString(rgb))
 }
 
@@ -109,9 +107,9 @@ export const isCssHex = (value: string): boolean => {
   return /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value)
 }
 
-/** 0x000000 形式かどうか */
-export const isCodeHex = (value: string): boolean => {
-  return /^0[xX][0-9a-fA-F]{6}$/.test(value)
+/** 有効なカラー数値かどうか（0x000000〜0xffffff） */
+export const isCodeHex = (value: number): boolean => {
+  return Number.isInteger(value) && value >= 0x000000 && value <= 0xffffff
 }
 
 /** "0, 0, 0" または "0,0,0" 形式かどうか（各値0-255） */
@@ -122,9 +120,11 @@ export const isRgbString = (value: string): boolean => {
   return r <= 255 && g <= 255 && b <= 255
 }
 
-/** 入力文字列がどの形式かを判定（該当なしは null） */
-export const detectColorFormat = (value: string): ColorFormat | null => {
-  if (isCodeHex(value)) return 'codeHex'
+/** 入力がどの形式かを判定（該当なしは null） */
+export const detectColorFormat = (value: string | number): ColorFormat | null => {
+  if (typeof value === 'number') {
+    return isCodeHex(value) ? 'codeHex' : null
+  }
   if (isCssHex(value)) return 'cssHex'
   if (isRgbString(value)) return 'rgbString'
   return null
