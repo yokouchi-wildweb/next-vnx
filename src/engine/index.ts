@@ -13,6 +13,7 @@
 // Features（バンドル形式）
 export { Background } from "./features/Background"
 export { Character } from "./features/Character"
+export { Dialogue } from "./features/Dialogue"
 
 // Audio
 export { bgmManager, useBgmStore, playSe, playSeSequence } from "./audio"
