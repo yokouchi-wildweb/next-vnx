@@ -19,7 +19,7 @@ export type NavigationItemProps = {
 };
 const psClassName = {
   action:
-    "h-auto rounded-none px-0 py-0 text-left text-foreground transition-colors hover:bg-transparent hover:text-primary disabled:opacity-60",
+    "h-auto rounded-none px-0 py-0 text-left transition-colors hover:bg-transparent hover:text-primary disabled:opacity-60",
   link: "transition-colors hover:text-primary",
 } as const;
 
