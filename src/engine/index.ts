@@ -10,5 +10,9 @@
 // export { useSceneStore } from './stores/useSceneStore'
 // export type { Scene, Dialogue, Character } from './types'
 
+// Features（バンドル形式）
+export { Background } from "./features/Background"
+export { Character } from "./features/Character"
+
 // Audio
 export { bgmManager, useBgmStore, playSe, playSeSequence } from "./audio"

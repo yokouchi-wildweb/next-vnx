@@ -28,8 +28,7 @@ import { extend } from "@pixi/react"
 import { Container, Sprite, Texture, Assets } from "pixi.js"
 import { GameScreen, PixiCanvas, useGameSize, type DisplayConfig } from "@/engine/components/Screen"
 import MessageBubble from "./components/MessageBubble"
-import { BgSwitcherSprite } from "@/engine/features/Background"
-import { CharacterSprite, CharacterNameCard } from "@/engine/features/Character"
+import { Background, Character } from "@/engine"
 import { createScenarioResolver, type ScenarioResolver } from "@/engine/utils/assetResolver"
 import { bgmManager, playSe } from "@/engine/audio"
 import { defaultMessageBubbleStyle } from "./components/MessageBubble/defaults"
@@ -159,7 +158,7 @@ function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady }: 
   return (
     <pixiContainer>
       {/* 背景 */}
-      <BgSwitcherSprite
+      <Background.Sprites.Background
         texture={assets.background}
         screenWidth={screenWidth}
         screenHeight={screenHeight}
@@ -178,7 +177,7 @@ function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady }: 
           const opacity = isActive ? CHARACTER_LAYOUT.activeOpacity : CHARACTER_LAYOUT.inactiveOpacity
 
           return (
-            <CharacterSprite
+            <Character.Sprites.Character
               key={charId}
               texture={texture}
               position={position}
@@ -386,7 +385,7 @@ export default function BasicScenePage() {
           const namePosition = side === "left" ? CHARACTER_NAME_DISPLAY.left : CHARACTER_NAME_DISPLAY.right
 
           return (
-            <CharacterNameCard
+            <Character.Widgets.NameCard
               key={charId}
               name={charDef.name}
               color={charDef.color}

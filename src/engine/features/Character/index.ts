@@ -6,11 +6,10 @@
  * - 名前カード
  */
 
-// Widget（Scene用）
-export { CharacterSprite } from "./widget/CharacterSprite"
-export { CharacterNameCard } from "./widget/CharacterNameCard"
+// バンドルエクスポート
+export { Character } from "./exports"
 
-// Types
+// 型（バンドル外から直接使用する場合）
 export type {
   Position2D,
   Anchor2D,
@@ -19,6 +18,4 @@ export type {
   NameCardProps,
   UnderlineStyle,
 } from "./types"
-
-// Defaults
 export { defaultStandingAnchor, defaultUnderlineStyle } from "./defaults"

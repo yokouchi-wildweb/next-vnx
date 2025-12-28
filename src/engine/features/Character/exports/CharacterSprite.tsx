@@ -1,8 +1,7 @@
 /**
  * CharacterSprite
  *
- * createSprite でラップされた立ち絵スプライト
- * Scene から安全に使用可能
+ * createSprite でラップされたキャラクタースプライト
  */
 
 import { createSprite } from "@/engine/components/factories"

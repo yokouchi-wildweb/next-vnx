@@ -4,11 +4,9 @@
  * 背景表示・切り替え機能を提供
  */
 
-// Widget（Scene用）
-export { BgSwitcherSprite } from "./widget/BgSwitcherSprite"
+// バンドルエクスポート
+export { Background } from "./exports"
 
-// Types
+// 型（バンドル外から直接使用する場合）
 export type { SwitcherProps, SwitcherStyle, BlurStyle, BrightnessStyle } from "./types"
-
-// Defaults
 export { defaultSwitcherStyle } from "./defaults"
