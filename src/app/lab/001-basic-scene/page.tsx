@@ -24,11 +24,14 @@
 
 import { useEffect, useRef, useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { extend } from "@pixi/react"
+import { Application, extend, useApplication } from "@pixi/react"
 import { Container, Sprite, Texture, Assets } from "pixi.js"
-import { GameScreen, PixiCanvas, useGameSize, type DisplayConfig } from "@/engine/components/Screen"
+import FullScreen from "@/components/Layout/FullScreen"
+import { useViewportSizeStore } from "@/stores/viewportSize"
+import { GameContainer, type GameSize } from "@/engine/components"
 import MessageBubble from "./components/MessageBubble"
-import { Background, Character } from "@/engine"
+import CharacterSprite from "./components/CharacterSprite"
+import BackgroundSprite from "./components/BackgroundSprite"
 import { createScenarioResolver, type ScenarioResolver } from "@/engine/utils/assetResolver"
 import { bgmManager, playSe } from "@/engine/audio"
 import { defaultMessageBubbleStyle } from "./components/MessageBubble/defaults"
@@ -53,19 +56,17 @@ const MESSAGE_AREA = {
   paddingBottomPercent: 5,  // 下部パディング（画面高さの %）
 }
 
-// キャラクター配置設定（チャット型レイアウト）
-const CHARACTER_LAYOUT = {
-  left: { x: 0.18, y: 1.0 },   // 左キャラ位置（相対座標）
-  right: { x: 0.82, y: 1.0 },  // 右キャラ位置（相対座標）
-  scale: 0.8,                   // 基本スケール
-  activeOpacity: 1.0,           // アクティブ時の透明度
-  inactiveOpacity: 0.7,         // 非アクティブ時の透明度
-}
-
 // キャラクター名表示設定
 const CHARACTER_NAME_DISPLAY = {
-  left: { x: 0.18, y: 0.92 },   // 左キャラの名前位置
-  right: { x: 0.82, y: 0.92 },  // 右キャラの名前位置
+  bottomOffset: 8,        // 画面下からの距離（%）
+  leftCharacterX: 18,     // 左キャラの名前X位置（画面左から%）
+  rightCharacterX: 82,    // 右キャラの名前X位置（画面左から%）
+  textShadow: "1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 8px rgba(0,0,0,0.8)",  // テキストシャドウ（アウトライン + ぼかし）
+}
+
+// 立ち絵下の名前アンダーライン設定
+const STANDING_NAME_UNDERLINE = {
+  width: 3,                 // ラインの太さ（px）
 }
 
 // 下部オーバーレイ設定（システムパネル領域）
@@ -85,6 +86,8 @@ interface SceneContainerProps {
   scene: Scene
   resolver: ScenarioResolver
   onReady: () => void
+  gameWidth: number
+  gameHeight: number
 }
 
 interface LoadedAssets {
@@ -96,11 +99,13 @@ interface LoadedAssets {
  * シーン全体を管理するPixiJSコンテナ
  * Assets.loadでアセットをロード
  */
-function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady }: SceneContainerProps) {
+function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady, gameWidth, gameHeight }: SceneContainerProps) {
+  const { app } = useApplication()
   const [assets, setAssets] = useState<LoadedAssets | null>(null)
 
-  // ゲームサイズを取得（GameScreenのContextから）
-  const { width: screenWidth, height: screenHeight } = useGameSize()
+  // ゲームサイズを使用（propsから渡される固定アスペクト比のサイズ）
+  const screenWidth = gameWidth
+  const screenHeight = gameHeight
 
   // シーンに登場するキャラクターIDリスト
   const characterIds = Object.keys(scene.characters)
@@ -140,7 +145,12 @@ function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady }: 
     }
   }, [resolver, scenario, scene, characterIds, onReady])
 
-  // リサイズ処理はPixiCanvasが担当するため削除
+  // ゲームサイズ変更時にrendererをリサイズ
+  useEffect(() => {
+    if (gameWidth > 0 && gameHeight > 0 && app.renderer) {
+      app.renderer.resize(gameWidth, gameHeight)
+    }
+  }, [app, gameWidth, gameHeight])
 
   if (!assets) {
     return null
@@ -158,7 +168,7 @@ function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady }: 
   return (
     <pixiContainer>
       {/* 背景 */}
-      <Background.Sprites.Background
+      <BackgroundSprite
         texture={assets.background}
         screenWidth={screenWidth}
         screenHeight={screenHeight}
@@ -173,16 +183,15 @@ function SceneContainer({ currentSpeaker, scenario, scene, resolver, onReady }: 
 
           const side = positionToSide(charConfig.position)
           const isActive = currentSpeaker === charId || currentSpeaker === null
-          const position = side === "left" ? CHARACTER_LAYOUT.left : CHARACTER_LAYOUT.right
-          const opacity = isActive ? CHARACTER_LAYOUT.activeOpacity : CHARACTER_LAYOUT.inactiveOpacity
 
           return (
-            <Character.Sprites.Character
+            <CharacterSprite
               key={charId}
               texture={texture}
-              position={position}
-              scale={CHARACTER_LAYOUT.scale}
-              opacity={opacity}
+              side={side}
+              isActive={isActive}
+              screenWidth={screenWidth}
+              screenHeight={screenHeight}
             />
           )
         })}
@@ -209,8 +218,16 @@ export default function BasicScenePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [currentSpeaker, setCurrentSpeaker] = useState<string | null>(null)
 
-  // display設定（scenarioから取得）
-  const displayConfig: DisplayConfig | undefined = scenario?.display as DisplayConfig | undefined
+  // ゲームサイズ（GameContainerから更新される）
+  const [gameSize, setGameSize] = useState<GameSize>({ width: 0, height: 0, scale: 1 })
+
+  // ビューポートサイズを取得（FullScreenが更新する）
+  const { width: viewportWidth, height: viewportHeight } = useViewportSizeStore()
+
+  // ゲームサイズ変更時のコールバック
+  const handleGameSizeChange = useCallback((size: GameSize) => {
+    setGameSize(size)
+  }, [])
 
 
   // シナリオ・シーンデータを読み込む
@@ -344,30 +361,49 @@ export default function BasicScenePage() {
   // データ読み込み中
   if (!scenario || !scene || !resolver) {
     return (
-      <GameScreen>
+      <FullScreen layer="base" className="bg-black">
         <div className="w-full h-full flex items-center justify-center">
           <p className="text-white text-xl">データ読み込み中...</p>
         </div>
-      </GameScreen>
+      </FullScreen>
     )
   }
 
   return (
-    <GameScreen displayConfig={displayConfig}>
-      <div
-        className="relative w-full h-full cursor-pointer"
-        onClick={handleAdvance}
+    <FullScreen layer="base" className="bg-black">
+      {/* 固定アスペクト比のゲームコンテナ */}
+      <GameContainer
+        viewportWidth={viewportWidth}
+        viewportHeight={viewportHeight}
+        onSizeChange={handleGameSizeChange}
+        className="cursor-pointer"
       >
-        {/* PixiJS描画レイヤー */}
-        <PixiCanvas>
-          <SceneContainer
-            currentSpeaker={currentSpeaker}
-            scenario={scenario}
-            scene={scene}
-            resolver={resolver}
-            onReady={handleSceneReady}
-          />
-        </PixiCanvas>
+        <div
+          className="relative w-full h-full"
+          onClick={handleAdvance}
+        >
+          {/* @pixi/react Application */}
+          <div className="absolute inset-0">
+            {gameSize.width > 0 && gameSize.height > 0 && (
+              <Application
+                width={gameSize.width}
+                height={gameSize.height}
+                backgroundColor={0x000000}
+                resolution={typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1}
+                autoDensity
+              >
+                <SceneContainer
+                  currentSpeaker={currentSpeaker}
+                  scenario={scenario}
+                  scene={scene}
+                  resolver={resolver}
+                  onReady={handleSceneReady}
+                  gameWidth={gameSize.width}
+                  gameHeight={gameSize.height}
+                />
+              </Application>
+            )}
+          </div>
 
         {/* ローディング表示 */}
         {isLoading && (
@@ -382,16 +418,27 @@ export default function BasicScenePage() {
           if (!charDef) return null
 
           const side = positionToSide(charConfig.position)
-          const namePosition = side === "left" ? CHARACTER_NAME_DISPLAY.left : CHARACTER_NAME_DISPLAY.right
+          const xPos = side === "left" ? CHARACTER_NAME_DISPLAY.leftCharacterX : CHARACTER_NAME_DISPLAY.rightCharacterX
 
           return (
-            <Character.Widgets.NameCard
+            <div
               key={charId}
-              name={charDef.name}
-              color={charDef.color}
-              position={namePosition}
-              variant="underline"
-            />
+              className="absolute z-30 -translate-x-1/2"
+              style={{
+                bottom: `${CHARACTER_NAME_DISPLAY.bottomOffset}%`,
+                left: `${xPos}%`,
+              }}
+            >
+              <span
+                className="inline-block px-3 py-1 text-lg font-bold text-white"
+                style={{
+                  borderBottom: `${STANDING_NAME_UNDERLINE.width}px solid ${charDef.color}`,
+                  textShadow: CHARACTER_NAME_DISPLAY.textShadow,
+                }}
+              >
+                {charDef.name}
+              </span>
+            </div>
           )
         })}
 
@@ -487,19 +534,20 @@ export default function BasicScenePage() {
           </div>
         )}
 
-        {/* 進行インジケーター */}
-        {!isLoading && displayedMessages.length > 0 && (
-          <div className="absolute left-1/2 -translate-x-1/2 z-30" style={{ bottom: "10%" }}>
-            {!isLastDialogue ? (
-              <span className="text-white/60 text-sm animate-pulse">
-                ▼ クリックで次へ
-              </span>
-            ) : (
-              <span className="text-white/40 text-sm">— END —</span>
-            )}
-          </div>
-        )}
-      </div>
-    </GameScreen>
+          {/* 進行インジケーター */}
+          {!isLoading && displayedMessages.length > 0 && (
+            <div className="absolute left-1/2 -translate-x-1/2 z-30" style={{ bottom: "10%" }}>
+              {!isLastDialogue ? (
+                <span className="text-white/60 text-sm animate-pulse">
+                  ▼ クリックで次へ
+                </span>
+              ) : (
+                <span className="text-white/40 text-sm">— END —</span>
+              )}
+            </div>
+          )}
+        </div>
+      </GameContainer>
+    </FullScreen>
   )
 }
