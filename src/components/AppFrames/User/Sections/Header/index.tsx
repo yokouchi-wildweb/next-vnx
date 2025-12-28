@@ -11,6 +11,7 @@ import { APP_HEADER_ELEMENT_ID } from "@/constants/layout";
 import { HEADER_ENABLED } from "@/config/ui/user-header.config";
 
 import { useHeaderVisibility } from "../../contexts/HeaderVisibilityContext";
+import { useHeaderNavVisibility } from "../../contexts/HeaderNavVisibilityContext";
 import { useUserMenuItems } from "./useUserMenuItems";
 
 export const UserNavigation = () => {
@@ -20,6 +21,7 @@ export const UserNavigation = () => {
   const pathname = usePathname();
   const { navItems, enabled: menuEnabled } = useUserMenuItems();
   const { visibility } = useHeaderVisibility();
+  const { visibility: navVisibility } = useHeaderNavVisibility();
 
   const handleClose = useCallback(() => {
     setIsMenuOpen(false);
@@ -104,17 +106,17 @@ export const UserNavigation = () => {
     <header
       id={APP_HEADER_ELEMENT_ID}
       ref={headerRef}
-      className={`fixed shadow inset-x-0 top-0 header-layer border-b border-border bg-card ${visibilityClass}`}
+      className={`fixed shadow inset-x-0 top-0 header-layer border-b border-border bg-card text-card-foreground ${visibilityClass}`}
     >
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-2 sm:py-4">
         <Brand />
-        {menuEnabled.sp && (
+        {menuEnabled.sp && navVisibility.sp && (
           <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={handleToggle} />
         )}
-        {menuEnabled.pc && <PcNavigation items={navItems} />}
+        {menuEnabled.pc && navVisibility.pc && <PcNavigation items={navItems} />}
       </div>
 
-      {menuEnabled.sp && (
+      {menuEnabled.sp && navVisibility.sp && (
         <SpNavigation
           isOpen={isMenuOpen}
           items={navItems}
