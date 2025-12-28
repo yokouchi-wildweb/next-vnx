@@ -108,8 +108,56 @@ export function createScene(
 }
 ```
 
+### createLayer（Widget グループ用）
+
+複数の Widget をまとめた Layer を生成するファクトリ。
+Feature から Scene に提供する推奨レイアウト。
+
+```tsx
+// engine/components/createLayer.tsx
+type LayerOptions = {
+  name: string
+  zIndex: number
+}
+
+export function createLayer(
+  options: LayerOptions,
+  render: () => ReactNode
+) {
+  function Layer({ zIndex = options.zIndex, visible = true }) {
+    if (!visible) return null
+    return (
+      <div
+        style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex }}
+        data-layer={options.name}
+      >
+        {render()}
+      </div>
+    )
+  }
+  Layer.displayName = `${options.name}Layer`
+  Layer.defaultZIndex = options.zIndex
+  return Layer
+}
+```
+
+**使用例**:
+```tsx
+// features/Dialogue/widget/DialogueLayer.tsx
+export const DialogueLayer = createLayer({
+  name: "Dialogue",
+  zIndex: 10,
+}, () => (
+  <>
+    <DialogueMessage />
+    <SpeakerName />
+  </>
+))
+```
+
 **責務の分離**:
 - Scene（createScene）: absolute + inset: 0 で親にフィット
+- Layer（createLayer）: Widget グループ化 + zIndex 管理
 - Widget（createWidget）: absolute + zIndex で配置
 
 ### 使用例

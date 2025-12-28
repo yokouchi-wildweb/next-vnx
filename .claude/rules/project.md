@@ -42,6 +42,97 @@ rule: no pre-designed schema, evolve through prototyping
 - public/game/: input data for engine (dev mock, prod from DB)
 - scenario format: undefined, evolve via prototyping
 
+## engine_hierarchy
+```
+GameManager (game-wide: save/load, title↔gameplay)
+  └─ ScenarioManager (scenario-unit: scene transitions, branching)
+       └─ SceneController (scene-unit: init, singleton)
+            ├─ Composer (UI placement: auto or custom)
+            └─ Executor (progression: per scene-type)
+                 └─ Features (reactive: state + UI)
+```
+
+## scene_flow
+1. SceneController loads scene.json
+2. type → Archetype from SceneArchetypeRegistry
+3. merge Archetype.arrangement + scene.json.overrides
+4. init Feature Stores
+5. select Composer (archetype.composer || AutoComposer)
+6. start Executor
+
+## archetype
+```ts
+type Archetype = {
+  features: string[]          // ["Background", "Character", "Dialogue"]
+  executor: ExecutorType      // DialogueExecutor | BattleExecutor
+  composer: ComposerType|null // null → AutoComposer
+  arrangement: Arrangement    // default layout
+  schema?: ZodSchema          // validation (future)
+}
+```
+
+## feature_structure
+```
+features/<Name>/
+├── components/     # raw React (internal)
+├── sprites/        # raw PixiJS (internal)
+├── exports/        # factory-applied (public)
+│   ├── *Widget.tsx   # createWidget
+│   ├── *Sprite.tsx   # createSprite
+│   ├── *Layer.tsx    # createLayer
+│   └── index.ts      # bundle export
+├── hooks/
+│   └── index.ts      # hook barrel
+└── stores/
+```
+
+## feature_bundle
+```ts
+export const Feature = {
+  Sprites: { ... },     // PixiJS (canvas)
+  Layers: { ... },      // widget groups (createLayer)
+  Widgets: { ... },     // single HTML (createWidget)
+  hooks: {
+    useFeature(),       // read state (for UI)
+    useFeatureActions() // write state (for Executor)
+  },
+}
+```
+
+## factories
+| factory | target | effect |
+|---------|--------|--------|
+| createWidget | HTML | absolute + zIndex injection |
+| createSprite | PixiJS | displayName (pass-through) |
+| createLayer | widget group | absolute + inset:0 + pointerEvents:none + zIndex |
+| createScene | scene container | absolute + inset:0 |
+
+## naming_conventions
+- *Sprite: PixiJS component
+- *Layer: widget group (createLayer)
+- *Widget: single HTML (createWidget)
+- no suffix: raw component (internal)
+
+## scene_json
+```json
+{
+  "type": "chat",
+  "overrides": { "Dialogue.UI": { "bottom": "5%" } },
+  "backgrounds": { ... },
+  "characters": { ... },
+  "initialBgm": { ... },
+  "dialogues": [{ "speaker": "...", "text": "...", "commands": [...] }]
+}
+```
+
+## responsibility
+| component | init | UI | state | progression |
+|-----------|------|-----|-------|-------------|
+| SceneController | ✓ | - | write | - |
+| Composer | - | ✓ | - | - |
+| Executor | - | - | write | ✓ |
+| Feature | - | ✓ | read/write | - |
+
 ## Tone and personality
 
 - speak in an intelligent, friendly, and feminine tone.
