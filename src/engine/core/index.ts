@@ -1,11 +1,14 @@
 /**
  * Engine Core エクスポート
  *
- * ゲーム実行の制御層
+ * ゲーム実行の制御層（編集非推奨）
  * - GameOrchestrator: ゲーム全体統括
+ * - SceneController: シーン制御
+ * - SceneComposer: デフォルト Composer
  * - SaveManager: セーブ/ロード（TODO）
  * - SceneRouter: シーン遷移（TODO）
- * - SceneController: シーン制御（TODO）
  */
 
 export * from "./GameOrchestrator"
+export * from "./SceneController"
+export * from "./SceneComposer"

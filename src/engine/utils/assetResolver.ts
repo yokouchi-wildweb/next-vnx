@@ -8,7 +8,10 @@
  *   const scene = await resolver.loadScene('church')
  */
 
-import type { Scene, Scenario } from "@/engine/types"
+// TODO: 正式な型定義が確定したら engine/types から import する
+// 現在は汎用的な型で対応
+type Scenario = Record<string, unknown>
+type Scene = Record<string, unknown>
 
 // マニフェストの型定義
 interface AssetEntry {

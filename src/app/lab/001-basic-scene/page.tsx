@@ -35,7 +35,7 @@ import BackgroundSprite from "./components/BackgroundSprite"
 import { createScenarioResolver, type ScenarioResolver } from "@/engine/utils/assetResolver"
 import { bgmManager, playSe } from "@/engine/audio"
 import { defaultMessageBubbleStyle } from "./components/MessageBubble/defaults"
-import type { Scenario, Scene, Dialogue, SceneCommand } from "@/engine/types"
+import type { Scenario, Scene, Dialogue, SceneCommand } from "./types"
 
 // PixiJSコンポーネントを登録
 extend({ Container, Sprite })
@@ -241,8 +241,8 @@ export default function BasicScenePage() {
         res.loadScene(SCENE_ID),
       ])
 
-      setScenario(scenarioData)
-      setScene(sceneData)
+      setScenario(scenarioData as unknown as Scenario)
+      setScene(sceneData as unknown as Scene)
     }
 
     loadData()
