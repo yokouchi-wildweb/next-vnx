@@ -57,3 +57,19 @@ feature/
 - x, y separate: easier partial override
 - widthPercent: screen-relative sizing
 - base feature reuse: composite imports base sprite, adds position
+
+## export_naming
+| naming | type | usage |
+|--------|------|-------|
+| no suffix (Standing, MessageList) | raw component | reusable in other features |
+| *Sprite/*Widget/*Layer suffix | factory-wrapped | for arrangement |
+
+example:
+```ts
+// character/exports/index.ts
+export { Standing } from "../sprites/Standing"      // raw, reusable
+export { CharacterSprite } from "./CharacterSprite" // wrapped, for arrangement
+
+// dialogue-v2 imports raw for reuse
+import { Standing } from "@/engine/features/character/exports"
+```

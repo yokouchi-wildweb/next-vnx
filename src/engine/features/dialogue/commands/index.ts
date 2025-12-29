@@ -1,48 +1,47 @@
 /**
  * Dialogue Commands
  *
- * Dialogue Feature のコマンドハンドラー
+ * SceneController から呼び出される初期化・リセット処理
  */
 
-import type { Scene } from "@/engine/types"
-import { dialogueStore } from "../stores"
-import type { DialogueMessage } from "../stores"
+import { internalStore } from "../stores/internalStore"
+import type { DialogueMessage } from "../types"
 
-export const dialogueCommands = {
+type InitOptions = {
+  /** 左キャラクターのスプライトパス */
+  leftCharacter?: string
+  /** 右キャラクターのスプライトパス */
+  rightCharacter?: string
+}
+
+export const commands = {
   /**
-   * 初期化（scene 全体から必要なデータを取り出す）
+   * 初期化
    */
-  init: (_scene: Scene) => {
-    // 現在はメッセージをクリアするのみ
-    // fragments の管理は将来拡張
-    dialogueStore.getState().clear()
+  init: (options: InitOptions = {}) => {
+    const store = internalStore.getState()
+
+    if (options.leftCharacter) {
+      store.setLeftCharacter(options.leftCharacter)
+    }
+    if (options.rightCharacter) {
+      store.setRightCharacter(options.rightCharacter)
+    }
   },
 
   /**
    * メッセージを追加
    */
-  addMessage: (data: Omit<DialogueMessage, "id">) => {
-    dialogueStore.getState().addMessage(data)
-  },
-
-  /**
-   * 話者を設定
-   */
-  speaker: (data: { id: string | null }) => {
-    dialogueStore.getState().setSpeaker(data.id)
-  },
-
-  /**
-   * メッセージをクリア
-   */
-  clear: () => {
-    dialogueStore.getState().clear()
+  addMessage: (message: Omit<DialogueMessage, "id">) => {
+    const store = internalStore.getState()
+    store.addMessage(message)
+    store.updateCharacterActiveState()
   },
 
   /**
    * リセット
    */
   reset: () => {
-    dialogueStore.getState().reset()
+    internalStore.getState().reset()
   },
 }

@@ -1,12 +1,3 @@
-// src/engine/features/Dialogue/components/MessageBubble/index.tsx
-
-"use client"
-
-import { motion } from "framer-motion"
-import { mergeStyles } from "@/engine/utils/styleUtils"
-import { defaultMessageBubbleStyle } from "./defaults"
-import type { MessageBubbleProps } from "./types"
-
 /**
  * MessageBubble - チャット風メッセージ表示コンポーネント
  *
@@ -15,6 +6,13 @@ import type { MessageBubbleProps } from "./types"
  * - アンダーライン（シマーエフェクト付き）
  * - 吹き出し（メッセージ本文 + 次へインジケーター）
  */
+"use client"
+
+import { motion } from "framer-motion"
+import { mergeStyles } from "@/engine/utils/styleUtils"
+import { defaultMessageBubbleStyle } from "./defaults"
+import type { MessageBubbleProps } from "./types"
+
 export function MessageBubble({
   speakerName,
   speakerColor,
@@ -29,10 +27,7 @@ export function MessageBubble({
   const cornerRadius = side === "left" ? "rounded-tl-sm" : "rounded-tr-sm"
 
   return (
-    <div
-      className="flex flex-col gap-1 w-full"
-      style={{ opacity }}
-    >
+    <div className="flex flex-col gap-1 w-full" style={{ opacity }}>
       {/* 発言者名 + アンダーライン */}
       <div
         className="relative w-full"

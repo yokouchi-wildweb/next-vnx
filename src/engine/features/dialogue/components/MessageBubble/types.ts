@@ -1,5 +1,3 @@
-// src/engine/features/Dialogue/components/MessageBubble/types.ts
-
 /**
  * MessageBubble コンポーネントの型定義
  */

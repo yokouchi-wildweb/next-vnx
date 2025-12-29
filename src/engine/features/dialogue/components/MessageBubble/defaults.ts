@@ -1,10 +1,9 @@
-// src/engine/features/Dialogue/components/MessageBubble/defaults.ts
-
-import type { MessageBubbleStyle } from "./types"
-
 /**
  * MessageBubble のデフォルトスタイル設定
  */
+
+import type { MessageBubbleStyle } from "./types"
+
 export const defaultMessageBubbleStyle: MessageBubbleStyle = {
   // 親コンテナに対する幅（%）
   widthPercent: 70,

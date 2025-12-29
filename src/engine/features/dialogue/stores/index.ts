@@ -1,7 +1,5 @@
 /**
- * Dialogue Store エクスポート
+ * Dialogue Stores 公開エクスポート
  */
-
 export { useDialogueStore } from "./useStore"
-export { internalStore as dialogueStore } from "./internalStore"
-export type { DialogueState, DialogueMessage, MessageSide } from "./internalStore"
+export type { DialogueMessage, MessageSide, DialogueState } from "../types"

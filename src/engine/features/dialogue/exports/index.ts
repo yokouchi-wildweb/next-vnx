@@ -1,21 +1,40 @@
 /**
- * Dialogue Feature Bundle
+ * Dialogue Feature 公開エクスポート
  */
 
-import { dialogueCommands } from "../commands"
-import { useDialogue, useDialogueActions } from "../hooks"
-import { MessageListWidget } from "./MessageListWidget"
+// Sprites
+export { DialogueCharactersSprite } from "./DialogueCharactersSprite"
+export { DialogueCharacters } from "../sprites/DialogueCharacters"
 
-export const dialogue = {
-  name: "dialogue",
-  commands: dialogueCommands,
-  Sprites: {},
-  Layers: {},
-  Widgets: {
-    MessageList: MessageListWidget,
-  },
-  hooks: {
-    useDialogue,
-    useDialogueActions,
-  },
-}
+// Widgets
+export { MessageListWidget } from "./MessageListWidget"
+export { MessageList } from "../components/MessageList"
+export { MessageBubble } from "../components/MessageBubble"
+
+// Hooks
+export { useDialogue, useDialogueActions } from "../hooks"
+
+// Commands
+export { commands } from "../commands"
+
+// Types
+export type {
+  DialogueMessage,
+  MessageSide,
+  DialogueState,
+  CharacterSlot,
+  MessageListLayout,
+} from "../types"
+
+// Defaults
+export {
+  defaultLeftCharacterX,
+  defaultRightCharacterX,
+  defaultCharacterY,
+  defaultCharacterWidthPercent,
+  defaultCharacterAnchorX,
+  defaultCharacterAnchorY,
+  defaultActiveAlpha,
+  defaultInactiveAlpha,
+  defaultMessageListLayout,
+} from "../defaults"

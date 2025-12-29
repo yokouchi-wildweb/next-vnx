@@ -1,18 +1,19 @@
-// src/engine/features/Dialogue/hooks/useDialogue.ts
+/**
+ * useDialogue - Dialogue 状態の読み取り用フック
+ */
 "use client"
 
 import { useDialogueStore } from "../stores"
 
-/**
- * useDialogue - Dialogue 状態読み取り用フック
- *
- * Widget/Sprite から状態を参照する場合に使用。
- */
+/** Dialogue 状態を取得する */
 export function useDialogue() {
-  const { messages, currentSpeaker } = useDialogueStore()
+  const { messages, currentSpeaker, leftCharacter, rightCharacter } =
+    useDialogueStore()
 
   return {
     messages,
     currentSpeaker,
+    leftCharacter,
+    rightCharacter,
   }
 }

@@ -1,5 +1,9 @@
-// src/engine/features/Dialogue/components/MessageList/index.tsx
-
+/**
+ * MessageList - メッセージ一覧表示コンポーネント
+ *
+ * Store を購読して自動的にメッセージを表示する。
+ * スクロール + フェードマスク + 下揃え + アニメーション付き。
+ */
 "use client"
 
 import { useEffect, useRef } from "react"
@@ -8,15 +12,9 @@ import { mergeStyles } from "@/engine/utils/styleUtils"
 import { useDialogueStore } from "../../stores"
 import { MessageBubble } from "../MessageBubble"
 import { defaultMessageBubbleStyle } from "../MessageBubble/defaults"
-import { defaultMessageListLayout } from "./defaults"
+import { defaultMessageListLayout } from "../../defaults"
 import type { MessageListProps } from "./types"
 
-/**
- * MessageList - メッセージ一覧表示コンポーネント
- *
- * Store を購読して自動的にメッセージを表示する。
- * スクロール + フェードマスク + 下揃え + アニメーション付き。
- */
 export function MessageList({
   layout: layoutOverrides,
   style,
@@ -55,7 +53,6 @@ export function MessageList({
         <AnimatePresence>
           {messages.map((msg, index) => {
             const isLatest = index === messages.length - 1
-            const isActive = msg.speaker === currentSpeaker
 
             return (
               <motion.div

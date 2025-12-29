@@ -1,20 +1,27 @@
-// src/engine/features/Dialogue/hooks/useDialogueActions.ts
+/**
+ * useDialogueActions - Dialogue 状態の書き込み用フック
+ */
 "use client"
 
 import { useDialogueStore } from "../stores"
 
-/**
- * useDialogueActions - Dialogue 状態更新用フック
- *
- * Executor から状態を更新する場合に使用。
- */
+/** Dialogue 操作アクションを取得する */
 export function useDialogueActions() {
-  const { addMessage, setSpeaker, clear, reset } = useDialogueStore()
+  const {
+    addMessage,
+    clearMessages,
+    setSpeaker,
+    setLeftCharacter,
+    setRightCharacter,
+    reset,
+  } = useDialogueStore()
 
   return {
     addMessage,
+    clearMessages,
     setSpeaker,
-    clear,
+    setLeftCharacter,
+    setRightCharacter,
     reset,
   }
 }

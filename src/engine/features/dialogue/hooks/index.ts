@@ -1,4 +1,5 @@
-// src/engine/features/Dialogue/hooks/index.ts
-
+/**
+ * Dialogue Hooks 公開エクスポート
+ */
 export { useDialogue } from "./useDialogue"
 export { useDialogueActions } from "./useDialogueActions"

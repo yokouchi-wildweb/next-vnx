@@ -28,6 +28,22 @@ export const featureName = {
 | Sprites/Widgets/Layers のキー | PascalCase | `Sprites: { Background: ... }` |
 | コンポーネント | PascalCase | `BackgroundSprite`, `NameCardWidget` |
 
+### exports/ のエクスポート命名規則
+
+| 命名 | 種別 | 用途 |
+|------|------|------|
+| サフィックスなし（Standing, MessageList） | 生コンポーネント | 他 Feature での再利用 |
+| *Sprite/*Widget/*Layer | factory 済み | arrangement での直接配置 |
+
+```ts
+// character/exports/index.ts
+export { Standing } from "../sprites/Standing"      // 生、再利用向け
+export { CharacterSprite } from "./CharacterSprite" // wrapped、arrangement向け
+
+// dialogue-v2 で再利用する場合
+import { Standing } from "@/engine/features/character/exports"  // 生を import
+```
+
 ## ディレクトリ構成
 
 ```
