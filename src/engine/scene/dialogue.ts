@@ -9,7 +9,6 @@
  */
 
 import type { SceneTypeDefinition } from "@/engine/types"
-import { registerScene } from "./registry"
 
 /**
  * ダイアログシーン定義
@@ -40,12 +39,6 @@ export const dialogueScene: SceneTypeDefinition = {
         feature: "Dialogue",
         component: "MessageListWidget",
         zIndex: 100,
-        style: {
-          top: "0",
-          bottom: "35%",
-          left: "20%",
-          right: "20%",
-        },
       },
       {
         feature: "Character",
@@ -55,6 +48,3 @@ export const dialogueScene: SceneTypeDefinition = {
     ],
   },
 }
-
-// レジストリに登録
-registerScene("dialogue", dialogueScene)

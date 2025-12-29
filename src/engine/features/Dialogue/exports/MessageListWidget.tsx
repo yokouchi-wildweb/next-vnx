@@ -10,4 +10,10 @@ import { MessageList } from "../components/MessageList"
 export const MessageListWidget = createWidget(MessageList, {
   name: "DialogueMessageList",
   zIndex: 20,
+  defaultStyle: {
+    top: 0,
+    bottom: "35%",
+    left: "20%",
+    right: "20%",
+  },
 })

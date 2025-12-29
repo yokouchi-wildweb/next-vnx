@@ -16,6 +16,8 @@ import type { CSSProperties } from "react"
 type WidgetOptions = {
   name: string
   zIndex: number
+  /** デフォルトの位置・サイズスタイル */
+  defaultStyle?: CSSProperties
 }
 
 /** createWidget が返すコンポーネントの型 */
@@ -42,9 +44,10 @@ export function createWidget<P extends object>(
   function Widget(props: P & { zIndex?: number }) {
     const { zIndex = options.zIndex, ...rest } = props
 
-    // 元の style を保持しつつ、position と zIndex を強制上書き
+    // 元の style を保持しつつ、デフォルトスタイル + position と zIndex を適用
     const existingStyle = (rest as Record<string, unknown>).style as CSSProperties | undefined
     const widgetStyle: CSSProperties = {
+      ...options.defaultStyle,
       ...existingStyle,
       position: "absolute",
       zIndex,

@@ -2,10 +2,13 @@
  * Dialogue Feature Bundle
  */
 
-import { MessageListWidget } from "./MessageListWidget"
+import { dialogueCommands } from "../commands"
 import { useDialogue, useDialogueActions } from "../hooks"
+import { MessageListWidget } from "./MessageListWidget"
 
 export const Dialogue = {
+  name: "Dialogue",
+  commands: dialogueCommands,
   Sprites: {},
   Layers: {},
   Widgets: {

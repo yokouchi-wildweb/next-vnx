@@ -1,6 +1,6 @@
 {
   "id": "church",
-  "layout": "chat",
+  "type": "dialogue",
   "backgrounds": {
     "default": "church/default"
   },
@@ -13,78 +13,21 @@
     "assetId": "存在しない街",
     "volume": 0.5
   },
-  "dialogues": [
-    { "speaker": "circus", "text": "ここが噂の教会か...。思っていたより立派な建物だな。" },
-    { "speaker": "tatsumi", "text": "ああ、この地域では一番古い教会らしい。築200年以上だとか。" },
-    { "speaker": "circus", "text": "それにしても、こんな場所に呼び出すとは...一体何の用なんだ？" },
-    { "speaker": "tatsumi", "text": "まあ、そう急ぐな。少し話がしたかっただけさ。" },
-    { "speaker": "circus", "text": "話？お前がわざわざ呼び出すなんて、ただ事じゃないだろう。" },
-    { "speaker": "tatsumi", "text": "...実は、あの件について新しい情報が入ったんだ。" },
-    { "speaker": "circus", "text": "なに…！？そんなに早く進展があったのか？" },
-    { "speaker": "tatsumi", "text": "ああそうだ。" },
-    { "speaker": "tatsumi", "text": "ここにきて、思わぬ収穫があった…" },
-    { "speaker": "tatsumi", "text": "なんと…池袋に30名くらいまで余裕で収容できる格安のレンスペを見つけた！" },
-    { "speaker": "circus", "text": "………" },
-    { "speaker": "circus", "text": "ん、レンスペ？いったい何の話をしている。" },
-    {
-      "speaker": "tatsumi",
-      "text": "だからレンスペだよ！パーティ会場。",
-      "commands": [{ "type": "bgm", "assetId": "かたまる脳みそ", "volume": 0.5 }]
-    },
-    { "speaker": "circus", "text": "パーティーなんてしているヒマはない。早く事件について話せ。" },
-    { "speaker": "tatsumi", "text": "そんなことより。クリスマスの話をしよう。" },
-    { "speaker": "circus", "text": "なに…！？" },
-    { "speaker": "tatsumi", "text": "そんなことより。クリスマスの話をしよう。" },
-    { "speaker": "circus", "text": "別に聞き取れなかったわけではないぞ。" },
-    { "speaker": "circus", "text": "それに、そんなこととはなんだ。ふざけてるのか！" },
-    { "speaker": "tatsumi", "text": "うぅ…クリスマスパーティが…………" },
-    { "speaker": "tatsumi", "text": "…………" },
-    {
-      "speaker": "tatsumi",
-      "text": "したいだけなんだが！！！",
-      "commands": [{ "type": "se", "assetId": "ジャジャーン", "volume": 0.7 }]
-    },
-    { "speaker": "circus", "text": "だから、それが問題だと言っている。" },
-    {
-      "speaker": "tatsumi",
-      "text": "あーはいはい！メリクリメリクリ！",
-      "commands": [{ "type": "se", "assetId": "スタジアムの歓声1", "volume": 0.7 }]
-    },
-    { "speaker": "circus", "text": "……待て。お前正気か？" },
-    {
-      "speaker": "tatsumi",
-      "text": "それはそれとして、教会って寒くないか？暖房とかないしな…",
-      "commands": [{ "type": "se", "assetId": "「冷気よ！」", "volume": 0.7 }]
-    },
-    { "speaker": "circus", "text": "おい、無理やりパーティ会場に案内しようとするな" },
-    { "speaker": "tatsumi", "text": "神の前だからこそ正直に言うが、俺はまじめだ。" },
-    { "speaker": "circus", "text": "だったら今おもむろに装着しだした、そのモサモサの付け髭と、とんがり帽子は何の真似だ？" },
-    {
-      "speaker": "tatsumi",
-      "text": "雰囲気作り？鐘の音とか、ほら…それっぽいだろ。",
-      "commands": [{ "type": "se", "assetId": "「冷気よ！」", "volume": 0.7 }]
-    },
-    { "speaker": "circus", "text": "だからパーティをしに来たわけでは…" },
-    {
-      "speaker": "tatsumi",
-      "text": "まあまあ。クリスマスだし、心を清めようじゃないか。",
-      "commands": [{ "type": "se", "assetId": "「冷気よ！」", "volume": 0.7 }]
-    },
-    { "speaker": "circus", "text": "心を清める前に今すぐ頭を冷やせ。" },
-    { "speaker": "tatsumi", "text": "ひどいな。せっかくプレゼントも用意してるのに。" },
-    { "speaker": "circus", "text": "……嫌な予感しかしないんだが。" },
-    {
-      "speaker": "tatsumi",
-      "text": "安心しろ。ちゃんと\"爆発しない\"やつだ。",
-      "commands": [{ "type": "se", "assetId": "スタジアムの歓声1", "volume": 0.7 }]
-    },
-    { "speaker": "circus", "text": "爆発だと！？そんな可能性はもとより想定していな…" },
-    {
-      "speaker": "circus",
-      "text": "（ドゴオオオーーーン）",
-      "commands": [{ "type": "se", "assetId": "爆発2", "volume": 0.7 }]
-    },
-    { "speaker": "tatsumi", "text": "爆発オチなんてサイテー……!" },
-    { "speaker": "circus", "text": "オチが思いつかない場合に、とりあえず爆発させて無理やり終わらせる合理的な手段だ。" }
-  ]
+  "fragments": {
+    "main": {
+      "nodes": [
+        { "type": "dialogue", "speaker": "circus", "text": "ここが噂の教会か...。思っていたより立派な建物だな。" },
+        { "type": "dialogue", "speaker": "tatsumi", "text": "ああ、この地域では一番古い教会らしい。築200年以上だとか。" },
+        { "type": "dialogue", "speaker": "circus", "text": "それにしても、こんな場所に呼び出すとは...一体何の用なんだ？" },
+        { "type": "dialogue", "speaker": "tatsumi", "text": "まあ、そう急ぐな。少し話がしたかっただけさ。" },
+        { "type": "dialogue", "speaker": "circus", "text": "話？お前がわざわざ呼び出すなんて、ただ事じゃないだろう。" },
+        { "type": "dialogue", "speaker": "tatsumi", "text": "...実は、あの件について新しい情報が入ったんだ。" },
+        { "type": "dialogue", "speaker": "circus", "text": "なに…！？そんなに早く進展があったのか？" },
+        { "type": "dialogue", "speaker": "tatsumi", "text": "ああそうだ。" },
+        { "type": "dialogue", "speaker": "tatsumi", "text": "ここにきて、思わぬ収穫があった…" }
+      ],
+      "sceneEnd": true
+    }
+  },
+  "initialFragment": "main"
 }

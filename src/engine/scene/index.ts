@@ -9,9 +9,6 @@
  * 3. registerScene で登録
  */
 
-// レジストリ
-export * from "./registry"
-
 // シーンタイプ定義
 export { dialogueScene } from "./dialogue"
 
