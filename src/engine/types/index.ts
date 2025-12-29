@@ -14,28 +14,57 @@ export type Scene = {
 }
 
 // ============================================================
-// Archetype（シーンタイプ設定）
+// Arrangement（配置設定）
 // ============================================================
 
-/** 配置アイテム */
-export type ArrangementItem = {
+/** Sprite 配置アイテム */
+export type SpriteItem = {
+  type: "sprite"
   feature: string
   component: string
   zIndex: number
-  style?: Record<string, string | number>
 }
+
+/** Widget 配置アイテム（Layer 内で使用） */
+export type WidgetItem = {
+  type: "widget"
+  feature: string
+  component: string
+  zIndex?: number
+}
+
+/** Feature 提供の Layer */
+export type FeatureLayerItem = {
+  type: "featureLayer"
+  feature: string
+  component: string
+  zIndex: number
+}
+
+/** カスタム Layer（Widget をグループ化） */
+export type CustomLayerItem = {
+  type: "customLayer"
+  zIndex: number
+  widgets: WidgetItem[]
+}
+
+/** Layer アイテム（Feature Layer または CustomLayer） */
+export type LayerItem = FeatureLayerItem | CustomLayerItem
 
 /** 配置設定 */
 export type Arrangement = {
-  sprites?: ArrangementItem[]
-  layers?: ArrangementItem[]
-  widgets?: ArrangementItem[]
+  sprites?: SpriteItem[]
+  layers?: LayerItem[]
 }
+
+// ============================================================
+// Archetype（シーンタイプ設定）
+// ============================================================
 
 /** シーンタイプ定義（Archetype） */
 export type SceneTypeDefinition = {
   /** 使用する Feature */
-  features: string[]
+  features: FeatureBundle[]
   /** デフォルトの配置設定 */
   arrangement: Arrangement
 }
@@ -60,10 +89,10 @@ export type FeatureBundle = {
   /** PixiJS コンポーネント */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Sprites?: Record<string, React.ComponentType<any>>
-  /** HTML コンポーネント（単体） */
+  /** HTML コンポーネント（単体、Layer 内で使用） */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Widgets?: Record<string, React.ComponentType<any>>
-  /** HTML コンポーネント（グループ） */
+  /** HTML コンポーネント（グループ、直接配置） */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Layers?: Record<string, React.ComponentType<any>>
   /** 状態フック */

@@ -10,9 +10,3 @@ export {
   hasSceneType,
   getRegisteredSceneTypes,
 } from "./scene"
-
-export {
-  featureRegistry,
-  getFeature,
-  getRegisteredFeatures,
-} from "./feature"

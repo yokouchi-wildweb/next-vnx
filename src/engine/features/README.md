@@ -12,8 +12,8 @@ export const FeatureName = {
   name: "FeatureName",           // 識別子（Single Source of Truth）
   commands: { ... },             // コマンドハンドラー
   Sprites: { ... },              // PixiJS コンポーネント
-  Widgets: { ... },              // HTML コンポーネント
-  Layers: { ... },               // Widget グループ
+  Widgets: { ... },              // HTML コンポーネント（単体）
+  Layers: { ... },               // HTML コンポーネント（グループ）
   hooks: { ... },                // 状態読み取り/更新フック
 }
 ```
@@ -48,8 +48,7 @@ export const Background = {
 ```
 
 使用箇所：
-- Feature Registry への登録キー
-- SceneTypeDefinition での参照
+- SceneTypeDefinition での参照（arrangement ヘルパー内で使用）
 - Command type の namespace
 
 ## commands/
@@ -87,35 +86,42 @@ Dialogue:next
 Audio:bgm
 ```
 
-## Feature Registry
+## SceneTypeDefinition での使用
 
-`core/registries/feature.ts` で全 Feature を一括管理。
+Feature を直接インポートし、ヘルパー関数で型安全に配置を定義。
 
 ```ts
-// core/registries/feature.ts
-import type { FeatureBundle } from "@/engine/types"
-import { Background } from "@/engine/features/Background/exports"
-import { Character } from "@/engine/features/Character/exports"
-import { Dialogue } from "@/engine/features/Dialogue/exports"
+// scene/dialogue.ts
+import { Background, Character, Dialogue } from "@/engine/features"
+import { sprite, customLayer, widget } from "@/engine/core/arrangement"
 
-export const featureRegistry: Record<string, FeatureBundle> = {
-  Background,
-  Character,
-  Dialogue,
-}
-
-export function getFeature(name: string): FeatureBundle | undefined {
-  return featureRegistry[name]
+export const dialogueScene: SceneTypeDefinition = {
+  features: [Background, Character, Dialogue],
+  arrangement: {
+    sprites: [
+      sprite(Background, "Background", 0),   // IDE補完が効く
+      sprite(Character, "Character", 10),
+    ],
+    layers: [
+      customLayer(100, [
+        widget(Dialogue, "MessageList"),
+        widget(Character, "NameCard", 10),
+      ]),
+    ],
+  },
 }
 ```
 
-Feature 側は自己登録しない。Registry が明示的に import して登録する。
-これによりツリーシェイキング問題を回避し、登録状況を一箇所で把握できる。
+ヘルパー関数:
+- `sprite(Feature, component, zIndex)` - Sprite を配置
+- `layer(Feature, component, zIndex)` - Feature 提供の Layer を配置
+- `customLayer(zIndex, widgets)` - Widget をグループ化して配置
+- `widget(Feature, component, zIndex?)` - customLayer 内で Widget を配置
 
 ## SceneController との連携
 
 1. scene.type から SceneTypeDefinition を取得
-2. definition.features から Feature bundles を取得
+2. definition.features から Feature bundles を取得（直接参照）
 3. 各 Feature の `commands.init` に scene 全体を渡す
 
 ```ts
@@ -162,6 +168,13 @@ export const Background = {
   },
 }
 ```
+
+## Widgets と Layers の違い
+
+| 種類 | 役割 | 配置方法 |
+|------|------|---------|
+| Widget | 単体の部品 | `customLayer()` 内で `widget()` を使用 |
+| Layer | 完成品（Widget 内包済み） | `layer()` で直接配置 |
 
 ## 責務分離
 

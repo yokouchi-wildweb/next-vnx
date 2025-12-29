@@ -4,24 +4,24 @@
  * シーンの初期化と制御を担当
  * - scene.type から SceneTypeDefinition を取得
  * - 各 Feature の commands.init を呼び出し
- * - SceneComposer に arrangement を渡す
+ * - SceneComposer に arrangement と featureMap を渡して UI を配置
  */
 "use client"
 
-import { useEffect, useMemo, useRef, type ReactNode } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import type { Scene, SceneTypeDefinition, FeatureBundle } from "@/engine/types"
-import { getSceneDefinition, getFeature } from "@/engine/core/registries"
+import { getSceneDefinition } from "@/engine/core/registries"
+import { SceneComposer } from "@/engine/core/SceneComposer/SceneComposer"
 
 type Props = {
   /** シーンデータ */
   scene: Scene
-  children?: ReactNode
 }
 
 /**
  * SceneController コンポーネント
  */
-export function SceneController({ scene, children }: Props) {
+export function SceneController({ scene }: Props) {
   const initializedRef = useRef(false)
 
   // SceneTypeDefinition を取得
@@ -29,14 +29,11 @@ export function SceneController({ scene, children }: Props) {
     return getSceneDefinition(scene.type)
   }, [scene.type])
 
-  // Feature Map を構築
+  // Feature Map を構築（features は FeatureBundle[] なので直接使用）
   const featureMap = useMemo<Map<string, FeatureBundle>>(() => {
     const map = new Map<string, FeatureBundle>()
-    for (const featureName of definition.features) {
-      const feature = getFeature(featureName)
-      if (feature) {
-        map.set(featureName, feature)
-      }
+    for (const feature of definition.features) {
+      map.set(feature.name, feature)
     }
     return map
   }, [definition.features])
@@ -60,5 +57,10 @@ export function SceneController({ scene, children }: Props) {
     }
   }, [scene, featureMap])
 
-  return <>{children}</>
+  return (
+    <SceneComposer
+      arrangement={definition.arrangement}
+      featureMap={featureMap}
+    />
+  )
 }
