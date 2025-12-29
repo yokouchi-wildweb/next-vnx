@@ -196,3 +196,65 @@ export const background = {
 | exports/ | 公開インターフェース（再エクスポート） |
 | components/ | 内部 UI コンポーネント |
 | sprites/ | 内部 PixiJS コンポーネント |
+
+## Sprite コンポーネントの設計原則
+
+### 1. props ベースで設計する
+
+Sprite コンポーネントは Store に依存せず、props で全ての状態を受け取る。
+
+**❌ 悪い例: Store に依存**
+```tsx
+function Standing() {
+  const { spritePath, position } = useCharacterStore()  // Store 固定
+  // ...
+}
+```
+→ 1つの Store = 1インスタンスしか表示できない
+
+**✅ 良い例: props で受け取る**
+```tsx
+function Standing({ spritePath, x, y, widthPercent }: StandingProps) {
+  // props をそのまま使用
+}
+```
+→ 複数インスタンス表示可能、利用側が自由に制御
+
+### 2. 画面サイズに対する相対レイアウト
+
+Sprite は `absolute inset-0` の親コンテナ内に配置される前提。
+**画面内のどこにでも自由に配置できる**必要がある。
+
+| props | 説明 |
+|-------|------|
+| `x` | 画面幅に対する X 座標（0-1） |
+| `y` | 画面高さに対する Y 座標（0-1） |
+| `widthPercent` | 画面幅に対するサイズ（%） |
+| `anchorX/Y` | スプライトのどこを x,y に合わせるか |
+
+### 3. 特殊な設定は利用側の責務
+
+**❌ 悪い例: Feature 内で特殊設定を持つ**
+```tsx
+// character/defaults.ts
+export const defaultVerticalPullUp = 0.8  // 特殊すぎる
+```
+
+**✅ 良い例: 汎用的なデフォルトのみ**
+```tsx
+// character/defaults.ts
+export const defaultAnchorX = 0.5  // 中央
+export const defaultAnchorY = 1    // 下端
+```
+
+「キャラクターを下から 80% の位置に配置」は dialogue など利用側で設定する。
+
+### 4. Store の使い所
+
+| Feature 種別 | Store | 例 |
+|-------------|-------|-----|
+| 基礎 Feature | 不要 | character（純粋な Sprite 表示） |
+| 複合 Feature | 必要 | dialogue（messages + キャラクター状態を管理） |
+
+基礎 Feature は Store を持たず、複合 Feature が状態管理を担当。
+基礎 Feature の Sprite を複合 Feature が import して、位置情報などを付加して再利用する。

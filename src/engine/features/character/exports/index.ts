@@ -7,7 +7,16 @@ export { CharacterSprite } from "./CharacterSprite"
 export { Standing } from "../sprites/Standing"
 
 // Types
-export type { Position2D, StandingProps } from "../types"
+export type { StandingProps } from "../types"
 
 // Defaults
-export { defaultAnchor, defaultScale, defaultAlpha } from "../defaults"
+export {
+  defaultAnchorX,
+  defaultAnchorY,
+  defaultRotation,
+  defaultPivotX,
+  defaultPivotY,
+  defaultSkewX,
+  defaultSkewY,
+  defaultAlpha,
+} from "../defaults"

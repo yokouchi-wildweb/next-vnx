@@ -2,16 +2,24 @@
  * Character Feature デフォルト設定
  */
 
-import type { Position2D } from "./types"
+// Anchor
+/** デフォルトアンカー X（中央） */
+export const defaultAnchorX = 0.5
+/** デフォルトアンカー Y（下端） */
+export const defaultAnchorY = 1
 
-/** デフォルトアンカー（下中央） */
-export const defaultAnchor: Position2D = {
-  x: 0.5,
-  y: 1,
-}
+// Transform
+/** デフォルト回転（ラジアン） */
+export const defaultRotation = 0
+/** デフォルト変形中心 X */
+export const defaultPivotX = 0
+/** デフォルト変形中心 Y */
+export const defaultPivotY = 0
+/** デフォルト傾斜 X */
+export const defaultSkewX = 0
+/** デフォルト傾斜 Y */
+export const defaultSkewY = 0
 
-/** デフォルトスケール */
-export const defaultScale = 1.0
-
+// Appearance
 /** デフォルト透明度 */
 export const defaultAlpha = 1.0

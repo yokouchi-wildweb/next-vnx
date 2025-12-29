@@ -71,34 +71,6 @@ type Archetype = {
 }
 ```
 
-## feature_structure
-```
-features/<Name>/
-├── components/     # raw React (internal)
-├── sprites/        # raw PixiJS (internal)
-├── exports/        # factory-applied (public)
-│   ├── *Widget.tsx   # createWidget
-│   ├── *Sprite.tsx   # createSprite
-│   ├── *Layer.tsx    # createLayer
-│   └── index.ts      # bundle export
-├── hooks/
-│   └── index.ts      # hook barrel
-└── stores/
-```
-
-## feature_bundle
-```ts
-export const Feature = {
-  Sprites: { ... },     // PixiJS (canvas)
-  Layers: { ... },      // widget groups (createLayer)
-  Widgets: { ... },     // single HTML (createWidget)
-  hooks: {
-    useFeature(),       // read state (for UI)
-    useFeatureActions() // write state (for Executor)
-  },
-}
-```
-
 ## factories
 | factory | target | effect |
 |---------|--------|--------|

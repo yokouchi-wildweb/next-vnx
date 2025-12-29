@@ -2,26 +2,44 @@
  * Character Feature 型定義
  */
 
-/** 2D座標（相対値 0-1） */
-export type Position2D = {
-  /** X座標（0=左端、1=右端） */
-  x: number
-  /** Y座標（0=上端、1=下端） */
-  y: number
-}
-
 /** Standing スプライトの Props */
 export type StandingProps = {
   /** スプライト画像のパス */
   spritePath: string
-  /** 画面上の位置（相対座標 0-1） */
-  position: Position2D
-  /** スケール（デフォルト 1.0） */
-  scale?: number
-  /** 透明度（デフォルト 1.0） */
+
+  // Position
+  /** X座標（0=左端、1=右端） */
+  x: number
+  /** Y座標（0=上端、1=下端） */
+  y: number
+
+  // Size
+  /** 画面幅に対するサイズ（%） */
+  widthPercent: number
+
+  // Anchor
+  /** アンカー X（0=左端、1=右端） */
+  anchorX?: number
+  /** アンカー Y（0=上端、1=下端） */
+  anchorY?: number
+
+  // Transform
+  /** 回転（ラジアン） */
+  rotation?: number
+  /** 回転（度数）- rotation より優先 */
+  angle?: number
+  /** 変形の中心 X（ピクセル） */
+  pivotX?: number
+  /** 変形の中心 Y（ピクセル） */
+  pivotY?: number
+  /** 傾斜 X */
+  skewX?: number
+  /** 傾斜 Y */
+  skewY?: number
+
+  // Appearance
+  /** 透明度（0-1） */
   alpha?: number
-  /** アンカーポイント（デフォルト 下中央 { x: 0.5, y: 1 }） */
-  anchor?: Position2D
   /** zIndex */
   zIndex?: number
 }
