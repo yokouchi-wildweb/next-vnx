@@ -65,7 +65,7 @@ export const internalStore = create<CharacterState & CharacterActions>(
           Object.entries(characters).map(([id, config]) => [
             id,
             {
-              visible: false,
+              visible: true, // 初期化時に表示
               position: config.position,
               sprite: config.sprite,
               scale: config.scale,
