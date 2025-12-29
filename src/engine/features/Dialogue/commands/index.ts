@@ -4,16 +4,15 @@
  * Dialogue Feature のコマンドハンドラー
  */
 
+import type { Scene } from "@/engine/types"
 import { dialogueStore } from "../stores"
-import type { DialogueMessage, MessageSide } from "../stores"
+import type { DialogueMessage } from "../stores"
 
 export const dialogueCommands = {
   /**
-   * 初期化
-   * @param data.fragments - フラグメント定義（将来拡張）
-   * @param data.initialFragment - 開始フラグメント（将来拡張）
+   * 初期化（scene 全体から必要なデータを取り出す）
    */
-  init: (_data: { fragments?: unknown; initialFragment?: string }) => {
+  init: (_scene: Scene) => {
     // 現在はメッセージをクリアするのみ
     // fragments の管理は将来拡張
     dialogueStore.getState().clear()

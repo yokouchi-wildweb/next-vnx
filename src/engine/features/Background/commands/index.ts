@@ -4,23 +4,23 @@
  * Background Feature のコマンドハンドラー
  */
 
+import type { Scene } from "@/engine/types"
 import { backgroundStore } from "../stores"
 
 export const backgroundCommands = {
   /**
-   * 初期化
-   * @param data.backgrounds - 背景バリエーション
-   * @param data.initial - 初期背景キー
+   * 初期化（scene 全体から必要なデータを取り出す）
    */
-  init: (data: { backgrounds?: Record<string, string>; initial?: string }) => {
-    if (data.backgrounds) {
-      backgroundStore.getState().initialize(data.backgrounds, data.initial)
+  init: (scene: Scene) => {
+    const backgrounds = scene.backgrounds as Record<string, string> | undefined
+    const initialBackground = scene.initialBackground as string | undefined
+    if (backgrounds) {
+      backgroundStore.getState().initialize(backgrounds, initialBackground)
     }
   },
 
   /**
    * 背景を変更
-   * @param data.value - 背景キー
    */
   change: (data: { value: string }) => {
     backgroundStore.getState().setBackground(data.value)

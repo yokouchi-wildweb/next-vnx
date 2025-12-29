@@ -5,16 +5,17 @@
  */
 
 import { characterStore } from "../stores"
-import type { Position, SceneCharacter } from "@/engine/types"
+import type { Scene } from "@/engine/types"
+import type { Position, SceneCharacter } from "../types"
 
 export const characterCommands = {
   /**
-   * 初期化
-   * @param data.characters - キャラクター設定
+   * 初期化（scene 全体から必要なデータを取り出す）
    */
-  init: (data: { characters?: Record<string, SceneCharacter> }) => {
-    if (data.characters) {
-      characterStore.getState().initialize(data.characters)
+  init: (scene: Scene) => {
+    const characters = scene.characters as Record<string, SceneCharacter> | undefined
+    if (characters) {
+      characterStore.getState().initialize(characters)
     }
   },
 

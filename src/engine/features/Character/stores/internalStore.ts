@@ -6,7 +6,7 @@
 "use client"
 
 import { create } from "zustand"
-import type { Position, SceneCharacter } from "@/engine/types"
+import type { Position, SceneCharacter } from "../types"
 
 /** キャラクターの表示状態 */
 export type CharacterDisplayState = {

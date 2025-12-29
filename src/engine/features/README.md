@@ -58,12 +58,14 @@ Feature が処理するコマンドのハンドラー。
 
 ```ts
 // Background/commands/index.ts
+import type { Scene } from "@/engine/types"
 import { backgroundStore } from "../stores"
 
 export const backgroundCommands = {
-  init: (data: { backgrounds?: Record<string, string>; initial?: string }) => {
-    if (data.backgrounds) {
-      backgroundStore.getState().initialize(data.backgrounds, data.initial)
+  // init は scene 全体を受け取り、必要なデータを自分で取り出す
+  init: (scene: Scene) => {
+    if (scene.backgrounds) {
+      backgroundStore.getState().initialize(scene.backgrounds, scene.initialBackground)
     }
   },
   change: (data: { value: string }) => {
@@ -114,14 +116,15 @@ Feature 側は自己登録しない。Registry が明示的に import して登�
 
 1. scene.type から SceneTypeDefinition を取得
 2. definition.features から Feature bundles を取得
-3. 各 Feature の `commands.init` を呼び出し
+3. 各 Feature の `commands.init` に scene 全体を渡す
 
 ```ts
-for (const featureName of definition.features) {
-  const feature = getFeature(featureName)
-  feature?.commands.init?.(sceneData)
+for (const feature of featureMap.values()) {
+  feature.commands.init?.(scene)
 }
 ```
+
+Feature 側で scene から必要なデータを取り出す（SceneController は Feature の内部構造を知らない）。
 
 ## Executor との連携
 
