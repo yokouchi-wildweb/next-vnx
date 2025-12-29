@@ -2,18 +2,16 @@
  * Character Feature デフォルト設定
  */
 
-import type { Anchor2D, UnderlineStyle } from "./types"
+import type { Position2D } from "./types"
 
-/** Standing スプライトのデフォルトアンカー（下中央） */
-export const defaultStandingAnchor: Anchor2D = {
+/** デフォルトアンカー（下中央） */
+export const defaultAnchor: Position2D = {
   x: 0.5,
   y: 1,
 }
 
-/** Underline バリアントのデフォルトスタイル */
-export const defaultUnderlineStyle: UnderlineStyle = {
-  lineWidth: 3,
-  textShadow: "1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 8px rgba(0,0,0,0.8)",
-  fontSize: "1.125rem",  // text-lg
-  fontWeight: "700",     // font-bold
-}
+/** デフォルトスケール */
+export const defaultScale = 1.0
+
+/** デフォルト透明度 */
+export const defaultAlpha = 1.0

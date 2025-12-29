@@ -1,24 +1,13 @@
 /**
- * Character Feature Bundle
+ * Character Feature 公開エクスポート
  */
 
-import { characterCommands } from "../commands"
-import { useCharacter, useCharacterActions } from "../hooks"
-import { CharacterSprite } from "./CharacterSprite"
-import { NameCardWidget } from "./NameCardWidget"
+// Sprites
+export { CharacterSprite } from "./CharacterSprite"
+export { Standing } from "../sprites/Standing"
 
-export const character = {
-  name: "character",
-  commands: characterCommands,
-  Sprites: {
-    Character: CharacterSprite,
-  },
-  Layers: {},
-  Widgets: {
-    NameCard: NameCardWidget,
-  },
-  hooks: {
-    useCharacter,
-    useCharacterActions,
-  },
-}
+// Types
+export type { Position2D, StandingProps } from "../types"
+
+// Defaults
+export { defaultAnchor, defaultScale, defaultAlpha } from "../defaults"
