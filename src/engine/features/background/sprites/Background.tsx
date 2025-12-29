@@ -1,39 +1,36 @@
 /**
- * Switcher - 背景切り替えスプライト
+ * Background - 背景スプライト
  *
- * store から背景情報を取得して表示する PixiJS コンポーネント
- * - ぼかし + 暗めフィルター適用
- * - Cover方式で画面全体をカバー
+ * Store から背景パスを取得して表示する PixiJS コンポーネント
+ * - Cover 方式で画面全体をカバー
  * - 中央配置
+ * - フィルターはオプション（デフォルトなし）
  */
-
 "use client"
 
 import { useMemo, useState, useEffect } from "react"
 import { extend } from "@pixi/react"
 import { Sprite, BlurFilter, ColorMatrixFilter, Assets, Texture } from "pixi.js"
 import { useGameSize } from "@/engine/components/Screen"
-import { mergeStyles } from "@/engine/utils/styleUtils"
-import { defaultSwitcherStyle } from "../defaults"
 import { useBackground } from "../hooks"
-import type { SwitcherStyle } from "../types"
+import { defaultBlurQuality } from "../defaults"
+import type { BackgroundFilters } from "../types"
 
-// PixiJS コンポーネントを登録
 extend({ Sprite })
 
 type Props = {
-  style?: Partial<SwitcherStyle>
+  /** フィルター設定（オプション） */
+  filters?: BackgroundFilters
+  /** zIndex */
   zIndex?: number
 }
 
-export function Switcher({ style: styleOverrides, zIndex }: Props) {
+export function Background({ filters: filterConfig, zIndex }: Props) {
   const { currentPath } = useBackground()
   const { width: screenWidth, height: screenHeight } = useGameSize()
   const [texture, setTexture] = useState<Texture | null>(null)
 
-  const style = mergeStyles(defaultSwitcherStyle, styleOverrides)
-
-  // 背景画像をロード
+  // 背景画像をロード（完全パスを使用）
   useEffect(() => {
     if (!currentPath) {
       setTexture(null)
@@ -43,9 +40,7 @@ export function Switcher({ style: styleOverrides, zIndex }: Props) {
     let mounted = true
     const loadTexture = async () => {
       try {
-        // パスからテクスチャをロード
-        // TODO: シナリオIDをContextから取得する
-        const tex = await Assets.load(`/game/scenarios/_sample/backgrounds/${currentPath}.png`)
+        const tex = await Assets.load(currentPath)
         if (mounted) {
           setTexture(tex)
         }
@@ -60,23 +55,38 @@ export function Switcher({ style: styleOverrides, zIndex }: Props) {
     }
   }, [currentPath])
 
-  // フィルターをメモ化
-  const filters = useMemo(() => {
-    const blurFilter = new BlurFilter({
-      strength: style.blur.strength,
-      quality: style.blur.quality,
-    })
-    const colorMatrix = new ColorMatrixFilter()
-    colorMatrix.brightness(style.brightness.value, false)
-    return [blurFilter, colorMatrix]
-  }, [style.blur.strength, style.blur.quality, style.brightness.value])
+  // フィルターをメモ化（指定された場合のみ作成）
+  const pixiFilters = useMemo(() => {
+    if (!filterConfig) return undefined
+
+    const filters = []
+
+    // ぼかしフィルター
+    if (filterConfig.blur !== undefined && filterConfig.blur > 0) {
+      filters.push(
+        new BlurFilter({
+          strength: filterConfig.blur,
+          quality: filterConfig.blurQuality ?? defaultBlurQuality,
+        })
+      )
+    }
+
+    // 明るさフィルター
+    if (filterConfig.brightness !== undefined) {
+      const colorMatrix = new ColorMatrixFilter()
+      colorMatrix.brightness(filterConfig.brightness, false)
+      filters.push(colorMatrix)
+    }
+
+    return filters.length > 0 ? filters : undefined
+  }, [filterConfig])
 
   // テクスチャがロードされるまで表示しない
   if (!texture || screenWidth <= 0 || screenHeight <= 0) {
     return null
   }
 
-  // Cover方式でサイズ計算
+  // Cover 方式でサイズ計算
   const bgAspect = texture.width / texture.height
   const screenAspect = screenWidth / screenHeight
 
@@ -100,7 +110,7 @@ export function Switcher({ style: styleOverrides, zIndex }: Props) {
       y={y}
       width={width}
       height={height}
-      filters={filters}
+      filters={pixiFilters}
       zIndex={zIndex}
     />
   )

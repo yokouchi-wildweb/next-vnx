@@ -1,7 +1,5 @@
 /**
- * Background Store エクスポート
+ * Background Stores エクスポート
  */
-
-export { useBackgroundStore } from "./useStore"
+export { useBackgroundStore, useBackgroundStoreActions } from "./useStore"
 export { internalStore as backgroundStore } from "./internalStore"
-export type { BackgroundState } from "./internalStore"

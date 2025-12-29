@@ -2,36 +2,30 @@
  * Background Feature 型定義
  */
 
-import type { Texture } from "pixi.js"
-
-/** ぼかしフィルター設定 */
-export type BlurStyle = {
-  /** ぼかしの強さ */
-  strength: number
-  /** ぼかしの品質（高いほど滑らか） */
-  quality: number
+/** フィルター設定（オプション） */
+export type BackgroundFilters = {
+  /** ぼかしの強さ（0 = なし） */
+  blur?: number
+  /** ぼかしの品質 */
+  blurQuality?: number
+  /** 明るさ（0-1、1が元の明るさ、省略時フィルターなし） */
+  brightness?: number
 }
 
-/** 明るさフィルター設定 */
-export type BrightnessStyle = {
-  /** 明るさ（0-1、1が元の明るさ） */
-  value: number
+/** Background Sprite の Props */
+export type BackgroundProps = {
+  /** 画像パス（完全パス） */
+  imagePath: string
+  /** フィルター設定 */
+  filters?: BackgroundFilters
+  /** zIndex */
+  zIndex?: number
 }
 
-/** Switcher スプライトのスタイル設定 */
-export type SwitcherStyle = {
-  blur: BlurStyle
-  brightness: BrightnessStyle
-}
-
-/** Switcher スプライトのProps */
-export type SwitcherProps = {
-  /** テクスチャ */
-  texture: Texture
-  /** 画面幅 */
-  screenWidth: number
-  /** 画面高さ */
-  screenHeight: number
-  /** スタイル設定（部分的にオーバーライド可能） */
-  style?: Partial<SwitcherStyle>
+/** Store の状態 */
+export type BackgroundState = {
+  /** 背景バリエーション（key -> 完全パス） */
+  backgrounds: Record<string, string>
+  /** 現在の背景キー */
+  currentKey: string | null
 }

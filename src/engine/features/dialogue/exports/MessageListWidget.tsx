@@ -9,4 +9,5 @@ import { MessageList } from "../components/MessageList"
 
 export const MessageListWidget = createWidget(MessageList, {
   name: "MessageList",
+  zIndex: 0,
 })

@@ -19,3 +19,6 @@ export const background = {
     useBackgroundActions,
   },
 }
+
+// 生コンポーネントのエクスポート（再利用向け）
+export { Background } from "../sprites/Background"

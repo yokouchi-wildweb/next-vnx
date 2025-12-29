@@ -5,8 +5,8 @@
  */
 
 import { createSprite } from "@/engine/components/factories"
-import { Switcher } from "../sprites/Switcher"
+import { Background } from "../sprites/Background"
 
-export const BackgroundSprite = createSprite(Switcher, {
+export const BackgroundSprite = createSprite(Background, {
   name: "Background",
 })

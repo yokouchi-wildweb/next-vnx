@@ -31,7 +31,7 @@ export const dialogueScene: SceneTypeDefinition = {
       // Widget をグループ化して Layer を構成
       customLayer(100, [
         widget(dialogue, "MessageList"),
-        widget(character, "NameCard", 10),
+        // TODO: NameCard は dialogue Feature に移動するか検討
       ]),
     ],
   },

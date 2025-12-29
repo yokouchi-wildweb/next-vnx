@@ -6,19 +6,12 @@
 "use client"
 
 import { create } from "zustand"
-
-/** Background ストアの状態 */
-export type BackgroundState = {
-  /** 背景バリエーション */
-  backgrounds: Record<string, string>
-  /** 現在の背景キー */
-  currentBackground: string | null
-}
+import type { BackgroundState } from "../types"
 
 /** Background ストアのアクション */
 type BackgroundActions = {
-  /** 初期化 */
-  initialize: (backgrounds: Record<string, string>, initial?: string) => void
+  /** 初期化（backgrounds の value は完全パス） */
+  initialize: (backgrounds: Record<string, string>, initialKey?: string) => void
   /** 背景を変更 */
   setBackground: (key: string) => void
   /** リセット */
@@ -27,17 +20,17 @@ type BackgroundActions = {
 
 const initialState: BackgroundState = {
   backgrounds: {},
-  currentBackground: null,
+  currentKey: null,
 }
 
 export const internalStore = create<BackgroundState & BackgroundActions>(
   (set) => ({
     ...initialState,
 
-    initialize: (backgrounds, initial) =>
+    initialize: (backgrounds, initialKey) =>
       set({
         backgrounds,
-        currentBackground: initial ?? Object.keys(backgrounds)[0] ?? null,
+        currentKey: initialKey ?? Object.keys(backgrounds)[0] ?? null,
       }),
 
     setBackground: (key) =>
@@ -46,7 +39,7 @@ export const internalStore = create<BackgroundState & BackgroundActions>(
           console.warn(`Background key not found: ${key}`)
           return state
         }
-        return { currentBackground: key }
+        return { currentKey: key }
       }),
 
     reset: () => set(initialState),

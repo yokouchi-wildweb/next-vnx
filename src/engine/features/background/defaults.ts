@@ -1,16 +1,8 @@
 /**
  * Background Feature デフォルト設定
+ *
+ * フィルターのデフォルトは持たない（利用側が指定する）
  */
 
-import type { SwitcherStyle } from "./types"
-
-/** Switcher スプライトのデフォルトスタイル */
-export const defaultSwitcherStyle: SwitcherStyle = {
-  blur: {
-    strength: 4,
-    quality: 4,
-  },
-  brightness: {
-    value: 0.6,
-  },
-}
+/** ぼかし品質のデフォルト（blurを指定した場合のみ使用） */
+export const defaultBlurQuality = 4

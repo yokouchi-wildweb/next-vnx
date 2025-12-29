@@ -9,7 +9,8 @@ import { backgroundStore } from "../stores"
 
 export const backgroundCommands = {
   /**
-   * 初期化（scene 全体から必要なデータを取り出す）
+   * 初期化
+   * scene.backgrounds は { key: "完全パス" } の形式を期待
    */
   init: (scene: Scene) => {
     const backgrounds = scene.backgrounds as Record<string, string> | undefined

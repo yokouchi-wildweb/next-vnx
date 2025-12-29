@@ -2,9 +2,25 @@
  * Character Feature 公開エクスポート
  */
 
-// Sprites
-export { CharacterSprite } from "./CharacterSprite"
+import { CharacterSprite } from "./CharacterSprite"
+
+// Feature Bundle
+export const character = {
+  name: "character",
+  commands: {},
+  Sprites: {
+    Character: CharacterSprite,
+  },
+  Layers: {},
+  Widgets: {},
+  hooks: {},
+}
+
+// 生コンポーネント（再利用向け）
 export { Standing } from "../sprites/Standing"
+
+// Factory 適用済み（arrangement 向け）
+export { CharacterSprite } from "./CharacterSprite"
 
 // Types
 export type { StandingProps } from "../types"
