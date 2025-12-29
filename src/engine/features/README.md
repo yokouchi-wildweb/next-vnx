@@ -2,14 +2,14 @@
 
 ## 概要
 
-Feature は VN エンジンの機能単位。Background、Character、Dialogue、Audio など。
-各 Feature は自己完結的で、SceneController や Executor は Feature の内部構造を知らない。
+Feature は VN エンジンの機能単位。background、character、dialogue、audio など。
+各 Feature は自己完結的で、SceneInitializer や Executor は Feature の内部構造を知らない。
 
 ## Feature Bundle
 
 ```ts
-export const FeatureName = {
-  name: "FeatureName",           // 識別子（Single Source of Truth）
+export const featureName = {
+  name: "featureName",           // 識別子（Single Source of Truth）
   commands: { ... },             // コマンドハンドラー
   Sprites: { ... },              // PixiJS コンポーネント
   Widgets: { ... },              // HTML コンポーネント（単体）
@@ -18,13 +18,23 @@ export const FeatureName = {
 }
 ```
 
+## 命名規則
+
+| 対象 | 規則 | 例 |
+|------|------|-----|
+| フォルダ名 | lowercase | `background/`, `character/` |
+| Feature Bundle export | camelCase | `export const background` |
+| name プロパティ | camelCase | `name: "background"` |
+| Sprites/Widgets/Layers のキー | PascalCase | `Sprites: { Background: ... }` |
+| コンポーネント | PascalCase | `BackgroundSprite`, `NameCardWidget` |
+
 ## ディレクトリ構成
 
 ```
 features/
 ├── index.ts                    # 全 Feature 再エクスポート
 │
-└── <FeatureName>/
+└── <featureName>/              # lowercase
     ├── commands/               # コマンドハンドラー（ロジック）
     │   └── index.ts
     ├── components/             # 内部 React コンポーネント
@@ -41,8 +51,8 @@ features/
 Feature Bundle の `name` が唯一の識別子定義。
 
 ```ts
-export const Background = {
-  name: "Background",
+export const background = {
+  name: "background",
   // ...
 }
 ```
@@ -56,7 +66,7 @@ export const Background = {
 Feature が処理するコマンドのハンドラー。
 
 ```ts
-// Background/commands/index.ts
+// background/commands/index.ts
 import type { Scene } from "@/engine/types"
 import { backgroundStore } from "../stores"
 
@@ -75,15 +85,15 @@ export const backgroundCommands = {
 
 ## Command type 形式
 
-`FeatureName:action` で統一。
+`featureName:action` で統一。
 
 ```
-Background:init
-Background:change
-Character:show
-Character:hide
-Dialogue:next
-Audio:bgm
+background:init
+background:change
+character:show
+character:hide
+dialogue:next
+audio:bgm
 ```
 
 ## SceneTypeDefinition での使用
@@ -92,20 +102,20 @@ Feature を直接インポートし、ヘルパー関数で型安全に配置を
 
 ```ts
 // scene/dialogue.ts
-import { Background, Character, Dialogue } from "@/engine/features"
+import { background, character, dialogue } from "@/engine/features"
 import { sprite, customLayer, widget } from "@/engine/core/arrangement"
 
 export const dialogueScene: SceneTypeDefinition = {
-  features: [Background, Character, Dialogue],
+  features: [background, character, dialogue],
   arrangement: {
     sprites: [
-      sprite(Background, "Background", 0),   // IDE補完が効く
-      sprite(Character, "Character", 10),
+      sprite(background, "Background", 0),   // IDE補完が効く
+      sprite(character, "Character", 10),
     ],
     layers: [
       customLayer(100, [
-        widget(Dialogue, "MessageList"),
-        widget(Character, "NameCard", 10),
+        widget(dialogue, "MessageList"),
+        widget(character, "NameCard", 10),
       ]),
     ],
   },
@@ -113,12 +123,12 @@ export const dialogueScene: SceneTypeDefinition = {
 ```
 
 ヘルパー関数:
-- `sprite(Feature, component, zIndex)` - Sprite を配置
-- `layer(Feature, component, zIndex)` - Feature 提供の Layer を配置
+- `sprite(feature, component, zIndex)` - Sprite を配置
+- `layer(feature, component, zIndex)` - Feature 提供の Layer を配置
 - `customLayer(zIndex, widgets)` - Widget をグループ化して配置
-- `widget(Feature, component, zIndex?)` - customLayer 内で Widget を配置
+- `widget(feature, component, zIndex?)` - customLayer 内で Widget を配置
 
-## SceneController との連携
+## SceneInitializer との連携
 
 1. scene.type から SceneTypeDefinition を取得
 2. definition.features から Feature bundles を取得（直接参照）
@@ -130,7 +140,7 @@ for (const feature of featureMap.values()) {
 }
 ```
 
-Feature 側で scene から必要なデータを取り出す（SceneController は Feature の内部構造を知らない）。
+Feature 側で scene から必要なデータを取り出す（SceneInitializer は Feature の内部構造を知らない）。
 
 ## Executor との連携
 
@@ -141,7 +151,7 @@ const executeCommand = (cmd: Command) => {
 }
 
 // 例
-executeCommand({ type: "Background:change", value: "night" })
+executeCommand({ type: "background:change", value: "night" })
 ```
 
 ## exports/ の役割
@@ -154,8 +164,8 @@ import { backgroundCommands } from "../commands"
 import { useBackground, useBackgroundActions } from "../hooks"
 import { BackgroundSprite } from "./BackgroundSprite"
 
-export const Background = {
-  name: "Background",
+export const background = {
+  name: "background",
   commands: backgroundCommands,
   Sprites: {
     Background: BackgroundSprite,

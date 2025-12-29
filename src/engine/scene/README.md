@@ -52,11 +52,11 @@ type Arrangement = {
 Feature の Sprite を配置。
 
 ```ts
-sprite(Feature, component, zIndex)
+sprite(feature, component, zIndex)
 
 // 例
-sprite(Background, "Background", 0)
-sprite(Character, "Character", 10)
+sprite(background, "Background", 0)
+sprite(character, "Character", 10)
 ```
 
 ### layer()
@@ -64,10 +64,10 @@ sprite(Character, "Character", 10)
 Feature 提供の Layer を直接配置。
 
 ```ts
-layer(Feature, component, zIndex)
+layer(feature, component, zIndex)
 
 // 例
-layer(Dialogue, "DialogueUI", 100)
+layer(dialogue, "DialogueUI", 100)
 ```
 
 ### customLayer()
@@ -76,14 +76,14 @@ Widget をグループ化して Layer を構成。
 
 ```ts
 customLayer(zIndex, [
-  widget(Feature, component, relativeZIndex?),
+  widget(feature, component, relativeZIndex?),
   ...
 ])
 
 // 例
 customLayer(100, [
-  widget(Dialogue, "MessageList"),
-  widget(Character, "NameCard", 10),
+  widget(dialogue, "MessageList"),
+  widget(character, "NameCard", 10),
 ])
 ```
 
@@ -92,7 +92,7 @@ customLayer(100, [
 customLayer 内で Widget を配置。
 
 ```ts
-widget(Feature, component, zIndex?)
+widget(feature, component, zIndex?)
 
 // zIndex は Layer 内での相対位置（省略可）
 ```
@@ -104,21 +104,21 @@ widget(Feature, component, zIndex?)
 ```ts
 // scene/battle.ts
 import type { SceneTypeDefinition } from "@/engine/types"
-import { Background, Battle, UI } from "@/engine/features"
+import { background, battle, ui } from "@/engine/features"
 import { sprite, layer, customLayer, widget } from "@/engine/core/arrangement"
 
 export const battleScene: SceneTypeDefinition = {
-  features: [Background, Battle, UI],
+  features: [background, battle, ui],
   arrangement: {
     sprites: [
-      sprite(Background, "Background", 0),
-      sprite(Battle, "BattleField", 10),
+      sprite(background, "Background", 0),
+      sprite(battle, "BattleField", 10),
     ],
     layers: [
-      layer(Battle, "BattleUI", 100),
+      layer(battle, "BattleUI", 100),
       customLayer(200, [
-        widget(UI, "HPBar"),
-        widget(UI, "ActionMenu", 10),
+        widget(ui, "HPBar"),
+        widget(ui, "ActionMenu", 10),
       ]),
     ],
   },
@@ -151,11 +151,11 @@ export const sceneRegistry: Record<string, SceneTypeDefinition> = {
 ヘルパー関数は Feature の型から補完が効く:
 
 ```ts
-sprite(Background, "Background", 0)
-//                 ↑ IDE補完: Background.Sprites のキー一覧
+sprite(background, "Background", 0)
+//                 ↑ IDE補完: background.Sprites のキー一覧
 
-widget(Dialogue, "MessageList")
-//               ↑ IDE補完: Dialogue.Widgets のキー一覧
+widget(dialogue, "MessageList")
+//               ↑ IDE補完: dialogue.Widgets のキー一覧
 ```
 
 存在しないコンポーネント名を指定するとコンパイルエラー。
@@ -164,7 +164,7 @@ widget(Dialogue, "MessageList")
 
 | 方式 | 使用場面 |
 |------|---------|
-| `layer(Feature, ...)` | Feature が提供する完成品 Layer |
+| `layer(feature, ...)` | Feature が提供する完成品 Layer |
 | `customLayer([widget(...)])` | シーン定義側で Widget を自由に構成 |
 
 Feature 側で Widget の組み合わせが決まっている場合は Layer として提供。

@@ -6,8 +6,8 @@ import { dialogueCommands } from "../commands"
 import { useDialogue, useDialogueActions } from "../hooks"
 import { MessageListWidget } from "./MessageListWidget"
 
-export const Dialogue = {
-  name: "Dialogue",
+export const dialogue = {
+  name: "dialogue",
   commands: dialogueCommands,
   Sprites: {},
   Layers: {},

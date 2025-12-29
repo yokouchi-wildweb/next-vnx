@@ -7,8 +7,8 @@ import { useCharacter, useCharacterActions } from "../hooks"
 import { CharacterSprite } from "./CharacterSprite"
 import { NameCardWidget } from "./NameCardWidget"
 
-export const Character = {
-  name: "Character",
+export const character = {
+  name: "character",
   commands: characterCommands,
   Sprites: {
     Character: CharacterSprite,

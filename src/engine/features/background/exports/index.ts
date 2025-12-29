@@ -6,8 +6,8 @@ import { backgroundCommands } from "../commands"
 import { useBackground, useBackgroundActions } from "../hooks"
 import { BackgroundSprite } from "./BackgroundSprite"
 
-export const Background = {
-  name: "Background",
+export const background = {
+  name: "background",
   commands: backgroundCommands,
   Sprites: {
     Background: BackgroundSprite,

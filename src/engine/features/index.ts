@@ -4,9 +4,9 @@
  * 各 Feature バンドルを一括エクスポート
  *
  * @example
- * import { Background, Character, Dialogue } from "@/engine/features"
+ * import { background, character, dialogue } from "@/engine/features"
  */
 
-export { Background } from "./Background/exports"
-export { Character } from "./Character/exports"
-export { Dialogue } from "./Dialogue/exports"
+export { background } from "./background/exports"
+export { character } from "./character/exports"
+export { dialogue } from "./dialogue/exports"
