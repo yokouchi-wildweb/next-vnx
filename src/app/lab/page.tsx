@@ -11,12 +11,16 @@ const experiments = [
     description: '背景 + 立ち絵 + 台詞表示',
     status: 'wip',
   },
-
-
   {
     id: '002-ai-dialogue',
     title: 'AIダイアログ',
     description: 'LLMによる動的な文章の受け答え',
+    status: 'wip',
+  },
+  {
+    id: '004-tunnel-background',
+    title: 'トンネル背景',
+    description: '中心から放射状に広がる多角形グリッド背景（四角形/六角形）',
     status: 'wip',
   },
 ]
