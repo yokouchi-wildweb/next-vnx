@@ -23,45 +23,47 @@
       }
     }
   },
-  "flags": {
-    "metCircus": {
-      "label": "サーカスと出会った",
-      "default": false,
-      "type": "boolean"
+  "playState": {
+    "flags": {
+      "metCircus": {
+        "label": "サーカスと出会った",
+        "default": false,
+        "type": "boolean"
+      },
+      "metTatsumi": {
+        "label": "達巳と出会った",
+        "default": false,
+        "type": "boolean"
+      },
+      "heardSecret": {
+        "label": "秘密を聞いた",
+        "default": false,
+        "type": "boolean"
+      },
+      "agreedToHelp": {
+        "label": "協力に同意した",
+        "default": false,
+        "type": "boolean"
+      },
+      "visitedChurch": {
+        "label": "教会を訪れた",
+        "default": false,
+        "type": "boolean"
+      }
     },
-    "metTatsumi": {
-      "label": "達巳と出会った",
-      "default": false,
-      "type": "boolean"
-    },
-    "heardSecret": {
-      "label": "秘密を聞いた",
-      "default": false,
-      "type": "boolean"
-    },
-    "agreedToHelp": {
-      "label": "協力に同意した",
-      "default": false,
-      "type": "boolean"
-    },
-    "visitedChurch": {
-      "label": "教会を訪れた",
-      "default": false,
-      "type": "boolean"
-    }
-  },
-  "affinity": {
-    "circus": {
-      "label": "サーカスとの関係",
-      "default": 0,
-      "min": -100,
-      "max": 100
-    },
-    "tatsumi": {
-      "label": "達巳との関係",
-      "default": 0,
-      "min": -100,
-      "max": 100
+    "affinity": {
+      "circus": {
+        "label": "サーカスとの関係",
+        "default": 0,
+        "min": -100,
+        "max": 100
+      },
+      "tatsumi": {
+        "label": "達巳との関係",
+        "default": 0,
+        "min": -100,
+        "max": 100
+      }
     }
   }
 }
