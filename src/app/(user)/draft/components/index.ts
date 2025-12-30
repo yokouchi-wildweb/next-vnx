@@ -1,9 +1,0 @@
-export { Hero } from "./Hero";
-export { WhatIsVnx } from "./WhatIsVnx";
-export { Features } from "./Features";
-export { HowItWorks } from "./HowItWorks";
-export { UseCases } from "./UseCases";
-export { Demo } from "./Demo";
-export { Pricing } from "./Pricing";
-export { Faq } from "./Faq";
-export { CtaSection } from "./CtaSection";
