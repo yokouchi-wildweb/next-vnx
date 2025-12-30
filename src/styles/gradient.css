@@ -1,0 +1,189 @@
+/*
+ * src/styles/gradient.css
+ * グラデーションのデザイントークンとユーティリティを定義します。
+ * 色の組み合わせはプリセット化し、方向は使用箇所で自由に指定できます。
+ *
+ * 使用例:
+ *   <div className="bg-gradient-ocean gradient-90" />
+ *   <div className="bg-gradient-sunset gradient-180" />
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Variables
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* デフォルト角度 */
+  --gradient-angle: 135deg;
+
+  /* ─── セマンティック系（テーマカラーとは独立） ─── */
+  /* #ff61b6 → #7876ff */
+  --gradient-primary-colors: oklch(0.72 0.22 350), oklch(0.62 0.23 280);
+  /* #5dbdff → #dc72ff */
+  --gradient-secondary-colors: oklch(0.78 0.12 220), oklch(0.68 0.24 310);
+  /* #00ce81 → #5dbdff */
+  --gradient-accent-colors: oklch(0.75 0.18 160), oklch(0.78 0.12 220);
+  /* #ff82c5 → #8181ff */
+  --gradient-background-colors: oklch(0.75 0.2 350), oklch(0.64 0.2 280);
+  --gradient-muted-colors: oklch(0.95 0.01 250), oklch(0.9 0.01 270);
+  --gradient-destructive-colors: oklch(0.6 0.2 25), oklch(0.5 0.22 10);
+
+  /* ─── 自然・現象系 ─── */
+  --gradient-ocean-colors: oklch(0.6 0.15 220), oklch(0.5 0.18 200);
+  --gradient-sunset-colors: oklch(0.7 0.2 50), oklch(0.6 0.22 350);
+  --gradient-forest-colors: oklch(0.55 0.15 145), oklch(0.45 0.12 160);
+  --gradient-aurora-colors: oklch(0.6 0.2 300), oklch(0.5 0.18 200);
+  --gradient-coral-colors: oklch(0.7 0.18 20), oklch(0.65 0.2 350);
+  --gradient-midnight-colors: oklch(0.35 0.15 270), oklch(0.25 0.12 250);
+}
+
+.dark {
+  /* ダークモード用（必要に応じて調整） */
+  --gradient-muted-colors: oklch(0.25 0.01 250), oklch(0.2 0.01 270);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Background Utilities
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── セマンティック系 ─── */
+@utility bg-gradient-primary {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-primary-colors));
+}
+
+@utility bg-gradient-secondary {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-secondary-colors));
+}
+
+@utility bg-gradient-accent {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-accent-colors));
+}
+
+@utility bg-gradient-muted {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-muted-colors));
+}
+
+@utility bg-gradient-destructive {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-destructive-colors));
+}
+
+@utility bg-gradient-background {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-background-colors));
+}
+
+/* ─── 自然・現象系 ─── */
+@utility bg-gradient-ocean {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-ocean-colors));
+}
+
+@utility bg-gradient-sunset {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-sunset-colors));
+}
+
+@utility bg-gradient-forest {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-forest-colors));
+}
+
+@utility bg-gradient-aurora {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-aurora-colors));
+}
+
+@utility bg-gradient-coral {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-coral-colors));
+}
+
+@utility bg-gradient-midnight {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-midnight-colors));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Direction Utilities（角度）
+
+   角度の対応:
+     0   = ↑ 上
+     45  = ↗ 右上
+     90  = → 右
+     135 = ↘ 右下（デフォルト）
+     180 = ↓ 下
+     225 = ↙ 左下
+     270 = ← 左
+     315 = ↖ 左上
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@utility gradient-0 {
+  --gradient-angle: 0deg;
+}
+
+@utility gradient-45 {
+  --gradient-angle: 45deg;
+}
+
+@utility gradient-90 {
+  --gradient-angle: 90deg;
+}
+
+@utility gradient-135 {
+  --gradient-angle: 135deg;
+}
+
+@utility gradient-180 {
+  --gradient-angle: 180deg;
+}
+
+@utility gradient-225 {
+  --gradient-angle: 225deg;
+}
+
+@utility gradient-270 {
+  --gradient-angle: 270deg;
+}
+
+@utility gradient-315 {
+  --gradient-angle: 315deg;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Text Gradient Utilities
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@utility text-gradient-primary {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-primary-colors));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility text-gradient-secondary {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-secondary-colors));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility text-gradient-accent {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-accent-colors));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility text-gradient-ocean {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-ocean-colors));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility text-gradient-sunset {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-sunset-colors));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility text-gradient-aurora {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-aurora-colors));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

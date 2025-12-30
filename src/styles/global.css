@@ -9,6 +9,7 @@
 @import "tw-animate-css";
 @import "./animations.css";
 @import "./theme.css";
+@import "./gradient.css";
 @import "./config.css";
 @import "./z-layer.css";
 @import "./base.css";
