@@ -1,14 +1,14 @@
-// src/engine/stores/playState/useStore.ts
+// src/engine/stores/gameState/useStore.ts
 "use client"
 
 import { internalStore } from "./internalStore"
 
 /**
- * usePlayStateStore - PlayState状態へのアクセスフック
+ * useGameStateStore - GameState状態へのアクセスフック
  *
- * コンポーネントからPlayState状態を参照する場合に使用。
+ * コンポーネントからGameState状態を参照する場合に使用。
  */
-export function usePlayStateStore() {
+export function useGameStateStore() {
   const playhead = internalStore((s) => s.playhead)
   const playState = internalStore((s) => s.playState)
   const setPlayhead = internalStore((s) => s.setPlayhead)
