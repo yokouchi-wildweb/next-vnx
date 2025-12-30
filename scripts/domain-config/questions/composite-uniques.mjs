@@ -5,9 +5,15 @@ const prompt = inquirer.createPromptModule();
 /**
  * 複合ユニーク制約の質問
  * フィールド定義完了後に呼び出される
+ * ※ Drizzle (Neon/PostgreSQL) 専用機能。Firestoreでは利用不可
  */
 export default async function askCompositeUniques(config) {
   const compositeUniques = [];
+
+  // Firestore の場合はスキップ（ネイティブのユニーク制約をサポートしていない）
+  if (config.dbEngine === 'Firestore') {
+    return { compositeUniques };
+  }
 
   // フィールドが2つ未満の場合はスキップ
   const availableFields = config.fields || [];
