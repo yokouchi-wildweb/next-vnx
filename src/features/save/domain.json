@@ -19,6 +19,9 @@
   "useCreatedAt": true,
   "useUpdatedAt": true,
   "useSoftDelete": false,
+  "compositeUniques": [
+    ["user_id", "scenario_id", "slot_number"]
+  ],
   "fields": [
     {
       "name": "scenario_id",
