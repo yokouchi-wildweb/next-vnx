@@ -7,7 +7,8 @@ export const SaveBaseSchema = z.object({
   user_id: z.string().trim().min(1, { message: "ユーザーは必須です。" }),
   scenario_id: z.string().trim().min(1, { message: "シナリオIDは必須です。" }),
   slot_number: z.coerce.number().int(),
-  play_state: z.any(),
+  playhead: z.any(),
+  play_state: z.any().nullish(),
   thumbnail: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   play_time: z.coerce.number().int().nullish(),

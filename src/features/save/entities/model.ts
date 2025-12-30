@@ -5,7 +5,8 @@ export type Save = {
   user_id: string;
   scenario_id: string;
   slot_number: number;
-  play_state: any;
+  playhead: any;
+  play_state: any | null;
   thumbnail: string | null;
   play_time: number | null;
   createdAt: Date | null;

@@ -39,11 +39,18 @@
       "defaultValue": 0
     },
     {
+      "name": "playhead",
+      "label": "再生位置",
+      "fieldType": "jsonb",
+      "formInput": "hidden",
+      "required": true
+    },
+    {
       "name": "play_state",
       "label": "プレイ状態",
       "fieldType": "jsonb",
       "formInput": "hidden",
-      "required": true
+      "required": false
     },
     {
       "name": "thumbnail",

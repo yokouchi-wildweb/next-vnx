@@ -38,6 +38,7 @@ export async function seedSaves(
       user_id: demoUser.id,
       scenario_id: jsonData.scenarioId,
       slot_number: jsonData.slotNumber,
+      playhead: jsonData.playhead,
       play_state: jsonData.playState,
       thumbnail: jsonData.thumbnail,
       play_time: jsonData.playTime,

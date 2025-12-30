@@ -3,6 +3,11 @@
   "userId": "550e8400-e29b-41d4-a716-446655440000",
   "scenarioId": "_sample",
   "slotNumber": 1,
+  "playhead": {
+    "sceneId": "church",
+    "fragmentId": "main",
+    "nodeIndex": 3
+  },
   "playState": {
     "flags": {
       "metCircus": true,
@@ -14,11 +19,6 @@
     "affinity": {
       "circus": 25,
       "tatsumi": 10
-    },
-    "playhead": {
-      "sceneId": "church",
-      "fragmentId": "main",
-      "nodeIndex": 3
     }
   },
   "thumbnail": null,
