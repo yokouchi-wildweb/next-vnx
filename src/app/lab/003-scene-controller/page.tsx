@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react"
 import { GameScreen } from "@/engine/components/Screen"
 import { SceneController } from "@/engine/core/SceneController/SceneController"
+import { createScenarioResolver } from "@/engine/utils/assetResolver"
 import type { Scene } from "@/engine/types"
 
 const SCENARIO_ID = "_sample"
@@ -23,6 +24,12 @@ type SceneCharacterPosition = {
   position: string
 }
 
+type MergedCharacter = ScenarioCharacter &
+  SceneCharacterPosition & {
+    /** 解決済みのフルパス */
+    spritePath: string
+  }
+
 export default function SceneControllerLabPage() {
   const [scene, setScene] = useState<Scene | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -31,41 +38,50 @@ export default function SceneControllerLabPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        const resolver = createScenarioResolver(SCENARIO_ID)
+
         // 並列で読み込み
-        const [scenarioRes, sceneRes] = await Promise.all([
-          fetch(`/game/scenarios/${SCENARIO_ID}/scenario.json`),
-          fetch(`/game/scenarios/${SCENARIO_ID}/scenes/${SCENE_ID}/scene.json`),
+        const [scenarioData, sceneData] = await Promise.all([
+          resolver.loadScenario(),
+          resolver.loadScene(SCENE_ID),
         ])
 
-        if (!scenarioRes.ok) {
-          throw new Error(`Failed to load scenario: ${scenarioRes.status}`)
-        }
-        if (!sceneRes.ok) {
-          throw new Error(`Failed to load scene: ${sceneRes.status}`)
-        }
-
-        const scenarioData = await scenarioRes.json()
-        const sceneData = await sceneRes.json()
-
-        // キャラクター情報をマージ
-        const mergedCharacters: Record<string, ScenarioCharacter & SceneCharacterPosition> = {}
-        const scenarioChars = scenarioData.characters as Record<string, ScenarioCharacter>
-        const sceneChars = sceneData.characters as Record<string, SceneCharacterPosition>
+        // キャラクター情報をマージ + スプライトパス解決
+        const mergedCharacters: Record<string, MergedCharacter> = {}
+        const scenarioChars = scenarioData.characters as Record<
+          string,
+          ScenarioCharacter
+        >
+        const sceneChars = sceneData.characters as Record<
+          string,
+          SceneCharacterPosition
+        >
 
         for (const [id, sceneChar] of Object.entries(sceneChars)) {
           const scenarioChar = scenarioChars[id]
           if (scenarioChar) {
+            // スプライトパスをフルパスに変換
+            const spritePath = resolver.character(scenarioChar.sprites.default)
             mergedCharacters[id] = {
               ...scenarioChar,
               ...sceneChar,
+              spritePath,
             }
           }
         }
 
+        // 背景パスもフルパスに変換
+        const backgrounds = sceneData.backgrounds as Record<string, string>
+        const resolvedBackgrounds: Record<string, string> = {}
+        for (const [key, path] of Object.entries(backgrounds)) {
+          resolvedBackgrounds[key] = resolver.background(path)
+        }
+
         // マージした scene データ
         const mergedScene: Scene = {
-          ...sceneData,
+          ...(sceneData as Scene),
           characters: mergedCharacters,
+          backgrounds: resolvedBackgrounds,
         }
 
         setScene(mergedScene)

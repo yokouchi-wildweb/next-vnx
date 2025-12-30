@@ -1,0 +1,28 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440001",
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "scenarioId": "_sample",
+  "slotNumber": 1,
+  "playState": {
+    "flags": {
+      "metCircus": true,
+      "metTatsumi": true,
+      "heardSecret": false,
+      "agreedToHelp": false,
+      "visitedChurch": true
+    },
+    "affinity": {
+      "circus": 25,
+      "tatsumi": 10
+    },
+    "position": {
+      "sceneId": "church",
+      "fragmentId": "main",
+      "nodeIndex": 3
+    }
+  },
+  "thumbnail": null,
+  "playTime": 1234,
+  "createdAt": "2025-12-29T10:30:00.000Z",
+  "updatedAt": "2025-12-29T12:45:00.000Z"
+}

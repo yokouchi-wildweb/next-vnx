@@ -42,6 +42,27 @@ rule: no pre-designed schema, evolve through prototyping
 - public/game/: input data for engine (dev mock, prod from DB)
 - scenario format: undefined, evolve via prototyping
 
+## data_boundary
+```
+features/ (data layer)      │  engine/ (view layer)
+────────────────────────────│────────────────────────────
+save/, scenario/            │  stores/playState, stores/scenario
+project/, asset/            │  SceneLoader, SceneComposer, Executor
+        ↓                   │          ↓
+DB / Storage                │  pure rendering (no DB)
+```
+
+data_flow:
+  load: features/save → API → DB → playState → engine/stores → SceneLoader
+  save: engine/stores → playState → features/save → API → DB
+
+why_engine_no_db:
+  - purity: same input = same output (testable)
+  - reusability: engine portable to other projects
+  - separation: features/ = persistence, engine/ = display
+  - offline: works with local mock data
+  - flexibility: change DB without touching engine
+
 ## engine_hierarchy
 ```
 GameManager (game-wide: save/load, title↔gameplay)
