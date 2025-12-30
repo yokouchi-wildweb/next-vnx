@@ -125,14 +125,7 @@
       "Skill(brainstorm)",
       "Bash(ss -tlnp:*)",
       "Bash(cross-env APP_ENV=.env.development npx drizzle-kit push:*)",
-      "WebFetch(domain:github.com)",
-      "WebFetch(domain:support.claude.com)",
-      "WebFetch(domain:openai.com)",
-      "WebFetch(domain:intuitionlabs.ai)",
-      "WebFetch(domain:docs.anthropic.com)",
-      "Bash(source .env.development:*)",
-      "WebFetch(domain:pixijs.io)",
-      "WebFetch(domain:react.pixijs.io)"
+      "Bash(yes:*)"
     ],
     "deny": [
       "Bash(sudo:*)",

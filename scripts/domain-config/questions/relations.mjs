@@ -91,6 +91,22 @@ async function askSingleRelation(config, domain, label, relationType) {
     // belongsToMany は中間テーブルが CASCADE 固定のため onDelete は設定しない
   }
 
+  // belongsTo / belongsToMany の場合、セレクトボックスのラベルに使うフィールドを設定
+  let labelField = undefined;
+  if (relationType === 'belongsTo' || relationType === 'belongsToMany') {
+    const res = await prompt({
+      type: 'input',
+      name: 'labelField',
+      message: 'セレクトボックスのラベルに使うフィールド名 [name]:',
+      default: 'name',
+    });
+    const trimmed = res.labelField.trim();
+    // デフォルト値と異なる場合のみ設定
+    if (trimmed && trimmed !== 'name') {
+      labelField = trimmed;
+    }
+  }
+
   const defaultLabel = toPascalCase(domain) || domain;
   return {
     domain,
@@ -101,6 +117,7 @@ async function askSingleRelation(config, domain, label, relationType) {
     required,
     onDelete,
     includeRelationTable,
+    ...(labelField && { labelField }),
   };
 }
 

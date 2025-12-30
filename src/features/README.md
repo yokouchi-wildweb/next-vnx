@@ -27,6 +27,7 @@
 | useDetailModal | boolean | ⚪ No | 詳細モーダルの有無 |
 | addToAdminDataMenu | boolean | ⚪ No | adminDataMenu への自動追加 |
 | useDuplicateButton | boolean | ⚪ No | 複製ボタンの有無 |
+| compositeUniques | string[][] | ⚪ No | 複合ユニーク制約（Neon のみ） |
 | generateFiles | GenerateFiles | 🟢 Yes | 生成対象ファイルの設定 |
 
 ---
@@ -43,6 +44,7 @@
 | required | boolean | ⚪ No | 必須かどうか（belongsTo のみ有効） |
 | onDelete | `"RESTRICT"` \| `"CASCADE"` \| `"SET_NULL"` | ⚪ No | 削除時の挙動（belongsTo のみ） |
 | includeRelationTable | boolean | ⚪ No | 中間テーブル定義を含めるか（belongsToMany のみ） |
+| labelField | string | ⚪ No | セレクトボックスのラベルに使うフィールド（デフォルト: `name`） |
 
 #### RelationType
 
@@ -122,6 +124,30 @@ mediaUploader, hidden, none
 sizeBytes, width, height, aspectRatio, orientation,
 mimeType, src, durationSec, durationFormatted
 ```
+
+---
+
+### compositeUniques（複合ユニーク制約）
+
+**Neon (PostgreSQL/Drizzle) 専用機能**。Firestore では利用不可。
+
+複数フィールドの組み合わせでユニーク制約を設定する場合に使用。
+
+```json
+{
+  "compositeUniques": [
+    ["name", "type", "category_id"],
+    ["email", "organization_id"]
+  ]
+}
+```
+
+- 各配列は1つの複合ユニーク制約を表す
+- フィールド名または belongsTo リレーションの fieldName を指定可能
+- `useSoftDelete: true` の場合、`WHERE deleted_at IS NULL` の部分インデックスとして生成
+- CRUD 操作時に制約違反があると 409 エラーを返す
+
+生成されるインデックス名: `{テーブル名}_composite_unique_{連番}`
 
 ---
 

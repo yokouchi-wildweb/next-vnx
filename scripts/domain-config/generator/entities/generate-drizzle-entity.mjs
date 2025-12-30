@@ -263,7 +263,11 @@ const relationTables = [];
 if (usesPrimaryKey) imports.add('primaryKey');
 // ソフトデリート + ユニーク制約がある場合は部分インデックス用のimportを追加
 const needsPartialIndex = config.useSoftDelete && uniqueFields.length > 0;
-if (needsPartialIndex) {
+// 複合ユニーク制約の有無
+const hasCompositeUniques = (config.compositeUniques || []).length > 0;
+// uniqueIndexが必要な条件
+const needsUniqueIndex = needsPartialIndex || hasCompositeUniques;
+if (needsUniqueIndex) {
   imports.add('uniqueIndex');
 }
 
@@ -271,7 +275,8 @@ const importLine = `import { ${Array.from(imports).sort().join(', ')} } from "dr
 let content = `// src/features/${camel}/entities/drizzle.ts\n\n`;
 content += `${importLine}\n`;
 // ソフトデリート + ユニーク制約がある場合は sql を drizzle-orm からインポート
-if (needsPartialIndex) {
+const needsSqlImport = needsPartialIndex || (config.useSoftDelete && hasCompositeUniques);
+if (needsSqlImport) {
   content += `import { sql } from "drizzle-orm";\n`;
 }
 relationImports.forEach((domainPascal, domainCamel) => {
@@ -279,9 +284,46 @@ relationImports.forEach((domainPascal, domainCamel) => {
 });
 content += `\n`;
 if (enumDefs.length) content += enumDefs.join('\n') + '\n\n';
+
+// インデックス定義を収集（pgTableの第3引数として使用）
+const tableIndexes = [];
+
+// ソフトデリート + 単一フィールドユニーク制約のインデックス
+if (needsPartialIndex) {
+  uniqueFields.forEach((uf) => {
+    const indexName = `${tableName}_${uf.columnName}_unique_active`;
+    tableIndexes.push(
+      `  // ${uf.name} のユニーク制約（アクティブなレコードのみ）\n` +
+      `  uniqueIndex("${indexName}").on(table.${uf.name}).where(sql\`deleted_at IS NULL\`)`
+    );
+  });
+}
+
+// 複合ユニーク制約のインデックス
+if (hasCompositeUniques) {
+  (config.compositeUniques || []).forEach((compositeFields, index) => {
+    const indexName = `${tableName}_composite_unique_${index}`;
+    const fieldsOnClause = compositeFields.map((f) => `table.${f}`).join(', ');
+    let indexDef = `  // 複合ユニーク制約 ${index}: [${compositeFields.join(', ')}]\n`;
+    indexDef += `  uniqueIndex("${indexName}").on(${fieldsOnClause})`;
+    if (config.useSoftDelete) {
+      indexDef += `.where(sql\`deleted_at IS NULL\`)`;
+    }
+    tableIndexes.push(indexDef);
+  });
+}
+
+// pgTableの生成（インデックスがある場合は第3引数を追加）
 content += `export const ${pascal}Table = pgTable("${tableName}", {\n`;
 content += fields.join('\n');
-content += `\n});\n`;
+if (tableIndexes.length > 0) {
+  content += `\n}, (table) => [\n`;
+  content += tableIndexes.join(',\n');
+  content += `\n]);\n`;
+} else {
+  content += `\n});\n`;
+}
+
 relationTables.forEach((t) => {
   const baseColumnName = `${toSnakeCase(camel)}_id`;
   const relationColumnName = `${toSnakeCase(t.domainCamel)}_id`;
@@ -289,18 +331,6 @@ relationTables.forEach((t) => {
   const relationColumn = buildColumn(t.typeFn, relationColumnName);
   content += `\nexport const ${t.tableVar} = pgTable(\n  "${t.tableName}",\n  {\n    ${camel}Id: ${baseColumn}\n      .notNull()\n      .references(() => ${pascal}Table.id, { onDelete: "cascade" }),\n    ${t.domainCamel}Id: ${relationColumn}\n      .notNull()\n      .references(() => ${t.domainPascal}Table.id, { onDelete: "cascade" }),\n  },\n  (table) => {\n    return { pk: primaryKey({ columns: [table.${camel}Id, table.${t.domainCamel}Id] }) };\n  },\n);\n`;
 });
-
-// ソフトデリート + ユニーク制約がある場合は部分インデックスを生成
-if (needsPartialIndex) {
-  uniqueFields.forEach((uf) => {
-    const indexName = `${tableName}_${uf.columnName}_unique_active`;
-    const indexVar = `${camel}${toPascalCase(uf.name)}UniqueActiveIndex`;
-    content += `\n// ${uf.name} のユニーク制約（アクティブなレコードのみ）\n`;
-    content += `export const ${indexVar} = uniqueIndex("${indexName}")\n`;
-    content += `  .on(${pascal}Table.${uf.name})\n`;
-    content += `  .where(sql\`deleted_at IS NULL\`);\n`;
-  });
-}
 
 if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 fs.writeFileSync(outputFile, content);
