@@ -41,6 +41,7 @@ export default function generate(tokens) {
       const domCamel = domPascal.charAt(0).toLowerCase() + domPascal.slice(1);
       const domCamelPlural = toPlural(domCamel);
       const hookName = `use${domPascal}List`;
+      const labelField = rel.labelField || "name";
 
       importLines.push(
         `import { ${hookName} } from "@/features/${domCamel}/hooks/${hookName}";`,
@@ -49,7 +50,7 @@ export default function generate(tokens) {
         `  const { data: ${domCamelPlural} = [] } = ${hookName}({ suspense: true });`,
       );
       optionLines.push(
-        `  const ${domCamel}Options = ${domCamelPlural}.map((v) => ({ value: v.id, label: v.name }));`,
+        `  const ${domCamel}Options = ${domCamelPlural}.map((v) => ({ value: v.id, label: v.${labelField} }));`,
       );
       propLines.push(`${domCamel}Options={${domCamel}Options}`);
     });

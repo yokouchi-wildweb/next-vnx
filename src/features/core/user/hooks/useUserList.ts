@@ -1,4 +1,4 @@
-// src/features/user/hooks/useUsers.ts
+// src/features/core/user/hooks/useUserList.ts
 
 "use client";
 
@@ -7,5 +7,5 @@ import { userClient } from "../services/client/userClient";
 import type { User } from "../entities";
 import type { SWRConfiguration } from "swr";
 
-export const useUsers = (config?: SWRConfiguration) =>
+export const useUserList = (config?: SWRConfiguration) =>
   useDomainList<User>("users", userClient.getAll, config);
