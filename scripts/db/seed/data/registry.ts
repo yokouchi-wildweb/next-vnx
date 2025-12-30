@@ -2,16 +2,19 @@
 
 import type { SeedSampleCategories } from "./sampleCategories";
 import type { SeedSampleTags } from "./sampleTags";
+import type { SeedSavesResult } from "./saves";
+import type { SeedDemoUserResult } from "./demoUser";
 
 /**
  * 各シードが返すデータの型マップ
  * 新しいシードを追加する際はここに型を追加する
  */
 export type SeedResultMap = {
-  demoUser: void;
+  demoUser: SeedDemoUserResult;
   sampleTags: SeedSampleTags;
   sampleCategories: SeedSampleCategories;
   samples: void;
+  saves: SeedSavesResult;
 };
 
 export type SeedKey = keyof SeedResultMap;
@@ -49,7 +52,7 @@ export const seedRegistry: SeedConfig[] = [
     deps: [],
     fn: async () => {
       const { seedDemoUser } = await import("./demoUser");
-      await seedDemoUser();
+      return seedDemoUser();
     },
   },
   {
@@ -80,6 +83,15 @@ export const seedRegistry: SeedConfig[] = [
         tags: deps.sampleTags,
         categories: deps.sampleCategories,
       });
+    },
+  },
+  {
+    name: "セーブデータ",
+    key: "saves",
+    deps: ["demoUser"],
+    fn: async (deps) => {
+      const { seedSaves } = await import("./saves");
+      return seedSaves({ demoUser: deps.demoUser });
     },
   },
 ];
