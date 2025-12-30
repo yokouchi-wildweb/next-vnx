@@ -13,8 +13,17 @@
  */
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import { generateTunnelSVG, type TunnelSVGOptions } from "./generateTunnelSVG"
+
+// 保存される設定の型
+interface SavedPreset {
+  name: string
+  options: TunnelSVGOptions
+  createdAt: string
+}
+
+const STORAGE_KEY = "lab-004-tunnel-presets"
 
 export default function TunnelBackgroundPage() {
   // パラメータ状態
@@ -29,6 +38,107 @@ export default function TunnelBackgroundPage() {
   const [drawRadialLines, setDrawRadialLines] = useState(true)
   const [perspectivePower, setPerspectivePower] = useState(2)
   const [showControls, setShowControls] = useState(true)
+
+  // 保存関連の状態
+  const [savedPresets, setSavedPresets] = useState<SavedPreset[]>([])
+  const [presetName, setPresetName] = useState("")
+  const [showSavePanel, setShowSavePanel] = useState(false)
+  const [copyMessage, setCopyMessage] = useState<string | null>(null)
+
+  // localStorageから読み込み
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      try {
+        setSavedPresets(JSON.parse(stored))
+      } catch {
+        // パースエラーは無視
+      }
+    }
+  }, [])
+
+  // 設定を保存
+  const savePreset = useCallback(() => {
+    if (!presetName.trim()) return
+
+    const newPreset: SavedPreset = {
+      name: presetName.trim(),
+      options: {
+        sides,
+        layers,
+        strokeWidth,
+        strokeOpacity,
+        gradientStart,
+        gradientEnd,
+        minScale,
+        maxScale,
+        drawRadialLines,
+        perspectivePower,
+      },
+      createdAt: new Date().toISOString(),
+    }
+
+    const updated = [...savedPresets, newPreset]
+    setSavedPresets(updated)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+    setPresetName("")
+    setCopyMessage("保存しました")
+    setTimeout(() => setCopyMessage(null), 2000)
+  }, [presetName, sides, layers, strokeWidth, strokeOpacity, gradientStart, gradientEnd, minScale, maxScale, drawRadialLines, perspectivePower, savedPresets])
+
+  // 設定を読み込み
+  const loadPreset = useCallback((preset: SavedPreset) => {
+    const o = preset.options
+    if (o.sides !== undefined) setSides(o.sides)
+    if (o.layers !== undefined) setLayers(o.layers)
+    if (o.strokeWidth !== undefined) setStrokeWidth(o.strokeWidth)
+    if (o.strokeOpacity !== undefined) setStrokeOpacity(o.strokeOpacity)
+    if (o.gradientStart !== undefined) setGradientStart(o.gradientStart)
+    if (o.gradientEnd !== undefined) setGradientEnd(o.gradientEnd)
+    if (o.minScale !== undefined) setMinScale(o.minScale)
+    if (o.maxScale !== undefined) setMaxScale(o.maxScale)
+    if (o.drawRadialLines !== undefined) setDrawRadialLines(o.drawRadialLines)
+    if (o.perspectivePower !== undefined) setPerspectivePower(o.perspectivePower)
+  }, [])
+
+  // 設定を削除
+  const deletePreset = useCallback((index: number) => {
+    const updated = savedPresets.filter((_, i) => i !== index)
+    setSavedPresets(updated)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+  }, [savedPresets])
+
+  // JSONをクリップボードにコピー
+  const copyPresetJson = useCallback(async (preset: SavedPreset) => {
+    const json = JSON.stringify(preset, null, 2)
+    await navigator.clipboard.writeText(json)
+    setCopyMessage(`「${preset.name}」をコピーしました`)
+    setTimeout(() => setCopyMessage(null), 2000)
+  }, [])
+
+  // 現在の設定をコピー
+  const copyCurrentSettings = useCallback(async () => {
+    const current: SavedPreset = {
+      name: "現在の設定",
+      options: {
+        sides,
+        layers,
+        strokeWidth,
+        strokeOpacity,
+        gradientStart,
+        gradientEnd,
+        minScale,
+        maxScale,
+        drawRadialLines,
+        perspectivePower,
+      },
+      createdAt: new Date().toISOString(),
+    }
+    const json = JSON.stringify(current, null, 2)
+    await navigator.clipboard.writeText(json)
+    setCopyMessage("現在の設定をコピーしました")
+    setTimeout(() => setCopyMessage(null), 2000)
+  }, [sides, layers, strokeWidth, strokeOpacity, gradientStart, gradientEnd, minScale, maxScale, drawRadialLines, perspectivePower])
 
   // SVGオプション
   const svgOptions: TunnelSVGOptions = useMemo(
@@ -354,6 +464,98 @@ export default function TunnelBackgroundPage() {
               </button>
             </div>
           </div>
+
+          {/* 保存セクション */}
+          <div className="mt-4 pt-4 border-t border-gray-600">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm">マイ設定</label>
+              <button
+                onClick={() => setShowSavePanel(!showSavePanel)}
+                className="text-xs text-blue-400 hover:text-blue-300"
+              >
+                {showSavePanel ? "閉じる" : "保存/管理"}
+              </button>
+            </div>
+
+            {/* 現在の設定をコピー */}
+            <button
+              onClick={copyCurrentSettings}
+              className="w-full px-2 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 rounded mb-2"
+            >
+              現在の設定をJSONコピー
+            </button>
+
+            {showSavePanel && (
+              <div className="space-y-3">
+                {/* 新規保存 */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={presetName}
+                    onChange={(e) => setPresetName(e.target.value)}
+                    placeholder="設定名を入力..."
+                    className="flex-1 px-2 py-1 text-xs bg-gray-800 border border-gray-600 rounded focus:outline-none focus:border-blue-500"
+                    onKeyDown={(e) => e.key === "Enter" && savePreset()}
+                  />
+                  <button
+                    onClick={savePreset}
+                    disabled={!presetName.trim()}
+                    className="px-3 py-1 text-xs bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded"
+                  >
+                    保存
+                  </button>
+                </div>
+
+                {/* 保存済み一覧 */}
+                {savedPresets.length > 0 && (
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {savedPresets.map((preset, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-1 p-1.5 bg-gray-800 rounded text-xs"
+                      >
+                        <span className="flex-1 truncate">{preset.name}</span>
+                        <button
+                          onClick={() => loadPreset(preset)}
+                          className="px-1.5 py-0.5 bg-gray-700 hover:bg-gray-600 rounded"
+                          title="読み込み"
+                        >
+                          読込
+                        </button>
+                        <button
+                          onClick={() => copyPresetJson(preset)}
+                          className="px-1.5 py-0.5 bg-gray-700 hover:bg-gray-600 rounded"
+                          title="JSONをコピー"
+                        >
+                          📋
+                        </button>
+                        <button
+                          onClick={() => deletePreset(index)}
+                          className="px-1.5 py-0.5 bg-red-700 hover:bg-red-600 rounded"
+                          title="削除"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {savedPresets.length === 0 && (
+                  <p className="text-xs text-gray-500 text-center py-2">
+                    保存した設定はありません
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* コピー通知 */}
+      {copyMessage && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-green-600 text-white rounded-lg shadow-lg">
+          {copyMessage}
         </div>
       )}
 
