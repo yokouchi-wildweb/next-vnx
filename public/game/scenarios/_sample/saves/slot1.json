@@ -15,7 +15,7 @@
       "circus": 25,
       "tatsumi": 10
     },
-    "position": {
+    "playhead": {
       "sceneId": "church",
       "fragmentId": "main",
       "nodeIndex": 3
