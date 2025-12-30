@@ -263,7 +263,11 @@ const relationTables = [];
 if (usesPrimaryKey) imports.add('primaryKey');
 // ソフトデリート + ユニーク制約がある場合は部分インデックス用のimportを追加
 const needsPartialIndex = config.useSoftDelete && uniqueFields.length > 0;
-if (needsPartialIndex) {
+// 複合ユニーク制約の有無
+const hasCompositeUniques = (config.compositeUniques || []).length > 0;
+// uniqueIndexが必要な条件
+const needsUniqueIndex = needsPartialIndex || hasCompositeUniques;
+if (needsUniqueIndex) {
   imports.add('uniqueIndex');
 }
 
@@ -271,7 +275,8 @@ const importLine = `import { ${Array.from(imports).sort().join(', ')} } from "dr
 let content = `// src/features/${camel}/entities/drizzle.ts\n\n`;
 content += `${importLine}\n`;
 // ソフトデリート + ユニーク制約がある場合は sql を drizzle-orm からインポート
-if (needsPartialIndex) {
+const needsSqlImport = needsPartialIndex || (config.useSoftDelete && hasCompositeUniques);
+if (needsSqlImport) {
   content += `import { sql } from "drizzle-orm";\n`;
 }
 relationImports.forEach((domainPascal, domainCamel) => {
@@ -299,6 +304,27 @@ if (needsPartialIndex) {
     content += `export const ${indexVar} = uniqueIndex("${indexName}")\n`;
     content += `  .on(${pascal}Table.${uf.name})\n`;
     content += `  .where(sql\`deleted_at IS NULL\`);\n`;
+  });
+}
+
+// 複合ユニーク制約の生成
+if (hasCompositeUniques) {
+  (config.compositeUniques || []).forEach((fields, index) => {
+    const indexName = `${tableName}_composite_unique_${index}`;
+    const indexVar = `${camel}CompositeUnique${index}`;
+    const fieldsOnClause = fields
+      .map((f) => `${pascal}Table.${f}`)
+      .join(', ');
+
+    content += `\n// 複合ユニーク制約 ${index}: [${fields.join(', ')}]\n`;
+    content += `export const ${indexVar} = uniqueIndex("${indexName}")\n`;
+    content += `  .on(${fieldsOnClause})`;
+
+    if (config.useSoftDelete) {
+      content += `\n  .where(sql\`deleted_at IS NULL\`);\n`;
+    } else {
+      content += `;\n`;
+    }
   });
 }
 

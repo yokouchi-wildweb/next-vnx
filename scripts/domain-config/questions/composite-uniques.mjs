@@ -65,7 +65,7 @@ export default async function askCompositeUniques(config) {
       },
     });
 
-    compositeUniques.push({ fields: selectedFields });
+    compositeUniques.push(selectedFields);
     console.log(`\n複合ユニーク制約を追加しました: [${selectedFields.join(', ')}]\n`);
   }
 
