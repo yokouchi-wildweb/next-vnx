@@ -48,7 +48,7 @@ const defaultRunners: LightRunner[] = [
     color: "#ffffff",
     opacity: 1,
     delay: "-6s",
-    breathe: { min: 0.9, max: 2.1, duration: "1.5s" },
+    breathe: { min: 0.3, max: 2.1, duration: "1.5s" },
   },
 ];
 

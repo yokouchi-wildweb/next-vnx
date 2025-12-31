@@ -11,8 +11,11 @@ type DecorativeDotsProps = {
  * 1. 正方形 (3x3グリッド)
  * 2. 円形
  * 3. 三角形
- * 4. ダイヤモンド
- * 5. 正方形に戻る
+ * 4. X型 (0度)
+ * 5. X型 (90度) - 時計回りに回転
+ * 6. X型 (270度) - 逆回転して振り子のように
+ * 7. ダイヤモンド
+ * 8. 正方形に戻る
  */
 export function DecorativeDots({ className = "" }: DecorativeDotsProps) {
   // 各形状でのドット位置 (cx, cy)
@@ -46,6 +49,45 @@ export function DecorativeDots({ className = "" }: DecorativeDotsProps) {
     [50, 115], [80, 115], [110, 115],  // 底辺
   ];
 
+  // X型 (バツ印) - 対角線上に配置 (0度)
+  const cross0 = [
+    [25, 25],   // 左上
+    [55, 55],   // 左上→中心
+    [135, 25],  // 右上
+    [105, 55],  // 右上→中心
+    [80, 80],   // 中心
+    [55, 105],  // 左下→中心
+    [25, 135],  // 左下
+    [105, 105], // 右下→中心
+    [135, 135], // 右下
+  ];
+
+  // X型 90度回転（中心(80,80)を軸に時計回り）
+  const cross90 = [
+    [135, 25],  // ドット0: 左上→右上
+    [105, 55],  // ドット1
+    [135, 135], // ドット2: 右上→右下
+    [105, 105], // ドット3
+    [80, 80],   // ドット4: 中心
+    [55, 55],   // ドット5
+    [25, 25],   // ドット6: 左下→左上
+    [55, 105],  // ドット7
+    [25, 135],  // ドット8: 右下→左下
+  ];
+
+  // X型 270度回転（-90度、反対側）
+  const cross270 = [
+    [25, 135],  // ドット0: 左上→左下
+    [55, 105],  // ドット1
+    [25, 25],   // ドット2: 右上→左上
+    [55, 55],   // ドット3
+    [80, 80],   // ドット4: 中心
+    [105, 105], // ドット5
+    [135, 135], // ドット6: 左下→右下
+    [105, 55],  // ドット7
+    [135, 25],  // ドット8: 右下→右上
+  ];
+
   // ダイヤモンド (ひし形)
   const diamond = [
     [80, 20],   // 上
@@ -55,18 +97,27 @@ export function DecorativeDots({ className = "" }: DecorativeDotsProps) {
     [80, 140],  // 下
   ];
 
-  const dur = "6s"; // 全体のアニメーション時間
+  const dur = "10s"; // 全体のアニメーション時間
   const dotSize = 10;
   const dotOpacity = 0.65;
 
   // 各ドットのアニメーション値を生成
   const generateValues = (dotIndex: number, attr: "cx" | "cy") => {
     const idx = attr === "cx" ? 0 : 1;
-    return `${square[dotIndex][idx]}; ${circle[dotIndex][idx]}; ${triangle[dotIndex][idx]}; ${diamond[dotIndex][idx]}; ${square[dotIndex][idx]}`;
+    return [
+      square[dotIndex][idx],
+      circle[dotIndex][idx],
+      triangle[dotIndex][idx],
+      cross0[dotIndex][idx],
+      cross90[dotIndex][idx],   // 時計回りに90度
+      cross270[dotIndex][idx],  // 逆回転して270度（-90度）へ
+      diamond[dotIndex][idx],
+      square[dotIndex][idx],
+    ].join("; ");
   };
 
-  // キータイム: 各形状での滞在時間を均等に
-  const keyTimes = "0; 0.25; 0.5; 0.75; 1";
+  // キータイム: 各形状での滞在時間（8パターン）
+  const keyTimes = "0; 0.14; 0.28; 0.42; 0.56; 0.70; 0.85; 1";
 
   return (
     <svg
@@ -90,7 +141,7 @@ export function DecorativeDots({ className = "" }: DecorativeDotsProps) {
             keyTimes={keyTimes}
             dur={dur}
             calcMode="spline"
-            keySplines="0.4 0 0.2 1; 0.4 0 0.2 1; 0.4 0 0.2 1; 0.4 0 0.2 1"
+            keySplines="0.4 0 0.2 1; 0.4 0 0.2 1; 0.4 0 0.2 1; 0.3 0 0.7 1; 0.3 0 0.7 1; 0.4 0 0.2 1; 0.4 0 0.2 1"
             repeatCount="indefinite"
           />
           <animate
@@ -99,7 +150,7 @@ export function DecorativeDots({ className = "" }: DecorativeDotsProps) {
             keyTimes={keyTimes}
             dur={dur}
             calcMode="spline"
-            keySplines="0.4 0 0.2 1; 0.4 0 0.2 1; 0.4 0 0.2 1; 0.4 0 0.2 1"
+            keySplines="0.4 0 0.2 1; 0.4 0 0.2 1; 0.4 0 0.2 1; 0.3 0 0.7 1; 0.3 0 0.7 1; 0.4 0 0.2 1; 0.4 0 0.2 1"
             repeatCount="indefinite"
           />
         </circle>
