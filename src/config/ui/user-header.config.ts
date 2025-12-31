@@ -9,7 +9,7 @@
 // ============================================
 
 /** ヘッダー自体を表示するか */
-export const HEADER_ENABLED = true;
+export const HEADER_ENABLED = false;
 
 /** ヘッダーのナビゲーションメニューを表示するか（falseでもヘッダー自体は表示される） */
 export const HEADER_NAV_ENABLED = {
