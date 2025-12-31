@@ -5,6 +5,17 @@ import { PentagonCard } from "./PentagonCard";
 import { cn } from "@/lib/cn";
 import { useViewportSizeStore } from "@/stores/viewportSize";
 import { SectionTitle } from "../SectionTitle";
+import {
+  BREAKPOINT,
+  CARD_SIZE_MOBILE,
+  CARD_SIZE_DESKTOP,
+  CAROUSEL_PERSPECTIVE,
+  CAROUSEL_TRANSLATE_X_1,
+  CAROUSEL_TRANSLATE_X_2,
+  CAROUSEL_HEIGHT_MOBILE,
+  CAROUSEL_HEIGHT_DESKTOP,
+  CAROUSEL_POSITION_CONFIGS,
+} from "./constants";
 
 type Feature = {
   id: string;
@@ -46,18 +57,15 @@ const FEATURES: Feature[] = [
   },
 ];
 
-/** カードサイズ（モバイル/デスクトップで自動切り替え） */
-const CARD_SIZE_MOBILE = 300;
-const CARD_SIZE_DESKTOP = 540;
-const BREAKPOINT = 768;
-
 export function FeatureCarousel() {
   const [activeIndex, setActiveIndex] = useState(0);
   const total = FEATURES.length;
 
   // ビューポート幅に応じてカードサイズを切り替え
   const { width } = useViewportSizeStore();
-  const cardSize = width < BREAKPOINT ? CARD_SIZE_MOBILE : CARD_SIZE_DESKTOP;
+  const isMobile = width < BREAKPOINT;
+  const cardSize = isMobile ? CARD_SIZE_MOBILE : CARD_SIZE_DESKTOP;
+  const containerHeight = isMobile ? CAROUSEL_HEIGHT_MOBILE : CAROUSEL_HEIGHT_DESKTOP;
 
   const goTo = useCallback((index: number) => {
     // 範囲内に収める（ループ）
@@ -83,41 +91,50 @@ export function FeatureCarousel() {
 
     // カードサイズに連動する値
     const marginLeftValue = -(cardSize / 2);
-    const translateX1 = cardSize * 0.84;  // 380 / 450 ≈ 0.84
-    const translateX2 = cardSize * 1.22;  // 550 / 450 ≈ 1.22
+    const translateX1 = cardSize * CAROUSEL_TRANSLATE_X_1;
+    const translateX2 = cardSize * CAROUSEL_TRANSLATE_X_2;
+
+    // 共通スタイル
+    const baseStyle: React.CSSProperties = {
+      transition: "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease",
+      position: "absolute",
+      left: "50%",
+      marginLeft: `${marginLeftValue}px`,
+    };
 
     // 表示範囲外（前後2枚より遠い）は非表示
     if (absPos > 2) {
       return {
+        ...baseStyle,
         transform: "translateX(0) translateZ(-500px) scale(0.3)",
         opacity: 0,
         zIndex: 0,
-        pointerEvents: "none" as const,
-        transition: "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease",
-        position: "absolute" as const,
-        left: "50%",
-        marginLeft: `${marginLeftValue}px`,
+        pointerEvents: "none",
       };
     }
 
-    // 中央からの距離に応じてスタイルを変える（遠近感を強調）
-    const configs: Record<number, { scale: number; translateX: number; translateZ: number; rotateY: number; opacity: number }> = {
-      0: { scale: 1.0, translateX: 0, translateZ: 0, rotateY: 0, opacity: 1 },
-      1: { scale: 0.55, translateX: position * translateX1, translateZ: -350, rotateY: position * -30, opacity: 0.6 },
-      2: { scale: 0.35, translateX: position * translateX2, translateZ: -550, rotateY: position * -40, opacity: 0.3 },
-    };
+    // 位置設定を取得
+    const config = CAROUSEL_POSITION_CONFIGS[absPos as 0 | 1 | 2];
 
-    const config = configs[absPos] || configs[2];
+    // translateX計算（位置に応じた値）
+    let translateX = 0;
+    if (absPos === 1) {
+      translateX = position * translateX1;
+    } else if (absPos === 2) {
+      translateX = position * translateX2;
+    }
+
+    // rotateY計算（中央以外は回転）
+    const rotateY = absPos === 0
+      ? 0
+      : position * (config as { rotateYMultiplier: number }).rotateYMultiplier;
 
     return {
-      transform: `translateX(${config.translateX}px) translateZ(${config.translateZ}px) scale(${config.scale}) rotateY(${config.rotateY}deg)`,
+      ...baseStyle,
+      transform: `translateX(${translateX}px) translateZ(${config.translateZ}px) scale(${config.scale}) rotateY(${rotateY}deg)`,
       opacity: config.opacity,
       zIndex: 10 - absPos,
-      pointerEvents: absPos === 0 ? "auto" as const : "auto" as const,
-      transition: "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease",
-      position: "absolute" as const,
-      left: "50%",
-      marginLeft: `${marginLeftValue}px`,
+      pointerEvents: "auto",
     };
   };
 
@@ -134,10 +151,13 @@ export function FeatureCarousel() {
 
       {/* カルーセル */}
       <div
-        className="relative mx-auto max-w-6xl h-[420px] md:h-[520px]"
-        style={{ perspective: "1000px" }}
+        className="relative mx-auto max-w-6xl"
+        style={{
+          height: `${containerHeight}px`,
+          perspective: `${CAROUSEL_PERSPECTIVE}px`,
+        }}
       >
-        {/* カードコンテナ - すべてのカードを常にレンダリング（DOM位置固定でアニメーション維持） */}
+        {/* カードコンテナ */}
         <div
           className="relative w-full h-full"
           style={{ transformStyle: "preserve-3d" }}
@@ -149,9 +169,7 @@ export function FeatureCarousel() {
                 key={feature.id}
                 style={getCardStyle(index)}
                 onClick={() => position !== 0 && goTo(index)}
-                className={cn(
-                  position !== 0 && "cursor-pointer"
-                )}
+                className={cn(position !== 0 && "cursor-pointer")}
               >
                 <PentagonCard
                   image={feature.image}

@@ -7,6 +7,7 @@ theme: futuristic, next-gen
 ## files
 - index.tsx: carousel container, 3D transform logic
 - PentagonCard.tsx: individual card with 3D plate layout
+- constants.ts: shared layout constants and magic numbers
 - uses: ../SectionTitle (neon glow title component)
 
 ## architecture
@@ -17,6 +18,47 @@ FeatureCarousel (carousel logic)
        ├─ floating image (upright, on plate)
        └─ text panel (desktop: 3D / mobile: outside)
 ```
+
+## constants.ts
+
+### responsive
+| const | value |
+|---|---|
+| BREAKPOINT | 768px |
+| CARD_SIZE_MOBILE | 300px |
+| CARD_SIZE_DESKTOP | 540px |
+
+### PentagonCard layout ratios
+| const | value | desc |
+|---|---|---|
+| PLATE_SCALE | 1.4 | pentagon plate scale |
+| PLATE_ROTATE_X | 70 | plate tilt angle (deg) |
+| CONTAINER_HEIGHT_RATIO | 0.8 | 3D container height |
+| IMAGE_WIDTH_RATIO | 0.85 | image width |
+| IMAGE_HEIGHT_RATIO | 0.55 | image height |
+| IMAGE_BOTTOM_RATIO_MOBILE | 0.20 | image position (mobile) |
+| IMAGE_BOTTOM_RATIO_DESKTOP | 0.30 | image position (desktop) |
+| IMAGE_TRANSLATE_Z_RATIO | -0.2 | image depth (behind) |
+| TEXT_WIDTH_RATIO_MOBILE | 1.0 | text width (mobile) |
+| TEXT_WIDTH_RATIO_DESKTOP | 0.6 | text width (desktop) |
+| TEXT_BOTTOM_RATIO | 0.15 | text position |
+| TEXT_TRANSLATE_Z_RATIO | 0.05 | text depth (front) |
+
+### carousel 3D
+| const | value |
+|---|---|
+| CAROUSEL_PERSPECTIVE | 1000px |
+| CAROUSEL_TRANSLATE_X_1 | 0.84 |
+| CAROUSEL_TRANSLATE_X_2 | 1.22 |
+| CAROUSEL_HEIGHT_MOBILE | 420px |
+| CAROUSEL_HEIGHT_DESKTOP | 520px |
+
+### CAROUSEL_POSITION_CONFIGS
+| pos | scale | translateZ | rotateYMultiplier | opacity |
+|---|---|---|---|---|
+| 0 (active) | 1.0 | 0 | 0 | 1 |
+| 1 (adjacent) | 0.55 | -350 | -30 | 0.6 |
+| 2 (outer) | 0.35 | -550 | -40 | 0.3 |
 
 ## responsive
 breakpoint: 768px
@@ -122,33 +164,19 @@ translateX: size * 0.84 (pos±1), size * 1.22 (pos±2)
 - click non-active card to select
 - loop: (index % total + total) % total
 
-### sizing
-| const | value |
-|---|---|
-| CARD_SIZE_MOBILE | 300 |
-| CARD_SIZE_DESKTOP | 540 |
-| BREAKPOINT | 768 |
-| container height | 420px (mobile) / 520px (desktop) |
-
 ## customization
 
 ### change colors
 modify Feature.gradientFrom/gradientTo (oklch recommended)
 
 ### adjust 3D depth
-- plateRotateX: plate angle (default 70)
-- translateZ values in getCardStyle configs
-- image/text translateZ in PentagonCard
+modify constants in constants.ts:
+- PLATE_ROTATE_X: plate angle
+- CAROUSEL_POSITION_CONFIGS: translateZ values
+- IMAGE_TRANSLATE_Z_RATIO / TEXT_TRANSLATE_Z_RATIO in PentagonCard
 
-### sizing ratios (PentagonCard)
-```
-plate: 1.4x
-image: 0.85x × 0.55x
-image bottom: 0.20x (mobile) / 0.30x (desktop)
-text width: 1.0x (mobile) / 0.6x (desktop)
-text bottom: 0.15x
-container height: 0.8x
-```
+### sizing ratios
+all defined in constants.ts for easy adjustment
 
 ## dependencies
 - @/lib/cn
