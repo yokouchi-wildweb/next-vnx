@@ -2,6 +2,7 @@
 
 import { imgPath } from "@/utils/assets";
 import Image from "next/image";
+import { DecorativeDots } from "./DecorativeDots";
 
 type HeroSectionProps = {
   imageSrc?: string;
@@ -17,10 +18,10 @@ export function HeroSection({
   return (
     <section className="relative mx-auto max-w-6xl px-4 py-8">
       {/* コンテナ */}
-      <div className="relative rounded-2xl overflow-hidden">
+      <div className="relative rounded-2xl overflow-visible">
         {/* ヒーロー画像（背景として全体に広がる） */}
         <div
-          className="relative w-full"
+          className="relative w-full overflow-hidden rounded-2xl"
           style={{ aspectRatio }}
         >
           <Image
@@ -45,10 +46,8 @@ export function HeroSection({
           }}
         />
 
-        {/* 左下の白いドット（装飾） */}
-        <div className="absolute bottom-6 left-6 z-10 size-3 rounded-full bg-white/60" />
-        <div className="absolute bottom-6 left-12 z-10 size-2 rounded-full bg-white/40" />
-        <div className="absolute bottom-8 left-8 z-10 size-1.5 rounded-full bg-white/30" />
+        {/* 左上の白いドット（SVGアニメーション・セクションから飛び出し） */}
+        <DecorativeDots className="absolute -top-12 -left-12 z-10" />
       </div>
     </section>
   );
