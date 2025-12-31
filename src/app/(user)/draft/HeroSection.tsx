@@ -4,6 +4,7 @@ import { imgPath } from "@/utils/assets";
 import Image from "next/image";
 import { BorderLight } from "./BorderLight";
 import { DecorativeDots } from "./DecorativeDots";
+import { HeartbeatWave } from "./HeartbeatWave";
 
 type HeroSectionProps = {
   imageSrc?: string;
@@ -52,6 +53,9 @@ export function HeroSection({
 
         {/* 左上の白いドット（SVGアニメーション・セクションから飛び出し） */}
         <DecorativeDots className="absolute -top-12 -left-12 z-10" />
+
+        {/* 右下の心電図波形 */}
+        <HeartbeatWave className="absolute bottom-8 -right-16 z-10 w-[36rem] opacity-70" />
       </div>
     </section>
   );
