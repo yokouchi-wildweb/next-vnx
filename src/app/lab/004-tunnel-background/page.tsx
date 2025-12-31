@@ -322,24 +322,42 @@ export default function TunnelBackgroundPage() {
           {/* グラデーション */}
           <div className="mb-4">
             <label className="block text-sm mb-2">グラデーション</label>
-            <div className="flex gap-2">
-              <div className="flex-1">
+            <div className="space-y-2">
+              <div>
                 <label className="block text-xs text-gray-400 mb-1">開始色</label>
-                <input
-                  type="color"
-                  value={gradientStart}
-                  onChange={(e) => setGradientStart(e.target.value)}
-                  className="w-full h-8 rounded cursor-pointer"
-                />
+                <div className="flex gap-1">
+                  <input
+                    type="color"
+                    value={gradientStart}
+                    onChange={(e) => setGradientStart(e.target.value)}
+                    className="w-10 h-8 rounded cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={gradientStart}
+                    onChange={(e) => setGradientStart(e.target.value)}
+                    className="flex-1 px-2 py-1 text-xs bg-gray-800 border border-gray-600 rounded focus:outline-none focus:border-blue-500 font-mono"
+                    placeholder="#000000"
+                  />
+                </div>
               </div>
-              <div className="flex-1">
+              <div>
                 <label className="block text-xs text-gray-400 mb-1">終了色</label>
-                <input
-                  type="color"
-                  value={gradientEnd}
-                  onChange={(e) => setGradientEnd(e.target.value)}
-                  className="w-full h-8 rounded cursor-pointer"
-                />
+                <div className="flex gap-1">
+                  <input
+                    type="color"
+                    value={gradientEnd}
+                    onChange={(e) => setGradientEnd(e.target.value)}
+                    className="w-10 h-8 rounded cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={gradientEnd}
+                    onChange={(e) => setGradientEnd(e.target.value)}
+                    className="flex-1 px-2 py-1 text-xs bg-gray-800 border border-gray-600 rounded focus:outline-none focus:border-blue-500 font-mono"
+                    placeholder="#000000"
+                  />
+                </div>
               </div>
             </div>
           </div>
