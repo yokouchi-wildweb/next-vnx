@@ -2,6 +2,7 @@
 
 import { imgPath } from "@/utils/assets";
 import Image from "next/image";
+import { BorderLight } from "./BorderLight";
 import { DecorativeDots } from "./DecorativeDots";
 
 type HeroSectionProps = {
@@ -45,6 +46,9 @@ export function HeroSection({
             WebkitMaskComposite: "xor",
           }}
         />
+
+        {/* ボーダー上を走る光のアニメーション */}
+        <BorderLight className="pointer-events-none absolute inset-0 w-full h-full" />
 
         {/* 左上の白いドット（SVGアニメーション・セクションから飛び出し） */}
         <DecorativeDots className="absolute -top-12 -left-12 z-10" />
