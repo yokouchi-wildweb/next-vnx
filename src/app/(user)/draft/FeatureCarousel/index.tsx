@@ -21,7 +21,7 @@ const FEATURES: Feature[] = [
     image: "heroes/dream_sity_with_logo.png",
     title: "AIストーリー生成",
     description:
-      "最新のAI技術で、あなたのアイデアを魅力的な物語に変換。キャラクター設定から展開まで自動生成。",
+      "最新のAI技術で、あなたのアイデアを魅力的な物語に変換。キャラクター設定から展開まで自動生成。キャラクター設定から展開まで自動生成キャラクター設定から展開まで自動生成",
     gradientFrom: "oklch(0.85 0.18 85)",
     gradientTo: "oklch(0.70 0.20 45)",
   },

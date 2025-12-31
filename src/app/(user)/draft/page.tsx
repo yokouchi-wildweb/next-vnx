@@ -7,7 +7,7 @@ export default function DraftPage() {
   return (
     <>
       <TunnelBackground preset="pentagonDeep" />
-      <UserPage containerType="full">
+      <UserPage containerType="full" paddingInline="none">
         <HeroSection />
         <FeatureCarousel />
       </UserPage>
