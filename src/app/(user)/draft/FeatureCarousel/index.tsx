@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { PentagonCard } from "./PentagonCard";
 import { cn } from "@/lib/cn";
 import { useViewportSizeStore } from "@/stores/viewportSize";
+import { SectionTitle } from "../SectionTitle";
 
 type Feature = {
   id: string;
@@ -123,14 +124,13 @@ export function FeatureCarousel() {
   return (
     <section className="relative py-16 md:py-24 overflow-hidden">
       {/* セクションタイトル */}
-      <div className="text-center mb-12">
-        <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-          Features
-        </h2>
-        <p className="text-white/60 text-sm md:text-base">
-          次世代のビジュアルノベル制作を実現する機能
-        </p>
-      </div>
+      <SectionTitle
+        title="Features"
+        subtitle="次世代のビジュアルノベル制作を実現する機能"
+        color="cyan"
+        size="lg"
+        className="mb-12 md:mb-20"
+      />
 
       {/* カルーセル */}
       <div
