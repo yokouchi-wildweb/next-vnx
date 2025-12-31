@@ -15,6 +15,20 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react"
 import { generateTunnelSVG, type TunnelSVGOptions } from "./generateTunnelSVG"
+import { HeroSection } from "@/app/(user)/draft/HeroSection";
+
+/* ============================================
+   🎯 プレビュー設定
+   ここを編集してコンテンツをプレビュー
+   ============================================ */
+function PreviewContent() {
+  return (
+    <div className="w-full">
+      <HeroSection />
+    </div>
+  )
+}
+/* ============================================ */
 
 // 保存される設定の型
 interface SavedPreset {
@@ -37,6 +51,7 @@ export default function TunnelBackgroundPage() {
   const [maxScale, setMaxScale] = useState(1.5)
   const [drawRadialLines, setDrawRadialLines] = useState(true)
   const [perspectivePower, setPerspectivePower] = useState(2)
+  const [gradientAngle, setGradientAngle] = useState(90)
   const [showControls, setShowControls] = useState(true)
 
   // 保存関連の状態
@@ -74,6 +89,7 @@ export default function TunnelBackgroundPage() {
         maxScale,
         drawRadialLines,
         perspectivePower,
+        gradientAngle,
       },
       createdAt: new Date().toISOString(),
     }
@@ -84,7 +100,7 @@ export default function TunnelBackgroundPage() {
     setPresetName("")
     setCopyMessage("保存しました")
     setTimeout(() => setCopyMessage(null), 2000)
-  }, [presetName, sides, layers, strokeWidth, strokeOpacity, gradientStart, gradientEnd, minScale, maxScale, drawRadialLines, perspectivePower, savedPresets])
+  }, [presetName, sides, layers, strokeWidth, strokeOpacity, gradientStart, gradientEnd, minScale, maxScale, drawRadialLines, perspectivePower, gradientAngle, savedPresets])
 
   // 設定を読み込み
   const loadPreset = useCallback((preset: SavedPreset) => {
@@ -99,6 +115,7 @@ export default function TunnelBackgroundPage() {
     if (o.maxScale !== undefined) setMaxScale(o.maxScale)
     if (o.drawRadialLines !== undefined) setDrawRadialLines(o.drawRadialLines)
     if (o.perspectivePower !== undefined) setPerspectivePower(o.perspectivePower)
+    if (o.gradientAngle !== undefined) setGradientAngle(o.gradientAngle)
   }, [])
 
   // 設定を削除
@@ -131,6 +148,7 @@ export default function TunnelBackgroundPage() {
         maxScale,
         drawRadialLines,
         perspectivePower,
+        gradientAngle,
       },
       createdAt: new Date().toISOString(),
     }
@@ -138,7 +156,7 @@ export default function TunnelBackgroundPage() {
     await navigator.clipboard.writeText(json)
     setCopyMessage("現在の設定をコピーしました")
     setTimeout(() => setCopyMessage(null), 2000)
-  }, [sides, layers, strokeWidth, strokeOpacity, gradientStart, gradientEnd, minScale, maxScale, drawRadialLines, perspectivePower])
+  }, [sides, layers, strokeWidth, strokeOpacity, gradientStart, gradientEnd, minScale, maxScale, drawRadialLines, perspectivePower, gradientAngle])
 
   // SVGオプション
   const svgOptions: TunnelSVGOptions = useMemo(
@@ -153,8 +171,9 @@ export default function TunnelBackgroundPage() {
       maxScale,
       drawRadialLines,
       perspectivePower,
+      gradientAngle,
     }),
-    [sides, layers, strokeWidth, strokeOpacity, gradientStart, gradientEnd, minScale, maxScale, drawRadialLines, perspectivePower]
+    [sides, layers, strokeWidth, strokeOpacity, gradientStart, gradientEnd, minScale, maxScale, drawRadialLines, perspectivePower, gradientAngle]
   )
 
   // SVG生成
@@ -323,6 +342,43 @@ export default function TunnelBackgroundPage() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* グラデーション方向 */}
+          <div className="mb-4">
+            <label className="block text-sm mb-1">
+              方向: {gradientAngle}°
+            </label>
+            <div className="grid grid-cols-4 gap-1 mb-2">
+              {[
+                { angle: 0, label: "→" },
+                { angle: 45, label: "↗" },
+                { angle: 90, label: "↑" },
+                { angle: 135, label: "↖" },
+                { angle: 180, label: "←" },
+                { angle: 225, label: "↙" },
+                { angle: 270, label: "↓" },
+                { angle: 315, label: "↘" },
+              ].map(({ angle, label }) => (
+                <button
+                  key={angle}
+                  onClick={() => setGradientAngle(angle)}
+                  className={`px-2 py-2 rounded text-sm ${
+                    gradientAngle === angle ? "bg-blue-600" : "bg-gray-700 hover:bg-gray-600"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="360"
+              value={gradientAngle}
+              onChange={(e) => setGradientAngle(Number(e.target.value))}
+              className="w-full"
+            />
           </div>
 
           {/* 中心サイズ */}
@@ -559,16 +615,16 @@ export default function TunnelBackgroundPage() {
         </div>
       )}
 
-      {/* 中央コンテンツサンプル */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center">
-        <div className="text-center text-white">
-          <h1 className="text-5xl font-bold mb-4 drop-shadow-lg">
-            トンネル背景
-          </h1>
-          <p className="text-xl text-white/80 drop-shadow">
-            {sides}角形 × {layers}レイヤー
-          </p>
-        </div>
+      {/* ============================================
+          🎯 プレビューエリア
+          ここにコンポーネントを追加すると画面中央に表示される
+          ============================================ */}
+      <div className="relative z-10 min-h-screen w-full flex items-center justify-center">
+        {/* ↓↓↓ ここにプレビューしたいコンポーネントを追加 ↓↓↓ */}
+
+        <PreviewContent />
+
+        {/* ↑↑↑ ここまで ↑↑↑ */}
       </div>
     </div>
   )

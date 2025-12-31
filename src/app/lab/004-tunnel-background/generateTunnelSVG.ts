@@ -32,6 +32,8 @@ export interface TunnelSVGOptions {
   drawRadialLines?: boolean
   /** 遠近感の強さ (1=線形, 2=二乗, 3=三乗... 大きいほど中心が密になる) */
   perspectivePower?: number
+  /** グラデーションの角度 (0=右, 90=上, 180=左, 270=下) */
+  gradientAngle?: number
 }
 
 const defaultOptions: Required<TunnelSVGOptions> = {
@@ -48,6 +50,7 @@ const defaultOptions: Required<TunnelSVGOptions> = {
   maxScale: 1.5,
   drawRadialLines: true,
   perspectivePower: 2,
+  gradientAngle: 90,
 }
 
 /**
@@ -103,6 +106,24 @@ function easePower(t: number, power: number): number {
 }
 
 /**
+ * 角度からlinearGradientの座標を計算
+ * @param angle 角度 (0=右, 90=上, 180=左, 270=下)
+ */
+function angleToGradientCoords(angle: number): { x1: string; y1: string; x2: string; y2: string } {
+  const rad = (angle * Math.PI) / 180
+  const x1 = Math.round(50 - Math.cos(rad) * 50)
+  const y1 = Math.round(50 + Math.sin(rad) * 50)
+  const x2 = Math.round(50 + Math.cos(rad) * 50)
+  const y2 = Math.round(50 - Math.sin(rad) * 50)
+  return {
+    x1: `${x1}%`,
+    y1: `${y1}%`,
+    x2: `${x2}%`,
+    y2: `${y2}%`,
+  }
+}
+
+/**
  * アスペクト比を考慮した半径を計算
  */
 function getAdjustedRadius(
@@ -140,6 +161,7 @@ export function generateTunnelSVG(options: TunnelSVGOptions = {}): string {
     maxScale,
     drawRadialLines,
     perspectivePower,
+    gradientAngle,
   } = opts
 
   const cx = width / 2
@@ -206,6 +228,9 @@ export function generateTunnelSVG(options: TunnelSVGOptions = {}): string {
     }
   }
 
+  // グラデーション座標を計算
+  const grad = angleToGradientCoords(gradientAngle)
+
   // SVGを組み立て
   return `<svg
   xmlns="http://www.w3.org/2000/svg"
@@ -213,7 +238,7 @@ export function generateTunnelSVG(options: TunnelSVGOptions = {}): string {
   preserveAspectRatio="xMidYMid slice"
 >
   <defs>
-    <linearGradient id="tunnelGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+    <linearGradient id="tunnelGradient" x1="${grad.x1}" y1="${grad.y1}" x2="${grad.x2}" y2="${grad.y2}">
       <stop offset="0%" stop-color="${gradientStart}" />
       <stop offset="100%" stop-color="${gradientEnd}" />
     </linearGradient>
