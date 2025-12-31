@@ -24,7 +24,7 @@ type HeartbeatWaveProps = {
  */
 export function HeartbeatWave({
   className = "",
-  color = "#8c2283",
+  color = "#00a0e9",
   strokeWidth = 2,
   duration = "2s",
   glow = true,

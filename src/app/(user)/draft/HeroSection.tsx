@@ -4,6 +4,7 @@ import { imgPath } from "@/utils/assets";
 import Image from "next/image";
 import { BorderLight } from "./BorderLight";
 import { DecorativeDots } from "./DecorativeDots";
+import { GlitchText } from "./GlitchText";
 import { HeartbeatWave } from "./HeartbeatWave";
 
 type HeroSectionProps = {
@@ -33,6 +34,29 @@ export function HeroSection({
             className="object-cover"
             priority
           />
+
+          {/* キャッチコピー（中央配置） */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+              <GlitchText
+                text="物語を、もっと自由に。"
+                // フェーズ時間設定（ミリ秒）
+                initialDuration={2000}      // 初期文字で静止
+                accelDuration={2000}       // ゆっくり→加速ランダム
+                topSpeedDuration={2000}    // トップスピードランダム
+                decodeDuration={2000}      // デコード完了まで
+                // 文字設定
+                initialText="NEXT-VNX"   // 左右にパディングされる
+                paddingChar=" "          // パディング文字
+                randomChars="������ΨΨΨΨΨΨŠÅアイウエオワオン現実を超えろ進化した君は未来を創造する"
+                // 速度設定
+                randomSpeed={50}           // トップスピード時の更新間隔
+                // グリッチ設定
+                glitchInterval={4000}      // グリッチ発生間隔
+                glitchDuration={200}       // グリッチ持続時間
+              />
+            </h1>
+          </div>
         </div>
 
         {/* 内側のグラデーションボーダー（画像の上に重なる） */}
