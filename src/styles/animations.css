@@ -70,6 +70,148 @@
       background-position: -200% 0;
     }
   }
+
+  /* パネル浮遊アニメーション: 分裂パネルがゆらゆら動く */
+  --animate-panel-float: panel-float 4s ease-in-out infinite;
+
+  @keyframes panel-float {
+    0%, 100% {
+      transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) rotate(var(--tw-rotate, 0));
+    }
+    25% {
+      transform: translate(calc(var(--tw-translate-x, 0) + 3px), calc(var(--tw-translate-y, 0) - 5px)) rotate(calc(var(--tw-rotate, 0) + 0.5deg));
+    }
+    50% {
+      transform: translate(calc(var(--tw-translate-x, 0) - 2px), calc(var(--tw-translate-y, 0) + 3px)) rotate(calc(var(--tw-rotate, 0) - 0.3deg));
+    }
+    75% {
+      transform: translate(calc(var(--tw-translate-x, 0) + 4px), calc(var(--tw-translate-y, 0) - 2px)) rotate(calc(var(--tw-rotate, 0) + 0.4deg));
+    }
+  }
+
+  /* グリッチフラッシュ: ランダムな光の走査 */
+  --animate-glitch-flash: glitch-flash 3s ease-in-out infinite;
+
+  @keyframes glitch-flash {
+    0%, 90%, 100% {
+      opacity: 0;
+      transform: translateX(-100%);
+    }
+    92% {
+      opacity: 0.6;
+      transform: translateX(0%);
+    }
+    95% {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+  }
+
+  /* 浮遊パーティクル */
+  --animate-float-particle: float-particle 3s ease-in-out infinite;
+
+  @keyframes float-particle {
+    0%, 100% {
+      transform: translateY(0) translateX(0);
+      opacity: 0.4;
+    }
+    50% {
+      transform: translateY(-20px) translateX(10px);
+      opacity: 0.8;
+    }
+  }
+
+  /* グリッド走査線 */
+  --animate-grid-scan: grid-scan 4s ease-in-out infinite;
+
+  @keyframes grid-scan {
+    0% {
+      top: 30%;
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.8;
+    }
+    90% {
+      opacity: 0.8;
+    }
+    100% {
+      top: 100%;
+      opacity: 0;
+    }
+  }
+
+  /* キーワード浮遊 */
+  --animate-keyword-float: keyword-float 6s ease-in-out infinite;
+
+  @keyframes keyword-float {
+    0%, 100% {
+      transform: translateY(0) translateX(0);
+      opacity: 0.3;
+    }
+    25% {
+      transform: translateY(-15px) translateX(8px);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translateY(-5px) translateX(-5px);
+      opacity: 0.4;
+    }
+    75% {
+      transform: translateY(-20px) translateX(3px);
+      opacity: 0.6;
+    }
+  }
+
+  /* ゆっくりパルス */
+  --animate-pulse-slow: pulse-slow 3s ease-in-out infinite;
+
+  @keyframes pulse-slow {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.05);
+    }
+  }
+
+  /* ボーダーパルス */
+  --animate-border-pulse: border-pulse 2s linear infinite;
+
+  @keyframes border-pulse {
+    0% {
+      background-position: 0% 0%, 100% 100%, 0% 100%, 100% 0%;
+    }
+    100% {
+      background-position: 200% 0%, -100% 100%, 0% -100%, 100% 200%;
+    }
+  }
+
+  /* ステータスバープログレス */
+  --animate-status-progress: status-progress 3s ease-in-out infinite;
+
+  @keyframes status-progress {
+    0%, 100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* ステータスバースキャン */
+  --animate-status-scan: status-scan 2s linear infinite;
+
+  @keyframes status-scan {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(400%);
+    }
+  }
 }
 
 /*
