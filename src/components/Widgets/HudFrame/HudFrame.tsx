@@ -2,16 +2,16 @@
 
 import { cn } from "@/lib/cn";
 import { HudFrameProps } from "./types";
-import { getHudFrameTheme } from "./theme";
+import { HUD_FRAME_THEME } from "./theme";
 import { CornerDecoration } from "./parts/CornerDecoration";
 import { HudFrameTitleBar } from "./HudFrameTitleBar";
 import { HudFrameStatusBar } from "./HudFrameStatusBar";
 
+const theme = HUD_FRAME_THEME;
+
 /** HUDフレーム メインコンポーネント */
 export function HudFrame({
   children,
-  variant = "dark",
-  accentColor = "cyan",
   maxWidth,
   className,
   // タイトルバー
@@ -29,16 +29,7 @@ export function HudFrame({
   showTopLight = true,
   showReflection = true,
 }: HudFrameProps) {
-  const theme = getHudFrameTheme(variant, accentColor);
   const hasTitle = title !== undefined;
-
-  // フレームボーダー用のクラスを生成
-  const frameBorderClass = theme.borderClass
-    .replace("/60", theme.frameBorderOpacity)
-    .replace("/50", theme.frameBorderOpacity);
-  const innerBorderClass = theme.borderClass
-    .replace("/60", theme.innerBorderOpacity)
-    .replace("/50", theme.innerBorderOpacity);
 
   return (
     <div
@@ -58,7 +49,7 @@ export function HudFrame({
         className={cn(
           "relative rounded-2xl overflow-hidden",
           "border",
-          frameBorderClass,
+          theme.frameBorderClass,
           "bg-gradient-to-br",
           theme.frameBg,
           "backdrop-blur-md"
@@ -71,17 +62,17 @@ export function HudFrame({
         <div
           className={cn(
             "absolute inset-2 md:inset-3 rounded-xl border pointer-events-none",
-            innerBorderClass
+            theme.innerBorderClass
           )}
         />
 
         {/* コーナー装飾 */}
         {showCorners && (
           <>
-            <CornerDecoration position="tl" variant={variant} accentColor={accentColor} />
-            <CornerDecoration position="tr" variant={variant} accentColor={accentColor} />
-            <CornerDecoration position="bl" variant={variant} accentColor={accentColor} />
-            <CornerDecoration position="br" variant={variant} accentColor={accentColor} />
+            <CornerDecoration position="tl" />
+            <CornerDecoration position="tr" />
+            <CornerDecoration position="bl" />
+            <CornerDecoration position="br" />
           </>
         )}
 
@@ -114,8 +105,6 @@ export function HudFrame({
         {/* タイトルバー */}
         {hasTitle && (
           <HudFrameTitleBar
-            variant={variant}
-            accentColor={accentColor}
             title={title}
             subtitle={subtitle}
             icon={titleIcon}
@@ -128,12 +117,7 @@ export function HudFrame({
 
         {/* ステータスバー */}
         {showStatusBar && (
-          <HudFrameStatusBar
-            variant={variant}
-            accentColor={accentColor}
-            text={statusText}
-            right={statusRight}
-          />
+          <HudFrameStatusBar text={statusText} right={statusRight} />
         )}
       </div>
 
@@ -145,7 +129,7 @@ export function HudFrame({
             theme.reflectionOpacity
           )}
           style={{
-            background: `linear-gradient(90deg, ${theme.glowRgba.replace("0.15", "0.5").replace("0.2", "0.3")}, rgba(168, 85, 247, 0.5))`,
+            background: `linear-gradient(90deg, ${theme.glowRgba.replace("0.15", "0.5")}, rgba(168, 85, 247, 0.5))`,
           }}
         />
       )}

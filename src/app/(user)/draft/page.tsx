@@ -14,8 +14,7 @@ export default function DraftPage() {
 
                   "full" paddingInline="none">
         <HeroSection />
-        <HudFrameSection variant="dark" accentColor="cyan" />
-        <HudFrameSection variant="light" accentColor="pink" />
+        <HudFrameSection />
         <AboutSection />
         <CyberGridSection />
         <FeatureCarousel />

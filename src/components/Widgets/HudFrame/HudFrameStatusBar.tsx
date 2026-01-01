@@ -1,17 +1,11 @@
 import { cn } from "@/lib/cn";
 import { HudFrameStatusBarProps } from "./types";
-import { getHudFrameTheme } from "./theme";
+import { HUD_FRAME_THEME } from "./theme";
+
+const theme = HUD_FRAME_THEME;
 
 /** デフォルトのプログレスバー */
-function DefaultProgressBar({
-  variant = "dark",
-  accentColor = "cyan",
-}: {
-  variant?: "dark" | "light";
-  accentColor?: "cyan" | "pink" | "purple" | "green" | "orange";
-}) {
-  const theme = getHudFrameTheme(variant, accentColor);
-
+function DefaultProgressBar() {
   return (
     <div className="flex items-center gap-3">
       <div
@@ -29,12 +23,7 @@ function DefaultProgressBar({
         />
         {/* 光のスキャン */}
         <div className="absolute inset-0 animate-status-scan">
-          <div
-            className={cn(
-              "w-8 h-full bg-gradient-to-r from-transparent to-transparent",
-              variant === "dark" ? "via-white/40" : "via-white/70"
-            )}
-          />
+          <div className="w-8 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent" />
         </div>
       </div>
       <span className={cn("text-xs font-mono", theme.progressStarClass)}>✦</span>
@@ -44,19 +33,15 @@ function DefaultProgressBar({
 
 /** HUDフレーム ステータスバーコンポーネント */
 export function HudFrameStatusBar({
-  variant = "dark",
-  accentColor = "cyan",
   text = "READY",
   right,
   showProgress = true,
 }: HudFrameStatusBarProps) {
-  const theme = getHudFrameTheme(variant, accentColor);
-
   return (
     <div
       className={cn(
         "relative flex items-center justify-between px-4 md:px-6 py-2.5 border-t",
-        theme.borderClass.replace("/60", theme.titleBarBorderOpacity).replace("/50", theme.titleBarBorderOpacity)
+        theme.titleBarBorderClass
       )}
     >
       {/* 左側: ステータステキスト */}
@@ -68,11 +53,7 @@ export function HudFrameStatusBar({
       </div>
 
       {/* 右側 */}
-      {right !== undefined ? (
-        right
-      ) : showProgress ? (
-        <DefaultProgressBar variant={variant} accentColor={accentColor} />
-      ) : null}
+      {right !== undefined ? right : showProgress ? <DefaultProgressBar /> : null}
     </div>
   );
 }

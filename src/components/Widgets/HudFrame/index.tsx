@@ -13,11 +13,9 @@ export type {
   HudFrameProps,
   HudFrameTitleBarProps,
   HudFrameStatusBarProps,
-  HudFrameVariant,
-  HudFrameAccentColor,
   CornerDecorationProps,
 } from "./types";
 
 // テーマ
-export { getHudFrameTheme, getAccentColorConfig } from "./theme";
-export type { HudFrameTheme, HudFrameBaseTheme } from "./theme";
+export { HUD_FRAME_THEME } from "./theme";
+export type { HudFrameTheme } from "./theme";

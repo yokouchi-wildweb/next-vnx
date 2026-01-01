@@ -1,39 +1,23 @@
 import { cn } from "@/lib/cn";
 import { HudFrameTitleBarProps } from "./types";
-import { getHudFrameTheme } from "./theme";
+import { HUD_FRAME_THEME } from "./theme";
 
 const WINDOW_DOT_COLORS = ["pink", "cyan", "purple"] as const;
-
-const WINDOW_DOT_SHADOWS = {
-  dark: {
-    pink: "rgba(244, 114, 182, 0.5)",
-    cyan: "rgba(6, 182, 212, 0.5)",
-    purple: "rgba(168, 85, 247, 0.5)",
-  },
-  light: {
-    pink: "rgba(244, 114, 182, 0.4)",
-    cyan: "rgba(6, 182, 212, 0.4)",
-    purple: "rgba(168, 85, 247, 0.4)",
-  },
-};
+const theme = HUD_FRAME_THEME;
 
 /** HUDフレーム タイトルバーコンポーネント */
 export function HudFrameTitleBar({
-  variant = "dark",
-  accentColor = "cyan",
   title,
   subtitle,
   icon,
   right,
   showWindowDots = true,
 }: HudFrameTitleBarProps) {
-  const theme = getHudFrameTheme(variant, accentColor);
-
   return (
     <div
       className={cn(
         "relative flex items-center justify-between px-4 md:px-6 py-3 border-b",
-        theme.borderClass.replace("/60", theme.titleBarBorderOpacity).replace("/50", theme.titleBarBorderOpacity)
+        theme.titleBarBorderClass
       )}
     >
       {/* 左側: アイコン + タイトル */}
@@ -86,7 +70,7 @@ export function HudFrameTitleBar({
                     theme.windowDots[color]
                   )}
                   style={{
-                    boxShadow: `0 0 6px ${WINDOW_DOT_SHADOWS[variant][color]}`,
+                    boxShadow: `0 0 6px ${theme.windowDotShadows[color]}`,
                   }}
                 />
               ))}

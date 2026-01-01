@@ -1,6 +1,5 @@
 import { cn } from "@/lib/cn";
 import { CornerDecorationProps } from "../types";
-import { getHudFrameTheme } from "../theme";
 
 const POSITION_CLASSES = {
   tl: "top-0 left-0 border-t-2 border-l-2 rounded-tl-xl",
@@ -17,18 +16,12 @@ const DOT_POSITION_CLASSES = {
 };
 
 /** コーナー装飾コンポーネント */
-export function CornerDecoration({
-  position,
-  variant = "dark",
-  accentColor = "cyan",
-}: CornerDecorationProps) {
-  const theme = getHudFrameTheme(variant, accentColor);
-
+export function CornerDecoration({ position }: CornerDecorationProps) {
   return (
     <div
       className={cn(
         "absolute w-6 h-6 md:w-8 md:h-8",
-        theme.borderClass,
+        "border-cyan-400/60",
         POSITION_CLASSES[position]
       )}
     >
@@ -36,7 +29,7 @@ export function CornerDecoration({
       <div
         className={cn(
           "absolute w-1.5 h-1.5 rounded-full",
-          theme.dotClass,
+          "bg-cyan-400/80",
           "animate-pulse-slow",
           DOT_POSITION_CLASSES[position]
         )}

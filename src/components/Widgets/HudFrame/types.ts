@@ -1,18 +1,8 @@
 import { ReactNode } from "react";
 
-/** テーマバリアント */
-export type HudFrameVariant = "dark" | "light";
-
-/** アクセントカラー */
-export type HudFrameAccentColor = "cyan" | "pink" | "purple" | "green" | "orange";
-
 /** HudFrame メインコンポーネントのProps */
 export type HudFrameProps = {
   children: ReactNode;
-  /** テーマバリアント */
-  variant?: HudFrameVariant;
-  /** アクセントカラー */
-  accentColor?: HudFrameAccentColor;
   /** 最大幅（CSS値: "800px", "50vw", "100%" など） */
   maxWidth?: string;
   /** 追加のクラス名 */
@@ -49,9 +39,6 @@ export type HudFrameProps = {
 
 /** タイトルバーのProps */
 export type HudFrameTitleBarProps = {
-  variant?: HudFrameVariant;
-  /** アクセントカラー */
-  accentColor?: HudFrameAccentColor;
   /** タイトル */
   title: string;
   /** サブタイトル */
@@ -66,9 +53,6 @@ export type HudFrameTitleBarProps = {
 
 /** ステータスバーのProps */
 export type HudFrameStatusBarProps = {
-  variant?: HudFrameVariant;
-  /** アクセントカラー */
-  accentColor?: HudFrameAccentColor;
   /** ステータステキスト */
   text?: string;
   /** 右側のカスタムコンテンツ */
@@ -80,7 +64,4 @@ export type HudFrameStatusBarProps = {
 /** コーナー装飾のProps */
 export type CornerDecorationProps = {
   position: "tl" | "tr" | "bl" | "br";
-  variant?: HudFrameVariant;
-  /** アクセントカラー */
-  accentColor?: HudFrameAccentColor;
 };
