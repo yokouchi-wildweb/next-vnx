@@ -20,7 +20,7 @@ export function ServiceAboutSection() {
           <div
             className="absolute inset-2 md:inset-4 rounded-xl pointer-events-none"
             style={{
-              border: "1px solid rgba(255, 255, 255, 0.5)",
+              border: "3px solid rgba(255, 255, 255, 0.5)",
               backgroundImage: "radial-gradient(circle, rgba(255, 255, 255, 0.66) 1px, transparent 1px)",
               backgroundSize: "16px 16px",
             }}
@@ -89,12 +89,12 @@ export function ServiceAboutSection() {
                   誰もが物語のクリエイター
                 </p>
                 <p className="text-base md:text-lg lg:text-xl leading-relaxed">
-                  このサービスは、<span className="text-cyan-300">ノベルゲーム</span>や<span className="text-yellow-300">マーダーミステリー</span>といった
-                  "物語体験"を生み出すための、次世代型・創作スタジオです。
+                  このサービスは<span className="text-cyan-300">ノベルゲーム</span>や<span className="text-yellow-300">マーダーミステリー</span>といった
+                  "物語体験"を生み出すための 次世代型・創作スタジオです。
                 </p>
                 <p className="text-base md:text-lg lg:text-xl leading-relaxed">
-                  頭の中にあるアイデアや設定、キャラクター、伏線。
-                  それらを、難しい知識や複雑なツールに縛られることなく、
+                  頭の中にあるアイデアや設定 キャラクター 伏線
+                  それらを難しい知識や複雑なツールに縛られることなく
                   思い通りのシナリオとして形にできます。
                 </p>
               </div>
