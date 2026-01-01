@@ -11,13 +11,16 @@ export default function DraftPage() {
   return (
     <>
       <TunnelBackground preset="unicorn" />
-      <UserPage containerType="contentShell" paddingInline="none">
-        <HeroSection />
-        <ServiceAboutSection />
-        <HudFrameSection />
-        <AboutSection />
-        <CyberGridSection />
-        <FeatureCarousel />
+      <UserPage containerType="full" paddingInline="none">
+        <div className="w-[72rem] mx-auto max-w-full">
+          <HeroSection />
+          <ServiceAboutSection />
+          {/*<HudFrameSection />*/}
+          {/*<AboutSection />*/}
+          {/*<CyberGridSection />*/}
+          <FeatureCarousel />
+
+        </div>
       </UserPage>
     </>
   );

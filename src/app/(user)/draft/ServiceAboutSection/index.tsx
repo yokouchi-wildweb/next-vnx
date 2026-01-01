@@ -2,9 +2,9 @@ export function ServiceAboutSection() {
   return (
     <section className="relative py-16 md:py-24">
       {/* 浮き上がったパネル */}
-      <div className="relative mx-auto px-4">
+      <div className="relative mx-auto px-1">
         <div
-          className="relative rounded-2xl p-8 md:p-12"
+          className="relative rounded-2xl p-8 md:p-12 overflow-visible"
           style={{
             // シアン→ピンクのグラデーション背景
             background: "linear-gradient(135deg, oklch(0.7 0.15 200) 0%, oklch(0.75 0.18 350) 100%)",
@@ -39,7 +39,7 @@ export function ServiceAboutSection() {
 
                 {/* グラデーションテキスト */}
                 <span
-                  className="text-2xl md:text-2xl font-bold tracking-wider"
+                  className="text-2xl md:text-3xl font-bold tracking-wider"
                   style={{
                     background: "linear-gradient(135deg, oklch(0.7 0.2 280), oklch(0.85 0.15 300), oklch(0.7 0.2 280))",
                     WebkitBackgroundClip: "text",
@@ -59,9 +59,45 @@ export function ServiceAboutSection() {
               </h2>
             </div>
 
-            {/* コンテンツ（いったんなし） */}
-            <div className="mt-8 min-h-[200px]">
-              {/* TODO: 内容を追加 */}
+            {/* コンテンツ：左画像 + 右テキスト */}
+            <div className="mt-3 flex flex-col md:flex-row items-center gap-4 md:gap-0">
+              {/* 左：画像（コンテナから飛び出し） */}
+              <div className="flex-shrink-0 w-full md:w-[50%] md:-ml-12 lg:-ml-18">
+                <img
+                  src="/assets/imgs/laptop.png"
+                  alt="創作スタジオ"
+                  className="w-full h-auto drop-shadow-2xl scale-110 md:scale-125"
+                  style={{
+                    filter: "drop-shadow(0 20px 40px rgba(0, 0, 0, 0.3))",
+                  }}
+                />
+              </div>
+
+              {/* 右：テキスト（前面に表示） */}
+              <div
+                className="relative z-10 flex-1 text-white font-bold text-center space-y-6"
+                style={{
+                  textShadow: `
+                    0 0 30px rgba(255, 255, 255, 0.7),
+                    0 0 60px rgba(255, 255, 255, 0.4),
+                    0 4px 12px rgba(0, 0, 0, 0.3)
+                  `,
+                }}
+              >
+                <p className="text-2xl md:text-3xl lg:text-4xl leading-relaxed">
+                  「Next VNX」で<br />
+                  誰もが物語のクリエイター
+                </p>
+                <p className="text-base md:text-lg lg:text-xl leading-relaxed">
+                  このサービスは、ノベルゲームやマーダーミステリーといった
+                  "物語体験"を生み出すための、次世代型・創作スタジオです。
+                </p>
+                <p className="text-base md:text-lg lg:text-xl leading-relaxed">
+                  頭の中にあるアイデアや設定、キャラクター、伏線。
+                  それらを、難しい知識や複雑なツールに縛られることなく、
+                  思い通りのシナリオとして形にできます。
+                </p>
+              </div>
             </div>
           </div>
         </div>
