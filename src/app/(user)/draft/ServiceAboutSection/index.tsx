@@ -4,7 +4,7 @@ export function ServiceAboutSection() {
       {/* 浮き上がったパネル */}
       <div className="relative mx-auto px-1">
         <div
-          className="relative rounded-2xl p-8 md:p-12 overflow-visible"
+          className="relative rounded-2xl px-4 py-8 md:px-12 md:py-16 overflow-visible"
           style={{
             // シアン→ピンクのグラデーション背景
             background: "linear-gradient(135deg, oklch(0.7 0.15 200) 0%, oklch(0.75 0.18 350) 100%)",
@@ -18,7 +18,7 @@ export function ServiceAboutSection() {
         >
           {/* 内側の白いボーダーライン + ドットパターン */}
           <div
-            className="absolute inset-4 rounded-xl pointer-events-none"
+            className="absolute inset-2 md:inset-4 rounded-xl pointer-events-none"
             style={{
               border: "1px solid rgba(255, 255, 255, 0.5)",
               backgroundImage: "radial-gradient(circle, rgba(255, 255, 255, 0.66) 1px, transparent 1px)",
@@ -30,7 +30,7 @@ export function ServiceAboutSection() {
           <div className="relative">
             {/* セクションタイトル */}
             <div className="text-center">
-              <h2 className="inline-flex items-center gap-4 md:gap-6 px-8 py-3 bg-white rounded-full">
+              <h2 className="inline-flex items-center gap-1 md:gap-6 px-4 md:px-8 py-3 bg-white rounded-full">
                 {/* 左装飾ライン */}
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_8px_2px_rgba(192,132,252,0.6)]" />
@@ -89,7 +89,7 @@ export function ServiceAboutSection() {
                   誰もが物語のクリエイター
                 </p>
                 <p className="text-base md:text-lg lg:text-xl leading-relaxed">
-                  このサービスは、ノベルゲームやマーダーミステリーといった
+                  このサービスは、<span className="text-cyan-300">ノベルゲーム</span>や<span className="text-yellow-300">マーダーミステリー</span>といった
                   "物語体験"を生み出すための、次世代型・創作スタジオです。
                 </p>
                 <p className="text-base md:text-lg lg:text-xl leading-relaxed">
