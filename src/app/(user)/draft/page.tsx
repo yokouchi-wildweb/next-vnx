@@ -9,10 +9,13 @@ import { FeatureCarousel } from "./FeatureCarousel";
 export default function DraftPage() {
   return (
     <>
-      <TunnelBackground preset="pentagonDeep" />
-      <UserPage containerType="full" paddingInline="none">
+      <TunnelBackground preset="darkNet" />
+      <UserPage containerType=
+
+                  "full" paddingInline="none">
         <HeroSection />
-        <HudFrameSection />
+        <HudFrameSection variant="dark" accentColor="cyan" />
+        <HudFrameSection variant="light" accentColor="pink" />
         <AboutSection />
         <CyberGridSection />
         <FeatureCarousel />

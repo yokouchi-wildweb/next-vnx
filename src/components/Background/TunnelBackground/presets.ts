@@ -99,6 +99,20 @@ export const tunnelPresets = {
     drawRadialLines: true,
     perspectivePower: 4,
   },
+  darkNet: {
+    "sides": 5,
+    "layers": 50,
+    "strokeWidth": 2,
+    "strokeOpacity": 0.15,
+    "gradientStart": "#1e71a9",
+    "gradientEnd": "#2b0038",
+    "minScale": 0.22,
+    "maxScale": 1.4,
+    "drawRadialLines": true,
+    "perspectivePower": 5,
+    "gradientAngle": 315
+  }
+
 } as const satisfies Record<string, TunnelSVGOptions>
 
 /**

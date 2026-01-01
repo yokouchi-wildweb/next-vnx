@@ -43,7 +43,7 @@ export function HeroSection({
                 // フェーズ時間設定（ミリ秒）
                 initialDuration={2000}      // 初期文字で静止
                 accelDuration={2000}       // ゆっくり→加速ランダム
-                topSpeedDuration={2000}    // トップスピードランダム
+                topSpeedDuration={1000}    // トップスピードランダム
                 decodeDuration={2000}      // デコード完了まで
                 // 文字設定
                 initialText="NEXT-VNX"   // 左右にパディングされる
