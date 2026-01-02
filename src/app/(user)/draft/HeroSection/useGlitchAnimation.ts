@@ -385,5 +385,5 @@ export function useGlitchAnimation({
     return () => clearTimeout(timeoutId);
   }, [phase, targetText, transDecodeDuration, randomSpeed, getRandomChar]);
 
-  return { displayText, isGlitching, startTransition };
+  return { displayText, isGlitching, startTransition, targetText };
 }

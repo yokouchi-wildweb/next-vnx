@@ -159,7 +159,7 @@ export const GlitchText = forwardRef<GlitchTextHandle, GlitchTextProps>(
     },
     ref
   ) {
-    const { displayText, isGlitching, startTransition } = useGlitchAnimation({
+    const { displayText, isGlitching, startTransition, targetText } = useGlitchAnimation({
       text,
       initialText,
       initialChar,
@@ -184,7 +184,7 @@ export const GlitchText = forwardRef<GlitchTextHandle, GlitchTextProps>(
   return (
     <span
       className={`glitch-text relative inline-block ${isGlitching ? "animate-glitch-skew" : ""} ${className}`}
-      data-text={text}
+      data-text={targetText}
     >
       {displayText}
 

@@ -17,8 +17,9 @@ const SLIDES = [
 
 /** 設定 */
 const CONFIG = {
-  interval: 8000,      // 切り替え間隔（ミリ秒）
-  fadeDuration: 3000,  // フェード時間（ミリ秒）
+  firstInterval: 12000, // 初回の切り替え間隔（ミリ秒）
+  interval: 8000,       // 通常の切り替え間隔（ミリ秒）
+  fadeDuration: 3000,   // フェード時間（ミリ秒）
   fadeDelay: 1500,
 };
 
@@ -30,55 +31,65 @@ export function HeroSection({
   imageAlt = "Hero Image",
 }: HeroSectionProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [prevIndex, setPrevIndex] = useState<number | null>(null);
-  const [fadeOut, setFadeOut] = useState(false);
+  // overlayIndex: オーバーレイに表示する画像のインデックス（常に値を持つ）
+  const [overlayIndex, setOverlayIndex] = useState(0);
+  // overlayVisible: オーバーレイが表示状態かどうか
+  const [overlayVisible, setOverlayVisible] = useState(false);
   const glitchTextRef = useRef<GlitchTextHandle>(null);
+  const isFirstTransition = useRef(true);
 
   // 自動切り替え
   useEffect(() => {
-    const timer = setInterval(() => {
-      const nextIndex = (currentIndex + 1) % SLIDES.length;
+    const interval = isFirstTransition.current
+      ? CONFIG.firstInterval
+      : CONFIG.interval;
+
+    const timer = setTimeout(() => {
+      isFirstTransition.current = false;
+      const next = (currentIndex + 1) % SLIDES.length;
 
       // テキストトランジション開始（即座に）
-      glitchTextRef.current?.startTransition(SLIDES[nextIndex].text);
+      glitchTextRef.current?.startTransition(SLIDES[next].text);
 
       // 画像トランジション開始（fadeDelay後）
       setTimeout(() => {
-        setPrevIndex(currentIndex);
-        setCurrentIndex(nextIndex);
-        setFadeOut(false);
+        // まずオーバーレイを透明にしてから、新しい画像をセット
+        setOverlayVisible(false);
+        setOverlayIndex(next);
       }, CONFIG.fadeDelay);
-    }, CONFIG.interval);
+    }, interval);
 
-    return () => clearInterval(timer);
+    return () => clearTimeout(timer);
   }, [currentIndex]);
 
-  // prevIndex がセットされたらフェードアウト開始
+  // overlayIndex が変更されたらフェードイン開始
   useEffect(() => {
-    if (prevIndex === null) return;
+    // 初回（currentIndex と同じ）はスキップ
+    if (overlayIndex === currentIndex) return;
 
-    // 次のフレームでフェードアウト開始（CSS transitionを発火させるため）
+    // 次のフレームでフェードイン開始（CSS transitionを発火させるため）
     const frameId = requestAnimationFrame(() => {
-      setFadeOut(true);
+      setOverlayVisible(true);
     });
 
     return () => cancelAnimationFrame(frameId);
-  }, [prevIndex]);
+  }, [overlayIndex, currentIndex]);
 
-  // フェード完了後に prevIndex をクリア
+  // フェード完了後に currentIndex を更新（overlayVisible は維持）
   useEffect(() => {
-    if (!fadeOut) return;
+    if (!overlayVisible || overlayIndex === currentIndex) return;
 
     const timer = setTimeout(() => {
-      setPrevIndex(null);
-      setFadeOut(false);
+      // currentIndex を更新するだけ
+      // overlayVisible は true のまま維持（次のトランジション開始時にリセット）
+      setCurrentIndex(overlayIndex);
     }, CONFIG.fadeDuration);
 
     return () => clearTimeout(timer);
-  }, [fadeOut]);
+  }, [overlayVisible, overlayIndex, currentIndex]);
 
   const currentSlide = SLIDES[currentIndex];
-  const prevSlide = prevIndex !== null ? SLIDES[prevIndex] : null;
+  const overlaySlide = SLIDES[overlayIndex];
   return (
     <section className="relative mx-auto max-w-6xl p-0 md:px-1 md:py-8 pb-32 md:pb-16">
       {/* コンテナ */}
@@ -93,20 +104,19 @@ export function HeroSection({
             className="object-cover"
             priority
           />
-          {/* 前の画像（フェードアウト中のみ表示、上層） */}
-          {prevSlide && (
-            <Image
-              src={imgPath(prevSlide.image)}
-              alt={imageAlt}
-              fill
-              className="object-cover"
-              style={{
-                opacity: fadeOut ? 0 : 1,
-                transition: `opacity ${CONFIG.fadeDuration}ms linear`,
-              }}
-              priority
-            />
-          )}
+          {/* オーバーレイ画像（常に存在） */}
+          <Image
+            src={imgPath(overlaySlide.image)}
+            alt={imageAlt}
+            fill
+            className="object-cover"
+            style={{
+              opacity: overlayVisible ? 1 : 0,
+              // overlayVisible時のみトランジション、それ以外は即座に透明化
+              transition: overlayVisible ? `opacity ${CONFIG.fadeDuration}ms linear` : "none",
+            }}
+            priority
+          />
 
           {/* キャッチコピー（中央配置） */}
           <div className="absolute inset-0 flex items-center justify-center">
