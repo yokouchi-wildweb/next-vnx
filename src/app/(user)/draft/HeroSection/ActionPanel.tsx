@@ -33,21 +33,16 @@ export function ActionPanel() {
       <HudFrame
         accent="purple"
         mode="light"
-        title="GET STRARED"
+        title="GET STARTED"
         subtitle="ACTION"
         showStatusBar
         statusText="準備OK？?"
       >
         <div className="px-4 py-4 md:px-6 md:py-5 space-y-3 md:space-y-3">
           {/* キャッチフレーズ（比較用） */}
-          <div className="space-y-2">
-            {/*<p className="text-center text-lg md:text-xl">*/}
-            {/*  <TypingText text="物語を今すぐ体験しよう！" variant="neon" />*/}
-            {/*</p>*/}
-            <p className="text-center text-lg md:text-xl">
-              <TypingText text='今すぐ"VNX"を体験しよう！' variant="mono" />
-            </p>
-          </div>
+          <p className="text-center text-lg md:text-xl">
+            <TypingText text='今すぐ"VNX"を体験しよう！' variant="mono" />
+          </p>
 
           {/* メインボタン（対になる2つ） */}
           <div className="grid grid-cols-2 gap-2 md:gap-3">

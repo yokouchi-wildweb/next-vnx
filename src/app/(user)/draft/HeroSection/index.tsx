@@ -11,13 +11,11 @@ import { HeartbeatWave } from "./HeartbeatWave";
 type HeroSectionProps = {
   imageSrc?: string;
   imageAlt?: string;
-  aspectRatio?: string;
 };
 
 export function HeroSection({
   imageSrc = "heroes/dream_sity-2.jpg",
   imageAlt = "Hero Image",
-  aspectRatio = "16/9",
 }: HeroSectionProps) {
   return (
     <section className="relative mx-auto max-w-6xl p-0 md:px-1 md:py-8 pb-32 md:pb-16">
