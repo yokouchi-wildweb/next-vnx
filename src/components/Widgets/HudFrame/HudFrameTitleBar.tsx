@@ -2,7 +2,7 @@ import { cn } from "@/lib/cn";
 import { HudFrameTitleBarProps } from "./types";
 import { HUD_FRAME_THEME } from "./theme";
 
-const WINDOW_DOT_COLORS = ["pink", "cyan", "purple"] as const;
+const WINDOW_DOT_COLORS = ["pink", "accent", "purple"] as const;
 const theme = HUD_FRAME_THEME;
 
 /** HUDフレーム タイトルバーコンポーネント */

@@ -21,7 +21,7 @@ export function CornerDecoration({ position }: CornerDecorationProps) {
     <div
       className={cn(
         "absolute w-6 h-6 md:w-8 md:h-8",
-        "border-cyan-400/60",
+        "border-[rgb(var(--hud-accent))]/60",
         POSITION_CLASSES[position]
       )}
     >
@@ -29,7 +29,7 @@ export function CornerDecoration({ position }: CornerDecorationProps) {
       <div
         className={cn(
           "absolute w-1.5 h-1.5 rounded-full",
-          "bg-cyan-400/80",
+          "bg-[rgb(var(--hud-accent))]/80",
           "animate-pulse-slow",
           DOT_POSITION_CLASSES[position]
         )}

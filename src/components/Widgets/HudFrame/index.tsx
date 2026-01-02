@@ -19,3 +19,7 @@ export type {
 // テーマ
 export { HUD_FRAME_THEME } from "./theme";
 export type { HudFrameTheme } from "./theme";
+
+// プリセット
+export { HUD_ACCENT_PRESETS, DEFAULT_HUD_ACCENT } from "./presets";
+export type { HudAccent } from "./presets";

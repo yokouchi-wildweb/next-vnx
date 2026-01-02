@@ -3,6 +3,7 @@
 import { cn } from "@/lib/cn";
 import { HudFrameProps } from "./types";
 import { HUD_FRAME_THEME } from "./theme";
+import { HUD_ACCENT_PRESETS, DEFAULT_HUD_ACCENT } from "./presets";
 import { CornerDecoration } from "./parts/CornerDecoration";
 import { HudFrameTitleBar } from "./HudFrameTitleBar";
 import { HudFrameStatusBar } from "./HudFrameStatusBar";
@@ -12,6 +13,7 @@ const theme = HUD_FRAME_THEME;
 /** HUDフレーム メインコンポーネント */
 export function HudFrame({
   children,
+  accent = DEFAULT_HUD_ACCENT,
   maxWidth,
   className,
   // タイトルバー
@@ -30,18 +32,20 @@ export function HudFrame({
   showReflection = true,
 }: HudFrameProps) {
   const hasTitle = title !== undefined;
+  const accentRgb = HUD_ACCENT_PRESETS[accent];
 
   return (
     <div
       className={cn("relative", className)}
-      style={maxWidth ? { maxWidth } : undefined}
+      style={{
+        "--hud-accent": accentRgb,
+        ...(maxWidth ? { maxWidth } : {}),
+      } as React.CSSProperties}
     >
       {/* 外側のグロー */}
       <div
         className="absolute -inset-1 rounded-2xl opacity-50 blur-xl"
-        style={{
-          background: `linear-gradient(135deg, ${theme.glowRgba}, rgba(168, 85, 247, 0.15), rgba(244, 114, 182, 0.1))`,
-        }}
+        style={{ background: theme.glowGradient }}
       />
 
       {/* メインフレーム */}
@@ -128,9 +132,7 @@ export function HudFrame({
             "absolute -bottom-4 left-1/4 right-1/4 h-8 rounded-full blur-2xl",
             theme.reflectionOpacity
           )}
-          style={{
-            background: `linear-gradient(90deg, ${theme.glowRgba.replace("0.15", "0.5")}, rgba(168, 85, 247, 0.5))`,
-          }}
+          style={{ background: theme.reflectionGradient }}
         />
       )}
     </div>

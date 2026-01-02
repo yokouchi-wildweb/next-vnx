@@ -1,8 +1,11 @@
 import { ReactNode } from "react";
+import { HudAccent } from "./presets";
 
 /** HudFrame メインコンポーネントのProps */
 export type HudFrameProps = {
   children: ReactNode;
+  /** アクセントカラー（デフォルト: cyan） */
+  accent?: HudAccent;
   /** 最大幅（CSS値: "800px", "50vw", "100%" など） */
   maxWidth?: string;
   /** 追加のクラス名 */
