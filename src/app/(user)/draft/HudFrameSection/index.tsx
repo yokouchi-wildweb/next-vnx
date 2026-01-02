@@ -17,6 +17,7 @@ export function HudFrameSection({ maxWidth }: HudFrameSectionProps) {
           subtitle="SYSTEM.OVERVIEW"
           showStatusBar
           statusText="CREATIVE_MODE | ONLINE"
+          accent="pink"
         >
           <HudFrameContent />
         </HudFrame>

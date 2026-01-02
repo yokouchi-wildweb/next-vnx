@@ -1,11 +1,14 @@
 import { ReactNode } from "react";
-import { HudAccent } from "./presets";
+import { HudAccent, HudMode } from "./presets";
+import { HudFrameTheme } from "./theme";
 
 /** HudFrame メインコンポーネントのProps */
 export type HudFrameProps = {
   children: ReactNode;
   /** アクセントカラー（デフォルト: cyan） */
   accent?: HudAccent;
+  /** モード（デフォルト: dark） */
+  mode?: HudMode;
   /** 最大幅（CSS値: "800px", "50vw", "100%" など） */
   maxWidth?: string;
   /** 追加のクラス名 */
@@ -52,6 +55,8 @@ export type HudFrameTitleBarProps = {
   right?: ReactNode;
   /** ウィンドウボタン風ドットを表示するか（デフォルト: true） */
   showWindowDots?: boolean;
+  /** テーマ（親から渡される） */
+  theme?: HudFrameTheme;
 };
 
 /** ステータスバーのProps */
@@ -62,6 +67,8 @@ export type HudFrameStatusBarProps = {
   right?: ReactNode;
   /** プログレスバーを表示するか（デフォルト: true） */
   showProgress?: boolean;
+  /** テーマ（親から渡される） */
+  theme?: HudFrameTheme;
 };
 
 /** コーナー装飾のProps */

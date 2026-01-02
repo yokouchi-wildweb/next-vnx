@@ -3,7 +3,6 @@ import { HudFrameTitleBarProps } from "./types";
 import { HUD_FRAME_THEME } from "./theme";
 
 const WINDOW_DOT_COLORS = ["pink", "accent", "purple"] as const;
-const theme = HUD_FRAME_THEME;
 
 /** HUDフレーム タイトルバーコンポーネント */
 export function HudFrameTitleBar({
@@ -12,6 +11,7 @@ export function HudFrameTitleBar({
   icon,
   right,
   showWindowDots = true,
+  theme = HUD_FRAME_THEME,
 }: HudFrameTitleBarProps) {
   return (
     <div

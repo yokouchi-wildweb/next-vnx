@@ -1,19 +1,19 @@
 "use client";
 
+import { useMemo } from "react";
 import { cn } from "@/lib/cn";
 import { HudFrameProps } from "./types";
-import { HUD_FRAME_THEME } from "./theme";
-import { HUD_ACCENT_PRESETS, DEFAULT_HUD_ACCENT } from "./presets";
+import { createHudFrameTheme } from "./theme";
+import { HUD_ACCENT_PRESETS, DEFAULT_HUD_ACCENT, DEFAULT_HUD_MODE } from "./presets";
 import { CornerDecoration } from "./parts/CornerDecoration";
 import { HudFrameTitleBar } from "./HudFrameTitleBar";
 import { HudFrameStatusBar } from "./HudFrameStatusBar";
-
-const theme = HUD_FRAME_THEME;
 
 /** HUDフレーム メインコンポーネント */
 export function HudFrame({
   children,
   accent = DEFAULT_HUD_ACCENT,
+  mode = DEFAULT_HUD_MODE,
   maxWidth,
   className,
   // タイトルバー
@@ -33,6 +33,7 @@ export function HudFrame({
 }: HudFrameProps) {
   const hasTitle = title !== undefined;
   const accentRgb = HUD_ACCENT_PRESETS[accent];
+  const theme = useMemo(() => createHudFrameTheme(mode), [mode]);
 
   return (
     <div
@@ -113,6 +114,7 @@ export function HudFrame({
             subtitle={subtitle}
             icon={titleIcon}
             right={titleRight}
+            theme={theme}
           />
         )}
 
@@ -121,7 +123,7 @@ export function HudFrame({
 
         {/* ステータスバー */}
         {showStatusBar && (
-          <HudFrameStatusBar text={statusText} right={statusRight} />
+          <HudFrameStatusBar text={statusText} right={statusRight} theme={theme} />
         )}
       </div>
 

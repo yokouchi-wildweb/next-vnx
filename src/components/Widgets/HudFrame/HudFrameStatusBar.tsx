@@ -2,10 +2,8 @@ import { cn } from "@/lib/cn";
 import { HudFrameStatusBarProps } from "./types";
 import { HUD_FRAME_THEME } from "./theme";
 
-const theme = HUD_FRAME_THEME;
-
 /** デフォルトのプログレスバー */
-function DefaultProgressBar() {
+function DefaultProgressBar({ theme = HUD_FRAME_THEME }) {
   return (
     <div className="flex items-center gap-3">
       <div
@@ -36,6 +34,7 @@ export function HudFrameStatusBar({
   text = "READY",
   right,
   showProgress = true,
+  theme = HUD_FRAME_THEME,
 }: HudFrameStatusBarProps) {
   return (
     <div
@@ -53,7 +52,7 @@ export function HudFrameStatusBar({
       </div>
 
       {/* 右側 */}
-      {right !== undefined ? right : showProgress ? <DefaultProgressBar /> : null}
+      {right !== undefined ? right : showProgress ? <DefaultProgressBar theme={theme} /> : null}
     </div>
   );
 }

@@ -11,11 +11,11 @@ export default function DraftPage() {
   return (
     <>
       <TunnelBackground preset="unicorn" />
-      <UserPage containerType="full" paddingInline="none">
+      <UserPage containerType="full" paddingInline="none" className="pt-0 sm:pt-4">
         <div className="w-[72rem] mx-auto max-w-full">
           <HeroSection />
           <ServiceAboutSection />
-          {/*<HudFrameSection />*/}
+          <HudFrameSection />
           {/*<AboutSection />*/}
           {/*<CyberGridSection />*/}
           <FeatureCarousel />

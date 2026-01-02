@@ -21,9 +21,9 @@ export function HeroSection({
   return (
     <section className="relative mx-auto max-w-6xl p-0 md:px-1 md:py-8">
       {/* コンテナ */}
-      <div className="relative rounded-2xl overflow-visible">
+      <div className="relative rounded-none md:rounded-2xl overflow-visible">
         {/* ヒーロー画像（背景として全体に広がる） */}
-        <div className="relative w-full overflow-hidden rounded-2xl aspect-[5/4] md:aspect-[16/9]">
+        <div className="relative w-full overflow-hidden rounded-none md:rounded-2xl aspect-[5/4] md:aspect-[16/9]">
           <Image
             src={imgPath(imageSrc)}
             alt={imageAlt}
@@ -34,7 +34,7 @@ export function HeroSection({
 
           {/* キャッチコピー（中央配置） */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
               <GlitchText
                 text="物語を、もっと自由に。"
                 // フェーズ時間設定（ミリ秒）
@@ -58,9 +58,8 @@ export function HeroSection({
 
         {/* 内側のグラデーションボーダー（画像の上に重なる） */}
         <div
-          className="pointer-events-none absolute inset-3 rounded-xl"
+          className="pointer-events-none absolute inset-2 md:inset-3 rounded-xl border-2 md:border-4 border-transparent"
           style={{
-            border: "4px solid transparent",
             background: "linear-gradient(90deg, oklch(0.72 0.22 350), oklch(0.62 0.23 280)) border-box",
             mask: "linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)",
             maskComposite: "exclude",
