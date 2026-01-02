@@ -76,7 +76,7 @@ export function HeroSection({
         <BorderLight className="pointer-events-none absolute inset-0 w-full h-full" />
 
         {/* 左上の白いドット（SVGアニメーション・セクションから飛び出し） */}
-        <DecorativeDots className="absolute -top-12 -left-12 z-10" />
+        <DecorativeDots className="absolute -top-9 -left-12 z-10" />
 
         {/* 右下の心電図波形 */}
         <HeartbeatWave className="absolute bottom-8 -right-16 z-10 w-[36rem] opacity-70" />
