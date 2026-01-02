@@ -1,35 +1,102 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { imgPath } from "@/utils/assets";
 import Image from "next/image";
 import { ActionPanel } from "./ActionPanel";
 import { BorderLight } from "./BorderLight";
 import { DecorativeDots } from "./DecorativeDots";
 import { GlitchText } from "./GlitchText";
-import { HeartbeatWave } from "./HeartbeatWave";
+
+/** スライド画像のリスト */
+const SLIDES = [
+  "heroes/dream_sity-2.jpg",
+  "heroes/space_burst.jpg",
+  "heroes/fantasy_tale-2.jpg",
+];
+
+/** 設定 */
+const CONFIG = {
+  interval: 8000,      // 切り替え間隔（ミリ秒）
+  fadeDuration: 3000,  // フェード時間（ミリ秒）
+};
 
 type HeroSectionProps = {
-  imageSrc?: string;
   imageAlt?: string;
 };
 
 export function HeroSection({
-  imageSrc = "heroes/dream_sity-2.jpg",
   imageAlt = "Hero Image",
 }: HeroSectionProps) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [prevIndex, setPrevIndex] = useState<number | null>(null);
+  const [fadeOut, setFadeOut] = useState(false);
+
+  // 自動切り替え
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPrevIndex(currentIndex);
+      setCurrentIndex((prev) => (prev + 1) % SLIDES.length);
+      setFadeOut(false);
+    }, CONFIG.interval);
+
+    return () => clearInterval(timer);
+  }, [currentIndex]);
+
+  // prevIndex がセットされたらフェードアウト開始
+  useEffect(() => {
+    if (prevIndex === null) return;
+
+    // 次のフレームでフェードアウト開始（CSS transitionを発火させるため）
+    const frameId = requestAnimationFrame(() => {
+      setFadeOut(true);
+    });
+
+    return () => cancelAnimationFrame(frameId);
+  }, [prevIndex]);
+
+  // フェード完了後に prevIndex をクリア
+  useEffect(() => {
+    if (!fadeOut) return;
+
+    const timer = setTimeout(() => {
+      setPrevIndex(null);
+      setFadeOut(false);
+    }, CONFIG.fadeDuration);
+
+    return () => clearTimeout(timer);
+  }, [fadeOut]);
+
+  const currentImage = SLIDES[currentIndex];
+  const prevImage = prevIndex !== null ? SLIDES[prevIndex] : null;
   return (
     <section className="relative mx-auto max-w-6xl p-0 md:px-1 md:py-8 pb-32 md:pb-16">
       {/* コンテナ */}
       <div className="relative rounded-none md:rounded-2xl overflow-visible">
         {/* ヒーロー画像（背景として全体に広がる） */}
         <div className="relative w-full overflow-hidden rounded-none md:rounded-2xl aspect-[4/5] md:aspect-[16/9]">
+          {/* 現在の画像（常に表示、下層） */}
           <Image
-            src={imgPath(imageSrc)}
+            src={imgPath(currentImage)}
             alt={imageAlt}
             fill
             className="object-cover"
             priority
           />
+          {/* 前の画像（フェードアウト中のみ表示、上層） */}
+          {prevImage && (
+            <Image
+              src={imgPath(prevImage)}
+              alt={imageAlt}
+              fill
+              className="object-cover"
+              style={{
+                opacity: fadeOut ? 0 : 1,
+                transition: `opacity ${CONFIG.fadeDuration}ms linear`,
+              }}
+              priority
+            />
+          )}
 
           {/* キャッチコピー（中央配置） */}
           <div className="absolute inset-0 flex items-center justify-center">
