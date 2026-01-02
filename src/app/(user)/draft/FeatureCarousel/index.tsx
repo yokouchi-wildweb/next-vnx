@@ -31,27 +31,27 @@ const FEATURES: Feature[] = [
   {
     id: "1",
     image: "heroes/dream_sity_with_logo.png",
-    title: "AIストーリー生成",
+    title: "思い通りの物語創作",
     description:
-      "最新のAI技術で、あなたのアイデアを魅力的な物語に変換。キャラクター設定から展開まで自動生成。キャラクター設定から展開まで自動生成キャラクター設定から展開まで自動生成",
+      "特別な技術などは不要でだれでも簡単にシナリオ作成ができます。",
     gradientFrom: "oklch(0.85 0.18 85)",
     gradientTo: "oklch(0.70 0.20 45)",
   },
   {
     id: "2",
     image: "heroes/dream_sity_with_logo.png",
-    title: "Live2D統合",
+    title: "リンク1つで共有&プレイ可能",
     description:
-      "Live2Dモデルをシームレスに統合。リアルタイムで表情や動きを制御できる次世代のVN体験。",
+      "作成したシナリオは専用のリンクで簡単に共有。ネット環境があれば誰でもプレイが可能です。",
     gradientFrom: "oklch(0.75 0.20 160)",
     gradientTo: "oklch(0.60 0.22 200)",
   },
   {
     id: "3",
     image: "heroes/dream_sity_with_logo.png",
-    title: "マルチプラットフォーム",
+    title: "次世代的なギミック機能",
     description:
-      "Web、デスクトップ、モバイル。一度作れば、どこでもプレイ可能な作品を簡単にエクスポート。",
+      "なんかいろいろできるん。",
     gradientFrom: "oklch(0.72 0.22 320)",
     gradientTo: "oklch(0.58 0.24 280)",
   },
