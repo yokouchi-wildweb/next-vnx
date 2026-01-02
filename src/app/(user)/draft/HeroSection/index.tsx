@@ -76,7 +76,7 @@ export function HeroSection({
         <DecorativeDots className="absolute -top-9 -left-12 z-10 scale-50 md:scale-100" />
 
         {/* 右下の心電図波形 */}
-        <HeartbeatWave className="absolute bottom-8 -right-16 z-10 w-[36rem] opacity-70" />
+        {/*<HeartbeatWave className="absolute bottom-8 -right-16 z-10 w-[36rem] opacity-70" />*/}
 
         {/* アクションパネル */}
         <ActionPanel />

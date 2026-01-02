@@ -27,7 +27,7 @@ export function ActionPanel() {
       `}</style>
       <div
       className="absolute bottom-0 z-20
-        left-1/2 -translate-x-1/2 translate-y-2/4 w-[90%]
+        left-1/2 -translate-x-1/2 translate-y-3/5 w-[96%]
         md:left-auto md:right-8 md:translate-x-0 md:translate-y-1/6 md:w-[45%] md:max-w-md"
     >
       <HudFrame
@@ -45,7 +45,7 @@ export function ActionPanel() {
             {/*  <TypingText text="物語を今すぐ体験しよう！" variant="neon" />*/}
             {/*</p>*/}
             <p className="text-center text-lg md:text-xl">
-              <TypingText text="物語を今すぐ体験しよう！" variant="mono" />
+              <TypingText text='今すぐ"VNX"を体験しよう！' variant="mono" />
             </p>
           </div>
 
