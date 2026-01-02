@@ -53,18 +53,17 @@ export function TunnelBackground({
 
   return (
     <>
-      <div
-        className={`inset-0 ${fixed ? "fixed" : "absolute"} ${className}`}
-        style={{ zIndex }}
-        dangerouslySetInnerHTML={{ __html: svgContent }}
-      />
       <style jsx global>{`
-        .fixed svg,
-        .absolute svg {
+        .tunnel-background svg {
           width: 100%;
           height: 100%;
         }
       `}</style>
+      <div
+        className={`tunnel-background inset-0 ${fixed ? "fixed" : "absolute"} ${className}`}
+        style={{ zIndex }}
+        dangerouslySetInnerHTML={{ __html: svgContent }}
+      />
     </>
   )
 }

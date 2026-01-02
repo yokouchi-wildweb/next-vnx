@@ -2,6 +2,7 @@
 
 import { imgPath } from "@/utils/assets";
 import Image from "next/image";
+import { ActionPanel } from "./ActionPanel";
 import { BorderLight } from "./BorderLight";
 import { DecorativeDots } from "./DecorativeDots";
 import { GlitchText } from "./GlitchText";
@@ -19,11 +20,11 @@ export function HeroSection({
   aspectRatio = "16/9",
 }: HeroSectionProps) {
   return (
-    <section className="relative mx-auto max-w-6xl p-0 md:px-1 md:py-8">
+    <section className="relative mx-auto max-w-6xl p-0 md:px-1 md:py-8 pb-32 md:pb-16">
       {/* コンテナ */}
       <div className="relative rounded-none md:rounded-2xl overflow-visible">
         {/* ヒーロー画像（背景として全体に広がる） */}
-        <div className="relative w-full overflow-hidden rounded-none md:rounded-2xl aspect-[5/4] md:aspect-[16/9]">
+        <div className="relative w-full overflow-hidden rounded-none md:rounded-2xl aspect-[4/5] md:aspect-[16/9]">
           <Image
             src={imgPath(imageSrc)}
             alt={imageAlt}
@@ -76,6 +77,9 @@ export function HeroSection({
 
         {/* 右下の心電図波形 */}
         <HeartbeatWave className="absolute bottom-8 -right-16 z-10 w-[36rem] opacity-70" />
+
+        {/* アクションパネル */}
+        <ActionPanel />
       </div>
     </section>
   );
