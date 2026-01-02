@@ -17,7 +17,7 @@ export default function DraftPage() {
         <div className="w-[72rem] mx-auto max-w-full">
           <HeroSection />
           <ServiceAboutSection />
-          <HudFrameSection />
+          {/*<HudFrameSection />*/}
           {/*<AboutSection />*/}
           {/*<CyberGridSection />*/}
           <FeatureCarousel />

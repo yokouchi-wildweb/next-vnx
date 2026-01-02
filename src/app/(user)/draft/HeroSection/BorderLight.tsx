@@ -34,14 +34,14 @@ type BorderLightProps = {
 
 /** デフォルトのランナー設定 */
 const defaultRunners: LightRunner[] = [
-  {
-    duration: "12s",
-    size: 8,
-    color: "#ffffff",
-    opacity: 0.5,
-    delay: "0s",
-    breathe: { min: 0.8, max: 1.2, duration: "2s" },
-  },
+  // {
+  //   duration: "12s",
+  //   size: 8,
+  //   color: "#ffffff",
+  //   opacity: 0.5,
+  //   delay: "0s",
+  //   breathe: { min: 0.8, max: 1.2, duration: "2s" },
+  // },
   {
     duration: "6s",
     size: 3,
