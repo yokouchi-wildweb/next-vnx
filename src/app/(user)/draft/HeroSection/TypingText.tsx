@@ -3,21 +3,20 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/cn";
 
-const GRADIENT_VARIANTS = {
-  neon: {
-    text: "linear-gradient(90deg, oklch(0.70 0.25 330), oklch(0.65 0.20 280), oklch(0.75 0.18 195))",
-    caret: "linear-gradient(180deg, oklch(0.70 0.25 330), oklch(0.75 0.18 195))",
-  },
-  mono: {
-    text: "linear-gradient(90deg, oklch(0.45 0 0), oklch(0.55 0 0), oklch(0.65 0 0))",
-    caret: "linear-gradient(180deg, oklch(0.45 0 0), oklch(0.65 0 0))",
-  },
+const VARIANT_CLASSES = {
+  neon: "text-gradient-neon gradient-90",
+  mono: "text-gradient-mono gradient-90",
+} as const;
+
+const CARET_CLASSES = {
+  neon: "bg-gradient-neon gradient-180",
+  mono: "bg-gradient-mono gradient-180",
 } as const;
 
 type TypingTextProps = {
   text: string;
   /** グラデーションバリアント */
-  variant?: keyof typeof GRADIENT_VARIANTS;
+  variant?: keyof typeof VARIANT_CLASSES;
   /** タイピング速度（ミリ秒/文字） */
   speed?: number;
   /** 開始までの遅延（ミリ秒） */
@@ -34,7 +33,6 @@ export function TypingText({
   delay = 500,
   className,
 }: TypingTextProps) {
-  const gradient = GRADIENT_VARIANTS[variant];
   const [displayedText, setDisplayedText] = useState("");
   const [isTypingComplete, setIsTypingComplete] = useState(false);
 
@@ -63,37 +61,19 @@ export function TypingText({
   }, [text, speed, delay]);
 
   return (
-    <>
-      <style jsx>{`
-        @keyframes blink {
-          0%, 50% { opacity: 1; }
-          51%, 100% { opacity: 0; }
-        }
-        .caret-blink {
-          animation: blink 1s infinite;
-        }
-      `}</style>
-      <span className={cn("inline-flex items-center", className)}>
-        {/* グラデーションテキスト */}
-        <span
-          className="bg-clip-text text-transparent font-medium"
-          style={{
-            backgroundImage: gradient.text,
-          }}
-        >
-          {displayedText}
-        </span>
-        {/* キャレット（点滅） */}
-        <span
-          className={cn(
-            "inline-block w-[2px] h-[1.1em] ml-0.5",
-            isTypingComplete && "caret-blink"
-          )}
-          style={{
-            background: gradient.caret,
-          }}
-        />
+    <span className={cn("inline-flex items-center", className)}>
+      {/* グラデーションテキスト */}
+      <span className={cn("font-medium", VARIANT_CLASSES[variant])}>
+        {displayedText}
       </span>
-    </>
+      {/* キャレット（点滅） */}
+      <span
+        className={cn(
+          "inline-block w-[2px] h-[1.1em] ml-0.5",
+          CARET_CLASSES[variant],
+          isTypingComplete && "animate-caret-blink"
+        )}
+      />
+    </span>
   );
 }

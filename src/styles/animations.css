@@ -212,6 +212,78 @@
       transform: translateX(400%);
     }
   }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     GlitchText アニメーション
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* グリッチスキュー: 本体の歪み */
+  --animate-glitch-skew: glitch-skew 0.2s ease-in-out;
+
+  @keyframes glitch-skew {
+    0% { transform: skewX(0deg); }
+    20% { transform: skewX(-2deg); }
+    40% { transform: skewX(2deg); }
+    60% { transform: skewX(-1deg); }
+    80% { transform: skewX(1deg); }
+    100% { transform: skewX(0deg); }
+  }
+
+  /* グリッチ1: 上半分のRGBずれ（マゼンタ） */
+  --animate-glitch-1: glitch-1 0.2s ease-in-out;
+
+  @keyframes glitch-1 {
+    0% { transform: translate(0); }
+    20% { transform: translate(-3px, 1px); }
+    40% { transform: translate(3px, -1px); }
+    60% { transform: translate(-2px, 2px); }
+    80% { transform: translate(2px, -2px); }
+    100% { transform: translate(0); }
+  }
+
+  /* グリッチ2: 下半分のRGBずれ（シアン） */
+  --animate-glitch-2: glitch-2 0.2s ease-in-out;
+
+  @keyframes glitch-2 {
+    0% { transform: translate(0); }
+    20% { transform: translate(3px, -1px); }
+    40% { transform: translate(-3px, 1px); }
+    60% { transform: translate(2px, -2px); }
+    80% { transform: translate(-2px, 2px); }
+    100% { transform: translate(0); }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     TypingText アニメーション
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* キャレット点滅 */
+  --animate-caret-blink: caret-blink 1s infinite;
+
+  @keyframes caret-blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     アイコンアニメーション
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* アイコンスケール: 拡大縮小 */
+  --animate-icon-scale: icon-scale 2s ease-in-out infinite;
+
+  @keyframes icon-scale {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+
+  /* アイコンスパークル: 明滅 */
+  --animate-icon-sparkle: icon-sparkle 3s ease-in-out infinite;
+
+  @keyframes icon-sparkle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
 }
 
 /*

@@ -59,7 +59,7 @@ export function HeroSection({
         <div
           className="pointer-events-none absolute inset-2 md:inset-3 rounded-xl border-2 md:border-4 border-transparent"
           style={{
-            background: "linear-gradient(90deg, oklch(0.72 0.22 350), oklch(0.62 0.23 280)) border-box",
+            background: "linear-gradient(90deg, var(--gradient-primary-colors)) border-box",
             mask: "linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)",
             maskComposite: "exclude",
             WebkitMask: "linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)",

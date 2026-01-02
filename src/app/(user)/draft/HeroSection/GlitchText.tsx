@@ -137,72 +137,36 @@ export function GlitchText({
 
   return (
     <span
-      className={`glitch-text ${isGlitching ? "glitching" : ""} ${className}`}
+      className={`glitch-text relative inline-block ${isGlitching ? "animate-glitch-skew" : ""} ${className}`}
       data-text={text}
     >
       {displayText}
 
-      <style jsx>{`
-        .glitch-text {
-          position: relative;
-          display: inline-block;
-        }
-
-        .glitch-text.glitching {
-          animation: glitch-skew 0.2s ease-in-out;
-        }
-
-        /* グリッチ時の疑似要素（RGBずれ） */
-        .glitch-text.glitching::before,
-        .glitch-text.glitching::after {
-          content: attr(data-text);
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          opacity: 0.8;
-        }
-
-        .glitch-text.glitching::before {
-          color: #ff00ff;
-          animation: glitch-1 0.2s ease-in-out;
-          clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
-        }
-
-        .glitch-text.glitching::after {
-          color: #00ffff;
-          animation: glitch-2 0.2s ease-in-out;
-          clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
-        }
-
-        @keyframes glitch-skew {
-          0% { transform: skewX(0deg); }
-          20% { transform: skewX(-2deg); }
-          40% { transform: skewX(2deg); }
-          60% { transform: skewX(-1deg); }
-          80% { transform: skewX(1deg); }
-          100% { transform: skewX(0deg); }
-        }
-
-        @keyframes glitch-1 {
-          0% { transform: translate(0); }
-          20% { transform: translate(-3px, 1px); }
-          40% { transform: translate(3px, -1px); }
-          60% { transform: translate(-2px, 2px); }
-          80% { transform: translate(2px, -2px); }
-          100% { transform: translate(0); }
-        }
-
-        @keyframes glitch-2 {
-          0% { transform: translate(0); }
-          20% { transform: translate(3px, -1px); }
-          40% { transform: translate(-3px, 1px); }
-          60% { transform: translate(2px, -2px); }
-          80% { transform: translate(-2px, 2px); }
-          100% { transform: translate(0); }
-        }
-      `}</style>
+      {/* グリッチ時の疑似要素（RGBずれ）- CSS擬似要素のためstyle必要 */}
+      {isGlitching && (
+        <style>{`
+          .glitch-text::before,
+          .glitch-text::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.8;
+          }
+          .glitch-text::before {
+            color: #ff00ff;
+            animation: glitch-1 0.2s ease-in-out;
+            clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+          }
+          .glitch-text::after {
+            color: #00ffff;
+            animation: glitch-2 0.2s ease-in-out;
+            clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+          }
+        `}</style>
+      )}
     </span>
   );
 }

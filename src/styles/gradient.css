@@ -28,6 +28,12 @@
   --gradient-muted-colors: oklch(0.95 0.01 250), oklch(0.9 0.01 270);
   --gradient-destructive-colors: oklch(0.6 0.2 25), oklch(0.5 0.22 10);
 
+  /* ─── TypingText用（テキストグラデーション） ─── */
+  /* neon: マゼンタ → パープル → シアン */
+  --gradient-neon-colors: oklch(0.70 0.25 330), oklch(0.65 0.20 280), oklch(0.75 0.18 195);
+  /* mono: グレースケール */
+  --gradient-mono-colors: oklch(0.45 0 0), oklch(0.55 0 0), oklch(0.65 0 0);
+
   /* ─── 自然・現象系 ─── */
   --gradient-ocean-colors: oklch(0.6 0.15 220), oklch(0.5 0.18 200);
   --gradient-sunset-colors: oklch(0.7 0.2 50), oklch(0.6 0.22 350);
@@ -187,3 +193,35 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+@utility text-gradient-neon {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-neon-colors));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility text-gradient-mono {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-mono-colors));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Border Gradient Utilities
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * グラデーションボーダー
+ * mask-compositeを使用する手法はユーティリティ化が難しいため、
+ * インラインスタイルでCSS変数を参照する形式を推奨:
+ *
+ * style={{
+ *   background: "linear-gradient(90deg, var(--gradient-primary-colors)) border-box",
+ *   mask: "linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)",
+ *   maskComposite: "exclude",
+ *   WebkitMask: "linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)",
+ *   WebkitMaskComposite: "xor",
+ * }}
+ */
