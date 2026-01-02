@@ -14,19 +14,16 @@ type HeroSectionProps = {
 };
 
 export function HeroSection({
-  imageSrc = "heroes/dream_sity_with_logo.png",
+  imageSrc = "heroes/dream_sity-2.jpg",
   imageAlt = "Hero Image",
   aspectRatio = "16/9",
 }: HeroSectionProps) {
   return (
-    <section className="relative mx-auto max-w-6xl px-4 py-8">
+    <section className="relative mx-auto max-w-6xl p-0 md:px-1 md:py-8">
       {/* コンテナ */}
       <div className="relative rounded-2xl overflow-visible">
         {/* ヒーロー画像（背景として全体に広がる） */}
-        <div
-          className="relative w-full overflow-hidden rounded-2xl"
-          style={{ aspectRatio }}
-        >
+        <div className="relative w-full overflow-hidden rounded-2xl aspect-[3/4] md:aspect-[16/9]">
           <Image
             src={imgPath(imageSrc)}
             alt={imageAlt}
@@ -76,7 +73,7 @@ export function HeroSection({
         <BorderLight className="pointer-events-none absolute inset-0 w-full h-full" />
 
         {/* 左上の白いドット（SVGアニメーション・セクションから飛び出し） */}
-        <DecorativeDots className="absolute -top-9 -left-12 z-10" />
+        <DecorativeDots className="absolute -top-9 -left-12 z-10 scale-50 md:scale-100" />
 
         {/* 右下の心電図波形 */}
         <HeartbeatWave className="absolute bottom-8 -right-16 z-10 w-[36rem] opacity-70" />
