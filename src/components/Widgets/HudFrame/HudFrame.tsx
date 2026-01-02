@@ -119,7 +119,7 @@ export function HudFrame({
         )}
 
         {/* メインコンテンツ */}
-        <div className="relative">{children}</div>
+        <div className={cn("relative", theme.contentText)}>{children}</div>
 
         {/* ステータスバー */}
         {showStatusBar && (

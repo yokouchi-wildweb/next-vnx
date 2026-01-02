@@ -48,6 +48,9 @@ export function createHudFrameTheme(mode: HudMode) {
       purple: `rgb(${FIXED_COLORS.purple} / 0.5)`,
     },
 
+    // コンテンツ
+    contentText: m.contentTextClass,
+
     // ステータスバー
     arrowClass: "text-[rgb(var(--hud-accent))]/80",
     statusText: m.statusTextClass,

@@ -25,6 +25,7 @@ export const HUD_MODE_PRESETS = {
     // テキスト
     subtextClass: "text-white/40",
     statusTextClass: "text-white/50",
+    contentTextClass: "text-white/90",
     // 区切り線
     dividerClass: "bg-white/30",
     // プログレスバー
@@ -41,6 +42,7 @@ export const HUD_MODE_PRESETS = {
     // テキスト
     subtextClass: "text-slate-500",
     statusTextClass: "text-slate-500",
+    contentTextClass: "text-slate-800",
     // 区切り線
     dividerClass: "bg-slate-300",
     // プログレスバー
