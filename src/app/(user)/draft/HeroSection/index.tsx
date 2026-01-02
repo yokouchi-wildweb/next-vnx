@@ -23,7 +23,7 @@ export function HeroSection({
       {/* コンテナ */}
       <div className="relative rounded-2xl overflow-visible">
         {/* ヒーロー画像（背景として全体に広がる） */}
-        <div className="relative w-full overflow-hidden rounded-2xl aspect-[3/4] md:aspect-[16/9]">
+        <div className="relative w-full overflow-hidden rounded-2xl aspect-[5/4] md:aspect-[16/9]">
           <Image
             src={imgPath(imageSrc)}
             alt={imageAlt}
@@ -69,8 +69,8 @@ export function HeroSection({
           }}
         />
 
-        {/* ボーダー上を走る光のアニメーション */}
-        <BorderLight className="pointer-events-none absolute inset-0 w-full h-full" />
+        {/* ボーダー上を走る光のアニメーション（スマホでは非表示） */}
+        <BorderLight className="pointer-events-none absolute inset-0 w-full h-full hidden md:block" />
 
         {/* 左上の白いドット（SVGアニメーション・セクションから飛び出し） */}
         <DecorativeDots className="absolute -top-9 -left-12 z-10 scale-50 md:scale-100" />
