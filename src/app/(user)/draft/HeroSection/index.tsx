@@ -1,24 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { imgPath } from "@/utils/assets";
 import Image from "next/image";
 import { ActionPanel } from "./ActionPanel";
 import { BorderLight } from "./BorderLight";
 import { DecorativeDots } from "./DecorativeDots";
-import { GlitchText } from "./GlitchText";
+import { GlitchText, GlitchTextHandle } from "./GlitchText";
 
-/** スライド画像のリスト */
+/** スライドデータ */
 const SLIDES = [
-  "heroes/dream_sity-2.jpg",
-  "heroes/space_burst.jpg",
-  "heroes/fantasy_tale-2.jpg",
+  { image: "heroes/dream_sity-2.jpg", text: "物語を、もっと自由に。" },
+  { image: "heroes/space_burst.jpg", text: "思うままに未来を描いて…" },
+  { image: "heroes/fantasy_tale-2.jpg", text: "現実を超えろ。" },
 ];
 
 /** 設定 */
 const CONFIG = {
   interval: 8000,      // 切り替え間隔（ミリ秒）
   fadeDuration: 3000,  // フェード時間（ミリ秒）
+  fadeDelay: 1500,
 };
 
 type HeroSectionProps = {
@@ -31,13 +32,22 @@ export function HeroSection({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [prevIndex, setPrevIndex] = useState<number | null>(null);
   const [fadeOut, setFadeOut] = useState(false);
+  const glitchTextRef = useRef<GlitchTextHandle>(null);
 
   // 自動切り替え
   useEffect(() => {
     const timer = setInterval(() => {
-      setPrevIndex(currentIndex);
-      setCurrentIndex((prev) => (prev + 1) % SLIDES.length);
-      setFadeOut(false);
+      const nextIndex = (currentIndex + 1) % SLIDES.length;
+
+      // テキストトランジション開始（即座に）
+      glitchTextRef.current?.startTransition(SLIDES[nextIndex].text);
+
+      // 画像トランジション開始（fadeDelay後）
+      setTimeout(() => {
+        setPrevIndex(currentIndex);
+        setCurrentIndex(nextIndex);
+        setFadeOut(false);
+      }, CONFIG.fadeDelay);
     }, CONFIG.interval);
 
     return () => clearInterval(timer);
@@ -67,8 +77,8 @@ export function HeroSection({
     return () => clearTimeout(timer);
   }, [fadeOut]);
 
-  const currentImage = SLIDES[currentIndex];
-  const prevImage = prevIndex !== null ? SLIDES[prevIndex] : null;
+  const currentSlide = SLIDES[currentIndex];
+  const prevSlide = prevIndex !== null ? SLIDES[prevIndex] : null;
   return (
     <section className="relative mx-auto max-w-6xl p-0 md:px-1 md:py-8 pb-32 md:pb-16">
       {/* コンテナ */}
@@ -77,16 +87,16 @@ export function HeroSection({
         <div className="relative w-full overflow-hidden rounded-none md:rounded-2xl aspect-[4/5] md:aspect-[16/9]">
           {/* 現在の画像（常に表示、下層） */}
           <Image
-            src={imgPath(currentImage)}
+            src={imgPath(currentSlide.image)}
             alt={imageAlt}
             fill
             className="object-cover"
             priority
           />
           {/* 前の画像（フェードアウト中のみ表示、上層） */}
-          {prevImage && (
+          {prevSlide && (
             <Image
-              src={imgPath(prevImage)}
+              src={imgPath(prevSlide.image)}
               alt={imageAlt}
               fill
               className="object-cover"
@@ -102,7 +112,8 @@ export function HeroSection({
           <div className="absolute inset-0 flex items-center justify-center">
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
               <GlitchText
-                text="物語を、もっと自由に。"
+                ref={glitchTextRef}
+                text={SLIDES[0].text}
                 // フェーズ時間設定（ミリ秒）
                 initialDuration={2000}      // 初期文字で静止
                 accelDuration={2000}       // ゆっくり→加速ランダム
@@ -117,6 +128,10 @@ export function HeroSection({
                 // グリッチ設定
                 glitchInterval={4000}      // グリッチ発生間隔
                 glitchDuration={200}       // グリッチ持続時間
+                // トランジション設定
+                transScrambleDuration={1500}
+                transTopDuration={1000}
+                transDecodeDuration={1500}
               />
             </h1>
           </div>

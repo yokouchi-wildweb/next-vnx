@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-type GlitchPhase = "initial" | "random-accel" | "random-top" | "decoding" | "done";
+type GlitchPhase =
+  | "initial"
+  | "random-accel"
+  | "random-top"
+  | "decoding"
+  | "done"
+  | "trans-scramble"
+  | "trans-top"
+  | "trans-decode";
 
 type UseGlitchAnimationOptions = {
   /** 表示するテキスト */
@@ -29,6 +37,12 @@ type UseGlitchAnimationOptions = {
   glitchInterval?: number;
   /** グリッチ持続時間 */
   glitchDuration?: number;
+  /** トランジション時のスクランブル加速時間 */
+  transScrambleDuration?: number;
+  /** トランジション時のトップスピード時間 */
+  transTopDuration?: number;
+  /** トランジション時のデコード時間 */
+  transDecodeDuration?: number;
 };
 
 /**
@@ -47,7 +61,12 @@ export function useGlitchAnimation({
   randomSpeed = 50,
   glitchInterval = 5000,
   glitchDuration = 200,
+  transScrambleDuration = 1500,
+  transTopDuration = 1000,
+  transDecodeDuration = 1500,
 }: UseGlitchAnimationOptions) {
+  // 現在のターゲットテキスト（トランジション時に変更される）
+  const [targetText, setTargetText] = useState(text);
   // 初期表示文字列を生成
   const createInitialDisplay = useCallback(() => {
     if (initialText !== undefined) {
@@ -80,13 +99,14 @@ export function useGlitchAnimation({
     return randomChars[Math.floor(Math.random() * randomChars.length)];
   }, [randomChars]);
 
-  // 一部の文字だけをランダムに更新
+  // 一部の文字だけをランダムに更新（参照テキストを指定可能）
   const updatePartialRandom = useCallback(
-    (current: string, changeRate: number) => {
+    (current: string, changeRate: number, refText?: string) => {
+      const reference = refText ?? text;
       return current
         .split("")
         .map((char, index) => {
-          const originalChar = text[index];
+          const originalChar = reference[index];
           if (originalChar === " " || originalChar === "　") return char;
           if (Math.random() < changeRate) {
             return getRandomChar();
@@ -96,6 +116,24 @@ export function useGlitchAnimation({
         .join("");
     },
     [text, getRandomChar]
+  );
+
+  // 指定した長さのランダム文字列を生成
+  const generateRandomText = useCallback(
+    (length: number) => {
+      return Array.from({ length }, () => getRandomChar()).join("");
+    },
+    [getRandomChar]
+  );
+
+  // トランジション開始
+  const startTransition = useCallback(
+    (newText: string) => {
+      if (phase !== "done") return; // done以外では無視
+      setTargetText(newText);
+      setPhase("trans-scramble");
+    },
+    [phase]
   );
 
   // フェーズ1: 初期静止
@@ -220,5 +258,132 @@ export function useGlitchAnimation({
     };
   }, [phase, glitchInterval, glitchDuration]);
 
-  return { displayText, isGlitching };
+  // ═══════════════════════════════════════════════════════════════
+  // トランジションフェーズ
+  // ═══════════════════════════════════════════════════════════════
+
+  // トランジション1: スクランブル加速（現テキストの文字数でランダム化）
+  useEffect(() => {
+    if (phase !== "trans-scramble") return;
+
+    const startSpeed = 400;
+    const endSpeed = randomSpeed;
+    const startTime = Date.now();
+    let timeoutId: NodeJS.Timeout;
+
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / transScrambleDuration, 1);
+      const eased = progress * progress;
+      const changeRate = 0.3 + 0.5 * eased;
+
+      setDisplayText((prev) => updatePartialRandom(prev, changeRate, prev));
+
+      if (progress >= 1) {
+        setPhase("trans-top");
+        return;
+      }
+
+      const currentSpeed = startSpeed - (startSpeed - endSpeed) * eased;
+      timeoutId = setTimeout(tick, currentSpeed);
+    };
+
+    tick();
+    return () => clearTimeout(timeoutId);
+  }, [phase, transScrambleDuration, randomSpeed, updatePartialRandom]);
+
+  // トランジション2: トップスピード（ここで文字数を新テキストに合わせる）
+  useEffect(() => {
+    if (phase !== "trans-top") return;
+
+    const startTime = Date.now();
+    let timeoutId: NodeJS.Timeout;
+    let lengthAdjusted = false;
+
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+
+      setDisplayText((prev) => {
+        let current = prev;
+
+        // 最初のtickで文字数を調整
+        if (!lengthAdjusted) {
+          lengthAdjusted = true;
+          const targetLen = targetText.length;
+          const currentLen = current.length;
+
+          if (targetLen > currentLen) {
+            // 文字を追加
+            current = current + generateRandomText(targetLen - currentLen);
+          } else if (targetLen < currentLen) {
+            // 文字を削除
+            current = current.slice(0, targetLen);
+          }
+        }
+
+        // ランダム更新
+        return current
+          .split("")
+          .map((char) => {
+            if (Math.random() < 0.6) {
+              return getRandomChar();
+            }
+            return char;
+          })
+          .join("");
+      });
+
+      if (elapsed >= transTopDuration) {
+        setPhase("trans-decode");
+        return;
+      }
+
+      timeoutId = setTimeout(tick, randomSpeed);
+    };
+
+    tick();
+    return () => clearTimeout(timeoutId);
+  }, [phase, transTopDuration, randomSpeed, targetText, generateRandomText, getRandomChar]);
+
+  // トランジション3: デコード（新テキストへ）
+  useEffect(() => {
+    if (phase !== "trans-decode") return;
+
+    const startTime = Date.now();
+    let timeoutId: NodeJS.Timeout;
+
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / transDecodeDuration, 1);
+      const eased = progress * progress;
+      const confirmedCount = Math.floor(eased * targetText.length);
+
+      setDisplayText((prev) =>
+        targetText
+          .split("")
+          .map((char, index) => {
+            if (char === " " || char === "　") return char;
+            if (index < confirmedCount) return char;
+            if (Math.random() < 0.6) {
+              return getRandomChar();
+            }
+            return prev[index] || getRandomChar();
+          })
+          .join("")
+      );
+
+      if (progress >= 1) {
+        setDisplayText(targetText);
+        setPhase("done");
+        return;
+      }
+
+      timeoutId = setTimeout(tick, randomSpeed);
+    };
+
+    tick();
+    return () => clearTimeout(timeoutId);
+  }, [phase, targetText, transDecodeDuration, randomSpeed, getRandomChar]);
+
+  return { displayText, isGlitching, startTransition };
 }

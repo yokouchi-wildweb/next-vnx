@@ -1,6 +1,11 @@
 "use client";
 
+import { forwardRef, useImperativeHandle } from "react";
 import { useGlitchAnimation } from "./useGlitchAnimation";
+
+export type GlitchTextHandle = {
+  startTransition: (newText: string) => void;
+};
 
 type GlitchTextProps = {
   /**
@@ -93,6 +98,28 @@ type GlitchTextProps = {
    * @default 200 (ミリ秒)
    */
   glitchDuration?: number;
+
+  // ═══════════════════════════════════════════════════════════════
+  // トランジション設定
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * トランジション時のスクランブル加速時間
+   * @default 1500 (ミリ秒)
+   */
+  transScrambleDuration?: number;
+
+  /**
+   * トランジション時のトップスピード時間
+   * @default 1000 (ミリ秒)
+   */
+  transTopDuration?: number;
+
+  /**
+   * トランジション時のデコード時間
+   * @default 1500 (ミリ秒)
+   */
+  transDecodeDuration?: number;
 };
 
 /**
@@ -104,36 +131,55 @@ type GlitchTextProps = {
  * 3. random-top (3秒): トップスピードでランダム変化
  * 4. decoding: ゆっくり→加速しながら正しい文字にデコード
  * 5. done: 定期的にグリッチエフェクト
+ *
+ * トランジションフェーズ（startTransition呼び出し時）:
+ * 1. trans-scramble: 現テキストをランダム化（加速）
+ * 2. trans-top: トップスピード（ここで文字数調整）
+ * 3. trans-decode: 新テキストへデコード
  */
-export function GlitchText({
-  text,
-  className = "",
-  initialDuration = 300,
-  accelDuration = 2000,
-  topSpeedDuration = 3000,
-  decodeDuration = 3000,
-  initialText,
-  initialChar = "■",
-  paddingChar = " ",
-  randomChars = "アイウエオカキクケコサシスセソタチツテト01011010",
-  randomSpeed = 50,
-  glitchInterval = 5000,
-  glitchDuration = 200,
-}: GlitchTextProps) {
-  const { displayText, isGlitching } = useGlitchAnimation({
-    text,
-    initialText,
-    initialChar,
-    paddingChar,
-    randomChars,
-    initialDuration,
-    accelDuration,
-    topSpeedDuration,
-    decodeDuration,
-    randomSpeed,
-    glitchInterval,
-    glitchDuration,
-  });
+export const GlitchText = forwardRef<GlitchTextHandle, GlitchTextProps>(
+  function GlitchText(
+    {
+      text,
+      className = "",
+      initialDuration = 300,
+      accelDuration = 2000,
+      topSpeedDuration = 3000,
+      decodeDuration = 3000,
+      initialText,
+      initialChar = "■",
+      paddingChar = " ",
+      randomChars = "アイウエオカキクケコサシスセソタチツテト01011010",
+      randomSpeed = 50,
+      glitchInterval = 5000,
+      glitchDuration = 200,
+      transScrambleDuration = 1500,
+      transTopDuration = 1000,
+      transDecodeDuration = 1500,
+    },
+    ref
+  ) {
+    const { displayText, isGlitching, startTransition } = useGlitchAnimation({
+      text,
+      initialText,
+      initialChar,
+      paddingChar,
+      randomChars,
+      initialDuration,
+      accelDuration,
+      topSpeedDuration,
+      decodeDuration,
+      randomSpeed,
+      glitchInterval,
+      glitchDuration,
+      transScrambleDuration,
+      transTopDuration,
+      transDecodeDuration,
+    });
+
+    useImperativeHandle(ref, () => ({
+      startTransition,
+    }));
 
   return (
     <span
@@ -169,4 +215,5 @@ export function GlitchText({
       )}
     </span>
   );
-}
+  }
+);
