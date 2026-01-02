@@ -97,27 +97,69 @@ export function DecorativeDots({ className = "" }: DecorativeDotsProps) {
     [80, 140],  // 下
   ];
 
-  const dur = "10s"; // 全体のアニメーション時間
   const dotSize = 10;
   const dotOpacity = 0.65;
 
-  // 各ドットのアニメーション値を生成
+  const shapes = [square, circle, triangle, cross0, cross90, cross270, diamond, square];
+  const transitionCount = shapes.length - 1; // 7回の遷移
+
+  // 時間設定
+  const waitSeconds = 1; // 各形状での停止時間（秒）
+  const transitionSeconds = 10 / transitionCount; // 元の遷移速度を維持（≈1.43秒）
+
+  // 全体時間を動的に計算
+  const totalSeconds = waitSeconds * transitionCount + transitionSeconds * transitionCount;
+  const dur = `${totalSeconds}s`;
+
+  // 比率計算
+  const waitRatio = waitSeconds / totalSeconds;
+  const transitionRatio = transitionSeconds / totalSeconds;
+
+  // 各ドットのアニメーション値を生成（各形状を2回入れて停止を表現）
   const generateValues = (dotIndex: number, attr: "cx" | "cy") => {
     const idx = attr === "cx" ? 0 : 1;
-    return [
-      square[dotIndex][idx],
-      circle[dotIndex][idx],
-      triangle[dotIndex][idx],
-      cross0[dotIndex][idx],
-      cross90[dotIndex][idx],   // 時計回りに90度
-      cross270[dotIndex][idx],  // 逆回転して270度（-90度）へ
-      diamond[dotIndex][idx],
-      square[dotIndex][idx],
-    ].join("; ");
+    return shapes
+      .flatMap((shape, i) =>
+        i < shapes.length - 1
+          ? [shape[dotIndex][idx], shape[dotIndex][idx]]
+          : [shape[dotIndex][idx]]
+      )
+      .join("; ");
   };
 
-  // キータイム: 各形状での滞在時間（8パターン）
-  const keyTimes = "0; 0.14; 0.28; 0.42; 0.56; 0.70; 0.85; 1";
+  // keyTimes生成（各形状で2点：到達時と停止終了時）
+  const generateKeyTimes = () => {
+    const times: number[] = [];
+    let current = 0;
+
+    for (let i = 0; i < shapes.length; i++) {
+      times.push(current);
+      if (i < shapes.length - 1) {
+        current += waitRatio;
+        times.push(current);
+        current += transitionRatio;
+      }
+    }
+    return times.map((t) => t.toFixed(3)).join("; ");
+  };
+
+  const keyTimes = generateKeyTimes();
+
+  // keySplines生成（14区間：停止7回 + 遷移7回）
+  // 停止区間は線形（動かないので何でもOK）、遷移区間はイージング
+  const generateKeySplines = () => {
+    const linearSpline = "0 0 1 1"; // 停止区間用（実際には動かない）
+    const easeSpline = "0.4 0 0.2 1"; // 遷移区間用
+    const splines: string[] = [];
+
+    for (let i = 0; i < shapes.length - 1; i++) {
+      splines.push(linearSpline); // 停止
+      splines.push(easeSpline); // 遷移
+    }
+    return splines.join("; ");
+  };
+
+  const keySplines = generateKeySplines();
 
   return (
     <svg
@@ -141,7 +183,7 @@ export function DecorativeDots({ className = "" }: DecorativeDotsProps) {
             keyTimes={keyTimes}
             dur={dur}
             calcMode="spline"
-            keySplines="0.4 0 0.2 1; 0.4 0 0.2 1; 0.4 0 0.2 1; 0.3 0 0.7 1; 0.3 0 0.7 1; 0.4 0 0.2 1; 0.4 0 0.2 1"
+            keySplines={keySplines}
             repeatCount="indefinite"
           />
           <animate
@@ -150,7 +192,7 @@ export function DecorativeDots({ className = "" }: DecorativeDotsProps) {
             keyTimes={keyTimes}
             dur={dur}
             calcMode="spline"
-            keySplines="0.4 0 0.2 1; 0.4 0 0.2 1; 0.4 0 0.2 1; 0.3 0 0.7 1; 0.3 0 0.7 1; 0.4 0 0.2 1; 0.4 0 0.2 1"
+            keySplines={keySplines}
             repeatCount="indefinite"
           />
         </circle>
