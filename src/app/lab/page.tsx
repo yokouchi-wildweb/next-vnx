@@ -18,6 +18,12 @@ const experiments = [
     status: 'wip',
   },
   {
+    id: '003-save-load',
+    title: 'セーブローディング',
+    description: 'セーブデータからの画面再構成',
+    status: 'wip',
+  },
+  {
     id: '004-tunnel-background',
     title: 'トンネル背景',
     description: '中心から放射状に広がる多角形グリッド背景（四角形/六角形）',

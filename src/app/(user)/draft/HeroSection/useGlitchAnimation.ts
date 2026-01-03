@@ -240,23 +240,35 @@ export function useGlitchAnimation({
     return () => clearTimeout(timeoutId);
   }, [phase, text, decodeDuration, randomSpeed, getRandomChar]);
 
-  // フェーズ5: 定期グリッチ
+  // フェーズ5: 定期グリッチ（2連続）
   useEffect(() => {
     if (phase !== "done") return;
 
-    const triggerGlitch = () => {
+    const firstGlitchDuration = 100;  // 1回目の長さ
+    const glitchGap = 50;             // 間隔
+    const secondGlitchDuration = 250; // 2回目の長さ
+
+    const triggerDoubleGlitch = () => {
+      // 1回目
       setIsGlitching(true);
-      setTimeout(() => setIsGlitching(false), glitchDuration);
+      setTimeout(() => {
+        setIsGlitching(false);
+        // 短い間隔を空けて2回目
+        setTimeout(() => {
+          setIsGlitching(true);
+          setTimeout(() => setIsGlitching(false), secondGlitchDuration);
+        }, glitchGap);
+      }, firstGlitchDuration);
     };
 
-    const initialDelay = setTimeout(triggerGlitch, 500);
-    const interval = setInterval(triggerGlitch, glitchInterval);
+    const initialDelay = setTimeout(triggerDoubleGlitch, 500);
+    const interval = setInterval(triggerDoubleGlitch, glitchInterval);
 
     return () => {
       clearTimeout(initialDelay);
       clearInterval(interval);
     };
-  }, [phase, glitchInterval, glitchDuration]);
+  }, [phase, glitchInterval]);
 
   // ═══════════════════════════════════════════════════════════════
   // トランジションフェーズ

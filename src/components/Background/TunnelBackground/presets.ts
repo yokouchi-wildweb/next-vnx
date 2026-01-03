@@ -109,8 +109,7 @@ export const tunnelPresets = {
     "minScale": 0.22,
     "maxScale": 1.4,
     "drawRadialLines": true,
-    "perspectivePower": 5,
-    "gradientAngle": 315
+    "perspectivePower": 5
   },
   unicorn: {
     "sides": 5,
@@ -122,8 +121,7 @@ export const tunnelPresets = {
     "minScale": 0.22,
     "maxScale": 1.4,
     "drawRadialLines": true,
-    "perspectivePower": 5,
-    "gradientAngle": 315
+    "perspectivePower": 5
   }
 
 } as const satisfies Record<string, TunnelSVGOptions>

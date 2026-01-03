@@ -19,8 +19,8 @@ const SLIDES = [
 const CONFIG = {
   firstInterval: 12000, // 初回の切り替え間隔（ミリ秒）
   interval: 8000,       // 通常の切り替え間隔（ミリ秒）
-  fadeDuration: 3000,   // フェード時間（ミリ秒）
-  fadeDelay: 1500,
+  fadeDuration: 5000,   // フェード時間（ミリ秒）
+  fadeDelay: 500,
 };
 
 type HeroSectionProps = {
