@@ -7,6 +7,14 @@ export type CreateUserInput = {
   email: string;
   role: User["role"];
   localPassword: string;
+  actorId?: string;
+};
+
+export type CreateDemoUserInput = {
+  displayName: string;
+  email: string;
+  role: User["role"];
+  localPassword: string;
 };
 
 export type UpdateUserInput = Partial<Omit<GeneralUserOptionalFields, "localPassword">> & {

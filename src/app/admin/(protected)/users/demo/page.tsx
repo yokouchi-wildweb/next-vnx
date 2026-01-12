@@ -7,8 +7,7 @@ import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { settingService } from "@/features/core/setting/services/server/settingService";
 import { userService } from "@/features/core/user/services/server/userService";
-import type { ListPageSearchParams } from "@/types/page";
-import type { WhereExpr } from "@/lib/crud";
+import type { ListPageSearchParams, WhereExpr } from "@/lib/crud";
 
 export const metadata = {
   title: "デモユーザー",
@@ -41,6 +40,7 @@ export default async function AdminDemoUserListPage({ searchParams }: Props) {
         perPage={perPage}
         total={total}
         title="登録済みデモユーザーの一覧"
+        newHref={`${LIST_PATH}/new`}
         listPath={LIST_PATH}
       />
     </AdminPage>

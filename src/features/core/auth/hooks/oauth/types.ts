@@ -3,7 +3,7 @@
  */
 
 import type { extractOAuthCredential } from "@/features/core/auth/utils/extractOAuthCredential";
-import type { UserProviderType } from "@/types/user";
+import type { UserProviderType } from "@/features/core/user/types";
 
 /**
  * OAuthフローの進行段階
@@ -35,6 +35,7 @@ export type OAuthState = {
   phase: OAuthPhase;
   credentialInfo: OAuthCredentialInfo | null;
   error: Error | null;
+  requiresReactivation: boolean;
 };
 
 /**
@@ -44,5 +45,6 @@ export type OAuthAction =
   | { type: "SET_PHASE"; payload: OAuthPhase }
   | { type: "SET_CREDENTIAL"; payload: OAuthCredentialInfo }
   | { type: "SET_ERROR"; payload: Error }
+  | { type: "SET_REQUIRES_REACTIVATION"; payload: boolean }
   | { type: "CLEAR_ERROR" }
   | { type: "RESET" };

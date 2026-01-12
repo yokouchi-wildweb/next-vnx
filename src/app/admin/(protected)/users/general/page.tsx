@@ -7,8 +7,7 @@ import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { settingService } from "@/features/core/setting/services/server/settingService";
 import { userService } from "@/features/core/user/services/server/userService";
-import type { ListPageSearchParams } from "@/types/page";
-import type { WhereExpr } from "@/lib/crud";
+import type { ListPageSearchParams, WhereExpr } from "@/lib/crud";
 
 export const metadata = {
   title: "登録ユーザー",
@@ -24,7 +23,12 @@ export default async function AdminGeneralUserListPage({ searchParams }: Props) 
   const { page: pageStr, searchQuery } = await searchParams;
   const page = Number(pageStr ?? "1");
   const perPage = await settingService.getAdminListPerPage();
-  const where: WhereExpr = { field: "role", op: "eq", value: "user" };
+  const where: WhereExpr = {
+    and: [
+      { field: "role", op: "eq", value: "user" },
+      { field: "isDemo", op: "eq", value: false },
+    ],
+  };
   const { results: users, total } = await userService.search({
     page,
     limit: perPage,

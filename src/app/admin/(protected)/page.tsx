@@ -14,7 +14,7 @@ import { Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { userService } from "@/features/core/user/services/server/userService";
-import type { UserRoleType } from "@/types/user";
+import type { UserRoleType } from "@/features/core/user/types";
 import { Block } from "@/components/Layout/Block";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export default async function AdminHomePage() {
   const now = dayjs();
   const startOfToday = now.startOf("day");
   const startOfTomorrow = startOfToday.add(1, "day");
-  const { showMainMetrics, showAdditionalMetrics } = APP_FEATURES.admin.dashboard.sections;
+  const { showMainMetrics, showAdditionalMetrics } = APP_FEATURES.adminConsole.dashboard;
 
   const [{ total: totalUserCount }, { total: todayUserCount }] = await Promise.all([
     userService.search({
@@ -158,7 +158,7 @@ export default async function AdminHomePage() {
                 </CardHeader>
                 <CardContent>
                   <Flex justify="center" align="center">
-                    <DeveloperMotivationChart percentage={APP_FEATURES.coffeeLevel ?? 0} />
+                    <DeveloperMotivationChart percentage={APP_FEATURES.adminConsole.dashboard.coffeeLevel} />
                   </Flex>
                 </CardContent>
               </Card>

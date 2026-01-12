@@ -1,12 +1,15 @@
 // src/features/core/userActionLog/constants/index.ts
 
 export const USER_ACTION_TYPES = [
+  "admin_create_user",
   "admin_status_change",
   "admin_profile_update",
   "admin_soft_delete",
   "admin_hard_delete",
+  "user_preregister",
   "user_register",
   "user_pause",
+  "user_reactivate",
   "user_withdraw",
   "user_rejoin",
   "other",
@@ -15,12 +18,15 @@ export const USER_ACTION_TYPES = [
 export type UserActionType = (typeof USER_ACTION_TYPES)[number];
 
 export const USER_ACTION_TYPE_LABELS: Record<UserActionType, string> = {
+  admin_create_user: "ユーザー作成",
   admin_status_change: "ステータス変更",
   admin_profile_update: "プロフィール更新",
   admin_soft_delete: "論理削除",
   admin_hard_delete: "物理削除",
-  user_register: "ユーザー登録",
-  user_pause: "休止",
+  user_preregister: "仮登録",
+  user_register: "本登録",
+  user_pause: "休会",
+  user_reactivate: "復帰",
   user_withdraw: "退会",
   user_rejoin: "再入会",
   other: "その他",

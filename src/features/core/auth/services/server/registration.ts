@@ -1,16 +1,16 @@
-// src/features/auth/services/server/registration.ts
+// src/features/core/auth/services/server/registration.ts
 
 import type { z } from "zod";
 
-import { USER_REGISTERED_STATUSES } from "@/constants/user";
+import { USER_REGISTERED_STATUSES } from "@/features/core/user/constants";
 import { RegistrationSchema } from "@/features/core/auth/entities";
 import {
   SessionUserSchema,
   type SessionUser,
 } from "@/features/core/auth/entities/session";
 import type { User } from "@/features/core/user/entities";
-import { GeneralUserSchema } from "@/features/core/user/entities/schema";
 import { userService } from "@/features/core/user/services/server/userService";
+import { createFromRegistration } from "@/features/core/user/services/server/creation/createFromRegistration";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
@@ -74,34 +74,23 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     }
   }
 
-  const now = new Date();
-
-  const validatedUserFields = await GeneralUserSchema.parseAsync({
-    role: "user",
-    status: "active",
+  // ユーザー作成処理を user ドメインに委譲
+  const { user } = await createFromRegistration({
     providerType,
     providerUid,
-    localPassword: null,
     email,
-    displayName: displayName ?? null,
-    lastAuthenticatedAt: now,
+    displayName,
+    existingUser,
   });
 
-  const upserted = (await userService.upsert(
-    {
-      ...validatedUserFields,
-    },
-    { conflictFields: ["providerType", "providerUid"] },
-  )) as User;
-
   const sessionUser = SessionUserSchema.parse({
-    userId: upserted.id,
-    role: upserted.role,
-    status: upserted.status,
-    isDemo: upserted.isDemo,
-    providerType: upserted.providerType,
-    providerUid: upserted.providerUid,
-    displayName: upserted.displayName,
+    userId: user.id,
+    role: user.role,
+    status: user.status,
+    isDemo: user.isDemo,
+    providerType: user.providerType,
+    providerUid: user.providerUid,
+    displayName: user.displayName,
   });
 
   const maxAge = SESSION_DEFAULT_MAX_AGE_SECONDS;
@@ -119,7 +108,7 @@ export async function register(input: unknown): Promise<RegistrationResult> {
   });
 
   return {
-    user: upserted,
+    user,
     sessionUser,
     session: {
       token,

@@ -5,7 +5,7 @@
 import axios from "axios";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
-import type { UserProviderType } from "@/types/user";
+import type { UserProviderType } from "@/features/core/user/types";
 import { normalizeHttpError } from "@/lib/errors";
 
 const ENDPOINT = "/api/auth/firebase/login";
@@ -21,6 +21,7 @@ export type FirebaseSessionResponse = {
   session: {
     expiresAt: string;
   };
+  requiresReactivation: boolean;
 };
 
 export async function createFirebaseSession(

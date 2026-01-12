@@ -1,4 +1,22 @@
 /**
+ * 許認可情報の詳細項目
+ * keyを省略した場合はvalueのみ表示
+ */
+type LicenseDetail = { key?: string; value: string };
+
+/**
+ * 許認可情報
+ */
+type License = {
+  /** 識別子（固有処理が必要な場合に使用） */
+  type: string;
+  /** 表示名 */
+  label: string;
+  /** 詳細情報（キーバリュー配列） */
+  details: LicenseDetail[];
+};
+
+/**
  * 事業者・サービスの基本設定
  * サービス名、会社情報、法的ページ用の情報などを一元管理
  */
@@ -54,8 +72,24 @@ export const businessConfig = {
     /** 規約等の最終更新日 */
     lastUpdatedAt: "20XX年X月X日",
 
-    /** 古物商許可番号（不要な場合は空文字） */
-    antiqueLicense: "",
+    /**
+     * 許認可・法的情報のリスト
+     * - type: 識別子（必須）
+     * - label: 表示名（必須）
+     * - details: キーバリュー配列（keyは省略可、省略時はvalueのみ表示）
+     */
+    licenses: [
+      // 例: 古物商許可
+      // {
+      //   type: "antique",
+      //   label: "古物商許可",
+      //   details: [
+      //     { key: "許可番号", value: "第000000000号" },
+      //     { key: "交付", value: "東京都公安委員会" },
+      //     { value: "20XX年X月X日" },
+      //   ],
+      // },
+    ] as License[],
   },
 
   // === 決済情報 ===
@@ -63,6 +97,32 @@ export const businessConfig = {
   payment: {
     /** 利用可能な支払方法（カンマ区切りで列挙） */
     methods: "クレジット決済、銀行振込、コンビニ払い",
+  },
+
+  // === ロゴ設定 ===
+
+  logo: {
+    /** ロゴバリアント別パス（imgPath からの相対パス） */
+    variants: {
+      default: 'logos/default.png',
+      light: 'logos/light.png',        // 白系（暗い背景用）
+      dark: 'logos/dark.png',          // 黒系（明るい背景用）
+      primary: 'logos/primary.png',    // プライマリカラー
+      secondary: 'logos/secondary.png', // セカンダリカラー
+      mono: 'logos/mono.png',          // モノクロ
+    },
+    /** デフォルトで使用するバリアント */
+    defaultVariant: 'default' as const,
+  },
+
+  // === メール設定 ===
+
+  mail: {
+    /** デフォルト送信元アドレス */
+    defaultFrom: "noreply@oripa-do.jp",
+
+    /** デフォルト送信者名 */
+    defaultFromName: "next-starter",
   },
 
   // === SNS・外部リンク（任意） ===
@@ -81,3 +141,6 @@ export const businessConfig = {
 
 /** 事業者設定の型 */
 export type BusinessConfig = typeof businessConfig;
+
+/** 許認可情報の型（再エクスポート） */
+export type { License, LicenseDetail };
