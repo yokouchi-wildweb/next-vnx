@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Para, Span } from "@/components/TextBlocks";
 import { MediaUploader, type SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 
@@ -11,7 +11,7 @@ export const MediaUploadDemo = () => {
   const [url, setUrl] = useState<string | null>(null);
 
   return (
-    <Block space="md" padding="xl" className="space-y-4">
+    <Stack space={6} padding="xl" className="flex flex-col gap-4">
       <MediaUploader
         onMetadataChange={(info) => setMetadata(info)}
         onUrlChange={(url) => {
@@ -20,7 +20,7 @@ export const MediaUploadDemo = () => {
         uploadPath="uploads/demo"
         helperText="アップロード先: uploads/demo"
       />
-      <div className="space-y-2 text-sm">
+      <div className="flex flex-col gap-2 text-sm">
         <Span tone="muted">状態: {url ? "アップロード済み" : "未選択"}</Span>
         {url ? (
           <Para tone="muted" size="sm">
@@ -32,7 +32,7 @@ export const MediaUploadDemo = () => {
         ) : null}
         <MetadataDisplay metadata={metadata} />
       </div>
-    </Block>
+    </Stack>
   );
 };
 

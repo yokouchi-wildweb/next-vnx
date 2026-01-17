@@ -8,10 +8,14 @@ import { useRouter } from "next/navigation";
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { Section } from "@/components/Layout/Section";
 import { SecTitle } from "@/components/TextBlocks";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { useOAuthPhase } from "@/features/core/auth/hooks/useOAuthPhase";
+import { useGuardedNavigation } from "@/lib/transitionGuard";
 import type { UserProviderType } from "@/features/core/user/types";
 import { InvalidProcessState } from "./InvalidProcessState";
 import { toast } from "sonner";
+
+const { afterVerificationPath } = APP_FEATURES.auth.signup;
 
 export type OAuthProps = {
   provider?: UserProviderType;
@@ -30,11 +34,12 @@ function LoadingState({ message }: { message: string }) {
 
 export function OAuth({ provider }: OAuthProps) {
   const router = useRouter();
+  const { guardedPush } = useGuardedNavigation();
   const { phase, requiresReactivation } = useOAuthPhase({ provider });
 
   useEffect(() => {
     if (phase === "completed") {
-      router.push("/signup/register?method=thirdParty");
+      guardedPush(`${afterVerificationPath}?method=thirdParty`);
       return;
     }
 
@@ -48,10 +53,10 @@ export function OAuth({ provider }: OAuthProps) {
       toast.success("登録済みユーザーでログインしました");
       router.replace("/");
     }
-  }, [phase, requiresReactivation, router]);
+  }, [phase, requiresReactivation, router, guardedPush]);
 
   return (
-    <Section id="signup-oauth" className="relative space-y-4">
+    <Section id="signup-oauth" className="relative flex flex-col gap-4">
       <SecTitle>ユーザー認証</SecTitle>
 
       {phase === "initial" && <LoadingState message="認証を準備しています" />}

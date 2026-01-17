@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
+import { Lock, Mail } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -14,6 +15,7 @@ import { Button } from "@/components/Form/Button/Button";
 import {
   DateInput,
   DatetimeInput,
+  EmailInput,
   FileInput,
   TimeInput,
   NumberInput,
@@ -32,6 +34,7 @@ import {
 } from "src/components/Form/Manual";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
 import { Main, PageTitle, Para, SecTitle } from "@/components/TextBlocks";
 import type { Options, OptionValue } from "@/components/Form/types";
@@ -50,6 +53,7 @@ const fruitOptions: Options[] = [
 
 type DemoFormValues = {
   text: string;
+  email: string;
   password: string;
   description: string;
   date: string;
@@ -71,6 +75,7 @@ type DemoFormValues = {
 
 const defaultValues: DemoFormValues = {
   text: "",
+  email: "",
   password: "",
   description: "",
   date: "",
@@ -184,10 +189,27 @@ export default function FormComponentsDemoPage() {
 
                 <FormFieldItem
                     control={form.control}
-                    name="password"
-                    label="PasswordInput"
+                    name="email"
+                    label="EmailInput（leftIcon付き）"
                     renderInput={(field) => (
-                        <PasswordInput field={field} placeholder="パスワード" />
+                        <EmailInput
+                            field={field}
+                            placeholder="例）maile@example.com"
+                            leftIcon={<Mail className="size-4" />}
+                        />
+                    )}
+                />
+
+                <FormFieldItem
+                    control={form.control}
+                    name="password"
+                    label="PasswordInput（leftIcon付き）"
+                    renderInput={(field) => (
+                        <PasswordInput
+                            field={field}
+                            placeholder="ご登録のパスワード"
+                            leftIcon={<Lock className="size-4" />}
+                        />
                     )}
                 />
 
@@ -227,7 +249,7 @@ export default function FormComponentsDemoPage() {
                     name="radio"
                     label="RadioGroupInput"
                     renderInput={(field) => (
-                        <RadioGroupInput field={field} options={textOptions} className="space-y-2" />
+                        <RadioGroupInput field={field} options={textOptions} className="flex flex-col gap-2" />
                     )}
                 />
 
@@ -276,7 +298,7 @@ export default function FormComponentsDemoPage() {
                     name="checkGroupCheckbox"
                     label="CheckGroupInput（Checkbox）"
                     renderInput={(field) => (
-                        <CheckGroupInput field={field} options={fruitOptions} displayType="checkbox" />
+                        <CheckGroupInput field={field} options={fruitOptions} displayType="classic" />
                     )}
                 />
 
@@ -362,7 +384,7 @@ export default function FormComponentsDemoPage() {
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
-                <Block space="sm">
+                <Stack space={4}>
                   <FormLabel className="text-sm font-medium">StepperInput</FormLabel>
                   <Para tone="muted" size="xs">
                     サイズ違いのバリエーションをまとめて確認できます。
@@ -390,7 +412,7 @@ export default function FormComponentsDemoPage() {
                         onValueChange={(value) => handleStepperValueChange("large", value)}
                     />
                   </div>
-                </Block>
+                </Stack>
 
               </div>
 

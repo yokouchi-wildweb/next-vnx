@@ -4,16 +4,17 @@
 
 import Link from "next/link";
 import { cva } from "class-variance-authority";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks";
+import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast } from "@/lib/toast";
 
-import { adminMenu } from "@/config/ui/admin-global-menu.config";
+import { adminMenu, type AdminMenuSection } from "@/config/ui/admin-global-menu.config";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import { MenuButton, adminSidebarButtonClassName } from "./MenuButton";
 
@@ -37,27 +38,45 @@ type SidebarMenuSection = {
   items: SidebarMenuItem[];
 };
 
-const sidebarSections: SidebarMenuSection[] = adminMenu.map((section) => {
-  const primaryHref = hasHref(section.href) ? section.href : null;
+/**
+ * メニュー設定からサイドバー用のセクションリストを生成
+ * allowRoles が指定されている場合、ユーザーロールでフィルタリング
+ */
+function buildSidebarSections(
+  menu: AdminMenuSection[],
+  userRole: string | undefined,
+): SidebarMenuSection[] {
+  return menu
+    .filter((section) => {
+      // allowRoles 未指定は全員表示
+      if (!section.allowRoles || section.allowRoles.length === 0) {
+        return true;
+      }
+      // ユーザーロールが allowRoles に含まれているか
+      return userRole ? section.allowRoles.includes(userRole) : false;
+    })
+    .map((section) => {
+      const primaryHref = hasHref(section.href) ? section.href : null;
 
-  const items = section.items.reduce<SidebarMenuItem[]>((acc, item) => {
-    if (!hasHref(item.href)) {
-      return acc;
-    }
+      const items = section.items.reduce<SidebarMenuItem[]>((acc, item) => {
+        if (!hasHref(item.href)) {
+          return acc;
+        }
 
-    acc.push({
-      title: item.title,
-      href: item.href,
+        acc.push({
+          title: item.title,
+          href: item.href,
+        });
+        return acc;
+      }, []);
+
+      return {
+        title: section.title,
+        href: primaryHref,
+        items,
+      };
     });
-    return acc;
-  }, []);
-
-  return {
-    title: section.title,
-    href: primaryHref,
-    items,
-  };
-});
+}
 
 const submenuVariants = cva(
   "modal-layer absolute top-0 rounded bg-sidebar shadow-xl ring-1 ring-sidebar-border/60 transition-all duration-200",
@@ -72,8 +91,8 @@ const submenuVariants = cva(
         left: "right-full -mr-2",
       },
       size: {
-        default: "w-48 space-y-1",
-        compact: "w-44 space-y-0.5",
+        default: "w-48 flex flex-col gap-1",
+        compact: "w-44 flex flex-col gap-0.5",
       },
     },
     defaultVariants: { open: false, placement: "right", size: "default" },
@@ -109,7 +128,14 @@ export function BaseSidebar({
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { logout, isLoading } = useLogout({ redirectTo: "/admin/login" });
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
+  const { user } = useAuthSession();
+
+  // ユーザーロールに基づいてメニューをフィルタリング
+  const sidebarSections = useMemo(
+    () => buildSidebarSections(adminMenu, user?.role),
+    [user?.role],
+  );
 
   const clearCloseTimeout = useCallback(() => {
     if (closeTimeoutRef.current) {
@@ -141,11 +167,11 @@ export function BaseSidebar({
     try {
       await logout();
       onNavigate?.();
-      showAppToast("ログアウトしました", "success");
+      showToast("ログアウトしました", "success");
     } catch (error) {
-      showAppToast(err(error, "ログアウトに失敗しました"), "error");
+      showToast(err(error, "ログアウトに失敗しました"), "error");
     }
-  }, [logout, onNavigate, showAppToast]);
+  }, [logout, onNavigate, showToast]);
 
   const focusIndex = (index: number) => {
     clearCloseTimeout();
@@ -154,7 +180,7 @@ export function BaseSidebar({
 
   return (
     <aside style={{ width }} className={cn(sidebarContainer(), "flex flex-col")}>
-      <Block space="xs" className="w-full mb-0">
+      <Stack space={2} className="w-full mb-0">
         <nav aria-label="管理メニュー" className="w-full">
           <ul className="flex w-full flex-col p-0 list-none m-0">
             {sidebarSections.map((section, i) => {
@@ -253,14 +279,14 @@ export function BaseSidebar({
             })}
           </ul>
         </nav>
-      </Block>
-      <Block space="xs" className="w-full mt-0">
+      </Stack>
+      <Stack space={2} className="w-full mt-0">
         <div className="group relative w-full">
           <MenuButton type="button" onClick={handleLogout} disabled={isLoading}>
             ログアウト
           </MenuButton>
         </div>
-      </Block>
+      </Stack>
     </aside>
   );
 }

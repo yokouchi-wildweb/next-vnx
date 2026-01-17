@@ -5,6 +5,7 @@
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
 import Pagination from "../../../../components/Navigation/Pagination";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
+import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/__domain__/domain.json";
 
@@ -17,9 +18,13 @@ export type Admin__Domain__ListHeaderProps = {
 export default function Admin__Domain__ListHeader({ page, perPage, total }: Admin__Domain__ListHeaderProps) {
   const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
   const params = useSearchParams();
+
   return (
     <ListTop title="登録済み__DomainLabel__の一覧" newHref="/admin/__domainsSlug__/new">
       {hasSearch && <SearchBox makeHref={(p) => `/admin/__domainsSlug__?${p.toString()}`} />}
+      {config.useImportExport === true && (
+        <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
+      )}
       <Pagination
         page={page}
         perPage={perPage}

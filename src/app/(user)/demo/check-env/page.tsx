@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import type { EnvApiError, EnvSummary, KeyValuePair } from "./api/envSummary";
 import { buildEnvSummary } from "./api/envSummary";
 import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { ClientApiResultSection } from "./ClientApiResult";
 
 const Page = async () => {
@@ -11,14 +12,14 @@ const Page = async () => {
 
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-10 p-8">
-      <header className="space-y-2">
+      <header className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold">Firebase 環境変数チェックデモ</h1>
         <p className="text-sm text-muted-foreground">
           Firebase 関連の環境変数とアプリ環境を SSR と API で取得して比較するデモページです。
         </p>
       </header>
 
-      <section className="space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm">
+      <section className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6 shadow-sm">
         <h2 className="text-2xl font-semibold">SSR で取得した値</h2>
         <ServiceAccountSection summary={data.serviceAccount} />
         <EnvVariableSection
@@ -78,11 +79,11 @@ const EnvVariableSection = ({
   description: string;
   entries: KeyValuePair[];
 }) => (
-  <Block space="md">
+  <Stack space={6}>
     <h3 className="text-xl font-semibold">{title}</h3>
     <p className="text-sm text-muted-foreground">{description}</p>
     <KeyValueTable entries={entries} emptyLabel="該当する環境変数は見つかりませんでした。" />
-  </Block>
+  </Stack>
 );
 
 const KeyValueTable = ({ entries, emptyLabel }: { entries: KeyValuePair[]; emptyLabel: string }) => (
@@ -113,10 +114,10 @@ const KeyValueTable = ({ entries, emptyLabel }: { entries: KeyValuePair[]; empty
 );
 
 const ErrorList = ({ errors, emptyMessage }: { errors: EnvApiError[]; emptyMessage: string }) => (
-  <Block space="sm">
+  <Stack space={4}>
     <h3 className="text-xl font-semibold">検出されたエラー</h3>
     {errors.length > 0 ? (
-      <ul className="list-disc space-y-1 pl-5 text-sm text-destructive">
+      <ul className="list-disc flex flex-col gap-1 pl-5 text-sm text-destructive">
         {errors.map((error, index) => (
           <li key={`${error.section}-${index}`}>
             <span className="font-semibold">[{error.section}]</span> {error.message}
@@ -127,5 +128,5 @@ const ErrorList = ({ errors, emptyMessage }: { errors: EnvApiError[]; emptyMessa
     ) : (
       <p className="text-sm text-muted-foreground">{emptyMessage}</p>
     )}
-  </Block>
+  </Stack>
 );

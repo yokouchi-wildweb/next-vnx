@@ -8,6 +8,7 @@
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Mail } from "lucide-react";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
@@ -19,7 +20,7 @@ import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/constants/localSt
 import { useVerificationEmail } from "@/features/core/auth/hooks/useVerificationEmail";
 import { useEmailUserExists } from "@/features/core/user/hooks/useEmailUserExists";
 import { err } from "@/lib/errors";
-import { useLocalStorage } from "@/lib/localStorage";
+import { useLocalStorage } from "@/lib/browserStorage";
 
 import { FormSchema, type FormValues, DefaultValues } from "./formEntities";
 
@@ -72,7 +73,7 @@ export function VerificationEmailSendForm({
         methods={form}
         onSubmit={handleSubmit}
         pending={isLoading}
-        className="space-y-4"
+        className="flex flex-col gap-4"
         noValidate
       >
           <FormFieldItem
@@ -86,6 +87,7 @@ export function VerificationEmailSendForm({
                 required
                 autoComplete="email"
                 placeholder="example@example.com"
+                leftIcon={<Mail className="size-4" />}
               />
             )}
           />

@@ -4,17 +4,18 @@ import { Suspense } from "react";
 
 import type { User } from "@/features/core/user/entities";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
-import ManagerialUserEditForm from "../form/ManagerialUserEditForm";
+import ManagerialUserEditForm from "../../forms/AdminManagerialUserEditForm";
 
 type Props = {
   user: User;
+  profileData?: Record<string, unknown>;
   redirectPath?: string;
 };
 
-export default function ManagerialUserEdit({ user, redirectPath }: Props) {
+export default function ManagerialUserEdit({ user, profileData, redirectPath }: Props) {
   return (
     <Suspense fallback={<FormSkeleton />}>
-      <ManagerialUserEditForm user={user} redirectPath={redirectPath} />
+      <ManagerialUserEditForm user={user} profileData={profileData} redirectPath={redirectPath} />
     </Suspense>
   );
 }

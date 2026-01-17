@@ -13,6 +13,7 @@ export const maintenanceConfig = {
     '/maintenance',
     '/entry',
     '/login',
+    '/logout',
     '/admin/login',
     '/signup',
     '/signup/oauth',
@@ -33,7 +34,7 @@ export const maintenanceConfig = {
   ],
 
   // バイパスできるロール（これらのロールを持つユーザーは制限を受けない）
-  bypassRoles: ['admin'] as const,
+  bypassRoles: ['admin', 'debugger'] as const,
 
   // リダイレクト先
   redirectTo: '/maintenance',

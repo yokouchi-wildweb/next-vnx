@@ -6,12 +6,12 @@ import Link from "next/link";
 import { cva } from "class-variance-authority";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast } from "@/lib/toast";
 
 import { insaneMenu } from "@/config/ui/admin-insane-menu.config";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
@@ -72,8 +72,8 @@ const submenuVariants = cva(
         left: "right-full -mr-2",
       },
       size: {
-        default: "w-48 space-y-1",
-        compact: "w-44 space-y-0.5",
+        default: "w-48 flex flex-col gap-1",
+        compact: "w-44 flex flex-col gap-0.5",
       },
     },
     defaultVariants: { open: false, placement: "right", size: "default" },
@@ -109,7 +109,7 @@ export function InsaneSidebar({
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { logout, isLoading } = useLogout({ redirectTo: "/admin/login" });
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
 
   const clearCloseTimeout = useCallback(() => {
     if (closeTimeoutRef.current) {
@@ -141,11 +141,11 @@ export function InsaneSidebar({
     try {
       await logout();
       onNavigate?.();
-      showAppToast("ログアウトしました", "success");
+      showToast("ログアウトしました", "success");
     } catch (error) {
-      showAppToast(err(error, "ログアウトに失敗しました"), "error");
+      showToast(err(error, "ログアウトに失敗しました"), "error");
     }
-  }, [logout, onNavigate, showAppToast]);
+  }, [logout, onNavigate, showToast]);
 
   const focusIndex = (index: number) => {
     clearCloseTimeout();
@@ -155,12 +155,12 @@ export function InsaneSidebar({
   return (
     <aside style={{ width }} className={cn(sidebarContainer(), "flex flex-col")}>
       {/* インセインモード表示バッジ */}
-      <Block space="xs" className="w-full mb-0 border-b border-destructive/30">
+      <Stack space={2} className="w-full mb-0 border-b border-destructive/30">
         <div className="px-4 py-2 bg-destructive/10 text-destructive text-xs font-bold text-center">
           INSANE MODE
         </div>
-      </Block>
-      <Block space="xs" className="w-full mb-0">
+      </Stack>
+      <Stack space={2} className="w-full mb-0">
         <nav aria-label="インセインメニュー" className="w-full">
           <ul className="flex w-full flex-col p-0 list-none m-0">
             {sidebarSections.map((section, i) => {
@@ -259,14 +259,14 @@ export function InsaneSidebar({
             })}
           </ul>
         </nav>
-      </Block>
-      <Block space="xs" className="w-full mt-0">
+      </Stack>
+      <Stack space={2} className="w-full mt-0">
         <div className="group relative w-full">
           <MenuButton type="button" onClick={handleLogout} disabled={isLoading}>
             ログアウト
           </MenuButton>
         </div>
-      </Block>
+      </Stack>
     </aside>
   );
 }

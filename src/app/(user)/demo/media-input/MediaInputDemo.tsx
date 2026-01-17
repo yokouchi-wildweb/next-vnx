@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Para, Span } from "@/components/TextBlocks";
 import { MediaInput, type SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 
@@ -11,18 +11,18 @@ export const MediaInputDemo = () => {
   const [metadata, setMetadata] = useState<SelectedMediaMetadata>({ image: null, video: null });
 
   return (
-    <Block space="md" padding="xl" className="space-y-4">
+    <Stack space={6} padding="xl" className="flex flex-col gap-4">
       <MediaInput
         onFileChange={(file) => setFileName(file?.name ?? null)}
         onMetadataChange={(info) => setMetadata(info)}
         accept="image/*,video/*"
         helperText="クリックまたはファイルをドラッグ＆ドロップしてください"
       />
-      <div className="space-y-2 text-sm">
+      <div className="flex flex-col gap-2 text-sm">
         <Span tone="muted">選択中: {fileName ?? "未選択"}</Span>
         <MetadataDisplay metadata={metadata} />
       </div>
-    </Block>
+    </Stack>
   );
 };
 

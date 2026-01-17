@@ -1,0 +1,9 @@
+{
+  "id": "debugger",
+  "label": "デバッガー",
+  "category": "user",
+  "description": "メンテナンスモードをバイパスしてユーザーアプリを使用可能",
+  "hasProfile": false,
+  "isCore": false,
+  "enabled": true
+}

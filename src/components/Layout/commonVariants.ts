@@ -2,16 +2,6 @@ import { cva } from "class-variance-authority";
 import { appearance } from "./appearance";
 export { appearance } from "./appearance";
 
-
-export const space = {
-  none: "space-y-0",
-  xs: "space-y-2",
-  sm: "space-y-4",
-  md: "space-y-6",
-  lg: "space-y-8",
-  xl: "space-y-10",
-} as const;
-
 export const padding = {
   none: "p-0",
   xs: "p-1",
@@ -68,7 +58,6 @@ export const marginInline = {
 
 export const layoutVariants = {
   appearance,
-  space,
   padding,
   paddingBlock,
   paddingInline,

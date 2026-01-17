@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Control, ControllerRenderProps, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
@@ -24,6 +24,8 @@ import { BooleanCheckboxInput } from "@/components/Form/Manual/BooleanCheckboxIn
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";
 
 import { buildFieldConfigsFromDomainJson, type DomainJsonField } from "./fieldMapper";
+import { FieldGroup } from "./FieldGroup";
+import type { DomainFieldGroup } from "./types";
 import type {
   DomainFieldRenderConfig,
   TextFieldConfig,
@@ -57,7 +59,17 @@ export type DomainFieldRendererProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
   fields?: DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>[];
   domainJsonFields?: DomainJsonField[];
+  /** フィールドグループ定義（指定時はグループ化表示） */
+  fieldGroups?: DomainFieldGroup[];
   onMediaStateChange?: (state: DomainMediaState | null) => void;
+  /** 全フィールドの前に挿入するUI */
+  beforeAll?: ReactNode;
+  /** 全フィールドの後に挿入するUI */
+  afterAll?: ReactNode;
+  /** 特定フィールドの前に挿入するUI（キー: フィールド名） */
+  beforeField?: Partial<Record<FieldPath<TFieldValues>, ReactNode>>;
+  /** 特定フィールドの後に挿入するUI（キー: フィールド名） */
+  afterField?: Partial<Record<FieldPath<TFieldValues>, ReactNode>>;
 };
 
 export function DomainFieldRenderer<TFieldValues extends FieldValues>({
@@ -65,7 +77,12 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   methods,
   fields = [],
   domainJsonFields = [],
+  fieldGroups,
   onMediaStateChange,
+  beforeAll,
+  afterAll,
+  beforeField,
+  afterField,
 }: DomainFieldRendererProps<TFieldValues>) {
   const mediaEntriesRef = useRef<
     Map<
@@ -396,54 +413,151 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
     return [...standaloneFields, ...orderedDomainFields];
   }, [domainJsonFields, fields]);
 
-  const renderedFields = combinedFields.map((fieldConfig, index) => {
-    switch (fieldConfig.type) {
-      case "text":
-        return renderTextField(fieldConfig);
-      case "number":
-        return renderNumberField(fieldConfig);
-      case "textarea":
-        return renderTextareaField(fieldConfig);
-      case "select":
-        return renderSelectField(fieldConfig);
-      case "checkGroup":
-        return renderCheckGroupField(fieldConfig);
-      case "multiSelect":
-        return renderMultiSelectField(fieldConfig);
-      case "radio":
-        return renderRadioField(fieldConfig);
-      case "stepper":
-        return renderStepperField(fieldConfig);
-      case "switch":
-        return renderSwitchField(fieldConfig);
-      case "mediaUploader":
-        return (
-          <MediaFieldItem
-            key={fieldConfig.name}
-            control={control}
-            methods={methods}
-            config={fieldConfig}
-            onHandleChange={handleMediaHandleChange}
-          />
-        );
-      case "hidden":
-        return renderHiddenField(fieldConfig);
-      case "date":
-        return renderDateField(fieldConfig);
-      case "time":
-        return renderTimeField(fieldConfig);
-      case "datetime":
-        return renderDatetimeField(fieldConfig);
-      case "email":
-        return renderEmailField(fieldConfig);
-      case "password":
-        return renderPasswordField(fieldConfig);
-      case "booleanCheckbox":
-        return renderBooleanCheckboxField(fieldConfig);
-      default:
-        return <Fragment key={index} />;
-    }
-  });
+  // 単一フィールドをレンダリングする関数
+  const renderSingleField = useCallback(
+    (fieldConfig: DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>, index: number) => {
+      let fieldElement: React.ReactNode;
+      switch (fieldConfig.type) {
+        case "text":
+          fieldElement = renderTextField(fieldConfig);
+          break;
+        case "number":
+          fieldElement = renderNumberField(fieldConfig);
+          break;
+        case "textarea":
+          fieldElement = renderTextareaField(fieldConfig);
+          break;
+        case "select":
+          fieldElement = renderSelectField(fieldConfig);
+          break;
+        case "checkGroup":
+          fieldElement = renderCheckGroupField(fieldConfig);
+          break;
+        case "multiSelect":
+          fieldElement = renderMultiSelectField(fieldConfig);
+          break;
+        case "radio":
+          fieldElement = renderRadioField(fieldConfig);
+          break;
+        case "stepper":
+          fieldElement = renderStepperField(fieldConfig);
+          break;
+        case "switch":
+          fieldElement = renderSwitchField(fieldConfig);
+          break;
+        case "mediaUploader":
+          fieldElement = (
+            <MediaFieldItem
+              key={fieldConfig.name}
+              control={control}
+              methods={methods}
+              config={fieldConfig}
+              onHandleChange={handleMediaHandleChange}
+            />
+          );
+          break;
+        case "hidden":
+          fieldElement = renderHiddenField(fieldConfig);
+          break;
+        case "date":
+          fieldElement = renderDateField(fieldConfig);
+          break;
+        case "time":
+          fieldElement = renderTimeField(fieldConfig);
+          break;
+        case "datetime":
+          fieldElement = renderDatetimeField(fieldConfig);
+          break;
+        case "email":
+          fieldElement = renderEmailField(fieldConfig);
+          break;
+        case "password":
+          fieldElement = renderPasswordField(fieldConfig);
+          break;
+        case "booleanCheckbox":
+          fieldElement = renderBooleanCheckboxField(fieldConfig);
+          break;
+        default:
+          fieldElement = null;
+      }
+
+      const fieldName = fieldConfig.name as FieldPath<TFieldValues>;
+      const beforeContent = beforeField?.[fieldName];
+      const afterContent = afterField?.[fieldName];
+
+      return (
+        <Fragment key={fieldConfig.name ?? index}>
+          {beforeContent}
+          {fieldElement}
+          {afterContent}
+        </Fragment>
+      );
+    },
+    [control, methods, handleMediaHandleChange, beforeField, afterField],
+  );
+
+  // フィールド名からconfigを取得するマップ
+  const fieldConfigMap = useMemo(() => {
+    const map = new Map<string, { config: DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>; index: number }>();
+    combinedFields.forEach((config, index) => {
+      map.set(config.name, { config, index });
+    });
+    return map;
+  }, [combinedFields]);
+
+  // グループ化されたフィールドのレンダリング
+  const renderedGroupedFields = useMemo(() => {
+    if (!fieldGroups || fieldGroups.length === 0) return null;
+
+    // グループに含まれるフィールド名を収集
+    const groupedFieldNames = new Set<string>();
+    fieldGroups.forEach((group) => {
+      group.fields.forEach((fieldName) => groupedFieldNames.add(fieldName));
+    });
+
+    // グループごとにレンダリング
+    const groups = fieldGroups.map((group) => {
+      const groupFields = group.fields
+        .map((fieldName) => fieldConfigMap.get(fieldName))
+        .filter((entry): entry is NonNullable<typeof entry> => entry != null);
+
+      if (groupFields.length === 0) return null;
+
+      return (
+        <FieldGroup
+          key={group.key}
+          label={group.label}
+          collapsible={group.collapsible}
+          defaultCollapsed={group.defaultCollapsed}
+          bgColor={group.bgColor}
+        >
+          {groupFields.map(({ config, index }) => renderSingleField(config, index))}
+        </FieldGroup>
+      );
+    });
+
+    // グループに含まれないフィールド（その他）
+    const ungroupedFields = combinedFields
+      .map((config, index) => ({ config, index }))
+      .filter(({ config }) => !groupedFieldNames.has(config.name));
+
+    return (
+      <>
+        {groups}
+        {ungroupedFields.length > 0 && (
+          <div className="flex flex-col gap-4">
+            {ungroupedFields.map(({ config, index }) => renderSingleField(config, index))}
+          </div>
+        )}
+      </>
+    );
+  }, [fieldGroups, fieldConfigMap, combinedFields, renderSingleField]);
+
+  // フラット表示（従来通り）
+  const renderedFields = useMemo(() => {
+    if (fieldGroups && fieldGroups.length > 0) return null;
+    return combinedFields.map((fieldConfig, index) => renderSingleField(fieldConfig, index));
+  }, [fieldGroups, combinedFields, renderSingleField]);
 
   useEffect(() => {
     if (!onMediaStateChange) return;
@@ -464,5 +578,17 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
     });
   }, [onMediaStateChange, mediaVersion]);
 
-  return <>{renderedFields}</>;
+  return (
+    <>
+      {beforeAll}
+      {fieldGroups && fieldGroups.length > 0 ? (
+        <div className="flex flex-col gap-4">
+          {renderedGroupedFields}
+        </div>
+      ) : (
+        renderedFields
+      )}
+      {afterAll}
+    </>
+  );
 }

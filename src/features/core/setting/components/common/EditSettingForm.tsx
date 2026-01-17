@@ -12,7 +12,7 @@ import type { Setting } from "@/features/core/setting/entities";
 import { useUpdateSetting } from "@/features/core/setting/hooks/useUpdateSetting";
 import { SettingForm } from "./SettingForm";
 import { useRouter } from "next/navigation";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
 import settingFieldsJson from "../../setting-fields.json";
@@ -38,8 +38,6 @@ export default function EditSettingForm({ setting, redirectPath = "/" }: Props) 
     shouldUnregister: false,
     defaultValues: {
       // 基本設定項目
-      adminHeaderLogoImageUrl: setting.adminHeaderLogoImageUrl ?? "",
-      adminHeaderLogoImageDarkUrl: setting.adminHeaderLogoImageDarkUrl ?? "",
       adminListPerPage: setting.adminListPerPage ?? 100,
       // 拡張設定項目（setting-fields.json から動的に構築）
       ...extendedDefaults,
@@ -47,17 +45,17 @@ export default function EditSettingForm({ setting, redirectPath = "/" }: Props) 
   });
 
   const router = useRouter();
-  const { showAppToast, hideAppToast } = useAppToast();
+  const { showToast, hideToast } = useToast();
   const { trigger, isMutating } = useUpdateSetting();
 
   const submit = async (data: CombinedSettingUpdateFields) => {
-    showAppToast({ message: "更新中です…", mode: "persistent" });
+    showToast({ message: "更新中です…", mode: "persistent" });
     try {
       await trigger({ id: setting.id, data });
-      showAppToast("設定を更新しました", "success");
+      showToast("設定を更新しました", "success");
       router.push(redirectPath);
     } catch (error) {
-      showAppToast(err(error, "更新に失敗しました"), "error");
+      showToast(err(error, "更新に失敗しました"), "error");
     }
   };
 

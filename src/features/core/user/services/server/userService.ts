@@ -8,15 +8,16 @@ import {
   createAdmin,
   createGeneralUser,
   createDemoUser,
-  createFromRegistration,
   createGuestDemoUser,
 } from "./creation";
+import { registerFromAuth, preRegisterFromAuth } from "./registration";
 import { create } from "./wrappers/create";
 import { hardDelete } from "./wrappers/hardDelete";
 import { remove } from "./wrappers/remove";
 import { update } from "./wrappers/update";
 import { updateLastAuthenticated } from "./wrappers/updateLastAuthenticated";
 import { changeStatus } from "./wrappers/changeStatus";
+import { changeRole } from "./wrappers/changeRole";
 import { softDelete } from "./wrappers/softDelete";
 
 export { requireCurrentUser } from "./resolvers/requireCurrentUser";
@@ -35,12 +36,14 @@ export const userService = {
   // wrappers
   updateLastAuthenticated,
   changeStatus,
+  changeRole,
   softDelete,
   // creation (console)
   createAdmin,
   createGeneralUser,
   createDemoUser,
-  // creation (auth)
-  createFromRegistration,
   createGuestDemoUser,
+  // registration (auth)
+  registerFromAuth,
+  preRegisterFromAuth,
 };

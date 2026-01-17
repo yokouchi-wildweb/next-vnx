@@ -4,16 +4,18 @@ import { randomUUID } from "crypto";
 
 import type { User } from "@/features/core/user/entities";
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { GeneralUserSchema } from "@/features/core/user/entities/schema";
+import { UserCoreSchema } from "@/features/core/user/entities/schema";
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { assertEmailAvailability } from "@/features/core/user/services/server/helpers/assertEmailAvailability";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
+import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
 
 export type CreateAdminInput = {
   displayName: string;
   email: string;
   localPassword: string;
+  role?: string;
   actorId?: string;
   [key: string]: unknown;
 };
@@ -31,14 +33,18 @@ function validateInput(input: CreateAdminInput): void {
 export async function createAdmin(data: CreateAdminInput): Promise<User> {
   validateInput(data);
 
+  // ロールの有効性チェック
+  const role = data.role ?? "admin";
+  assertRoleEnabled(role);
+
   const normalizedEmail = await assertEmailAvailability({
     providerType: "local",
     email: data.email,
     errorMessage: "同じメールアドレスの管理者が既に存在します",
   });
 
-  const values = await GeneralUserSchema.parseAsync({
-    role: "admin",
+  const values = await UserCoreSchema.parseAsync({
+    role,
     status: "active",
     providerType: "local",
     providerUid: randomUUID(),

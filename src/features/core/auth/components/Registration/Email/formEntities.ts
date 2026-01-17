@@ -4,6 +4,12 @@ import { z } from "zod";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { RegistrationSchema } from "@/features/core/auth/entities";
+import { REGISTRATION_DEFAULT_ROLE } from "@/features/core/auth/constants/registration";
+import { createProfileDataValidator } from "@/features/core/userProfile/utils/profileSchemaHelpers";
+import { REGISTRATION_PROFILES } from "../registrationProfiles";
+
+// profileData バリデーション関数
+const validateProfileData = createProfileDataValidator(REGISTRATION_PROFILES, "registration");
 
 const emailSchema = z
   .string({
@@ -23,17 +29,30 @@ const passwordSchema = z
   .string({ required_error: "パスワードは8文字以上で入力してください" })
   .pipe(RegistrationSchema.shape.password.unwrap());
 
+const agreeToTermsSchema = z.boolean().refine((val) => val === true, {
+  message: "利用規約への同意が必要です",
+});
+
+/** 共通フィールド */
+const baseFields = {
+  email: emailSchema,
+  displayName: displayNameSchema,
+  password: passwordSchema,
+  role: z.string(),
+  profileData: z.record(z.unknown()).optional(),
+  agreeToTerms: agreeToTermsSchema,
+};
+
 /** パスワード確認ありスキーマ（double mode） */
 const FormSchemaDouble = z
   .object({
-    email: emailSchema,
-    displayName: displayNameSchema,
-    password: passwordSchema,
+    ...baseFields,
     passwordConfirmation: z
       .string({ required_error: "確認用のパスワードを入力してください" })
       .min(1, { message: "確認用のパスワードを入力してください" }),
   })
   .superRefine((value, ctx) => {
+    // パスワード確認
     if (value.password !== value.passwordConfirmation) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -41,16 +60,21 @@ const FormSchemaDouble = z
         path: ["passwordConfirmation"],
       });
     }
+    // profileData バリデーション
+    validateProfileData(value, ctx);
   });
 
 /** パスワード確認なしスキーマ（single mode） */
-const FormSchemaSingle = z.object({
-  email: emailSchema,
-  displayName: displayNameSchema,
-  password: passwordSchema,
-});
+const FormSchemaSingle = z
+  .object({
+    ...baseFields,
+  })
+  .superRefine((value, ctx) => {
+    // profileData バリデーション
+    validateProfileData(value, ctx);
+  });
 
-export const isDoubleMode = APP_FEATURES.user.passwordInputMode === "double";
+export const isDoubleMode = APP_FEATURES.auth.signup.passwordInputMode === "double";
 
 export const FormSchema = isDoubleMode ? FormSchemaDouble : FormSchemaSingle;
 
@@ -59,11 +83,17 @@ export type FormValues = {
   displayName: string;
   password: string;
   passwordConfirmation?: string;
+  role: string;
+  profileData?: Record<string, unknown>;
+  agreeToTerms: boolean;
 };
 
 export const DefaultValues: FormValues = {
   email: "",
   displayName: "",
   password: "",
+  role: REGISTRATION_DEFAULT_ROLE,
+  profileData: {},
+  agreeToTerms: false,
   ...(isDoubleMode ? { passwordConfirmation: "" } : {}),
 };

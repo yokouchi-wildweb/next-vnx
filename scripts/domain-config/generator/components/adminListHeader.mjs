@@ -4,11 +4,12 @@ import { templateDir, replaceTokens } from "./utils/template.mjs";
 
 // 一覧ページのヘッダーコンポーネントを生成する
 
-export default function generate(tokens) {
+export default function generate({ config, ...tokens }) {
   const { camel } = tokens;
   const rel = path.join("Admin__Domain__List", "Header.tsx");
   const templatePath = path.join(templateDir, rel);
-  const outputFile = path.join(process.cwd(), "src", "features", camel, "components", replaceTokens(rel, tokens));
+  const outputRel = rel;
+  const outputFile = path.join(process.cwd(), "src", "features", camel, "components", replaceTokens(outputRel, tokens));
   const outputDir = path.dirname(outputFile);
 
   // テンプレートが無ければ処理終了

@@ -1,106 +1,39 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
-
-import { PcNavigation } from "./PcNavigation";
-import { SpNavigation } from "./SpNavigation";
-import { Brand } from "./Brand";
-import { SpNavSwitch } from "./SpNavSwitch";
 import { APP_HEADER_ELEMENT_ID } from "@/components/AppFrames/constants";
-import { HEADER_ENABLED } from "@/config/ui/user-header.config";
+import { Button } from "@/components/Form/Button/Button";
 
-import { useHeaderVisibility } from "../../contexts/HeaderVisibilityContext";
-import { useHeaderNavVisibility } from "../../contexts/HeaderNavVisibilityContext";
-import { useUserMenuItems } from "./useUserMenuItems";
+import { useHeaderData } from "../../hooks";
+import { Brand } from "./Brand";
+import { HeaderShell } from "./HeaderShell";
+import { PcNavigation } from "@/components/AppFrames/User/Sections/Header/Pc/PcNavigation";
+import { SpNavigation } from "@/components/AppFrames/User/Sections/Header/Sp/SpNavigation";
+import { SpNavSwitch } from "@/components/AppFrames/User/Sections/Header/Sp/SpNavSwitch";
 
 export const UserNavigation = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [headerOffset, setHeaderOffset] = useState(0);
-  const headerRef = useRef<HTMLElement | null>(null);
-  const pathname = usePathname();
-  const { navItems, enabled: menuEnabled } = useUserMenuItems();
-  const { visibility } = useHeaderVisibility();
-  const { visibility: navVisibility } = useHeaderNavVisibility();
-
-  const handleClose = useCallback(() => {
-    setIsMenuOpen(false);
-  }, []);
-
-  const handleToggle = useCallback(() => {
-    setIsMenuOpen((prev) => !prev);
-  }, []);
-
-  useEffect(() => {
-    handleClose();
-  }, [handleClose, pathname]);
-
-  useEffect(() => {
-    if (!isMenuOpen) {
-      return;
-    }
-
-    const handleResize = () => {
-      if (window.innerWidth >= 640) {
-        handleClose();
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [handleClose, isMenuOpen]);
-
-  useEffect(() => {
-    const element = headerRef.current;
-    if (!element) {
-      return;
-    }
-
-    const updateHeight = () => {
-      setHeaderOffset(element.offsetHeight);
-    };
-
-    updateHeight();
-
-    const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateHeight) : null;
-    resizeObserver?.observe(element);
-
-    window.addEventListener("resize", updateHeight);
-
-    return () => {
-      resizeObserver?.disconnect();
-      window.removeEventListener("resize", updateHeight);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isMenuOpen) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isMenuOpen]);
+  const {
+    enabled,
+    navItems,
+    navEnabled,
+    navVisibility,
+    showIcons,
+    isMenuOpen,
+    closeMenu,
+    toggleMenu,
+    headerRef,
+    headerOffset,
+    visibilityClass,
+  } = useHeaderData();
 
   // ヘッダー自体が無効の場合は何も表示しない
-  if (!HEADER_ENABLED) {
+  if (!enabled) {
     return null;
   }
 
-  // 表示/非表示のクラスを決定
-  const visibilityClass = (() => {
-    if (!visibility.sp && !visibility.pc) return "hidden";
-    if (!visibility.sp && visibility.pc) return "hidden sm:block";
-    if (visibility.sp && !visibility.pc) return "block sm:hidden";
-    return "";
-  })();
+  // SP表示可否
+  const showSpNav = navEnabled.sp && navVisibility.sp;
+  // PC表示可否
+  const showPcNav = navEnabled.pc && navVisibility.pc;
 
   return (
     <header
@@ -108,20 +41,33 @@ export const UserNavigation = () => {
       ref={headerRef}
       className={`fixed shadow inset-x-0 top-0 header-layer border-b border-border bg-header text-header-foreground ${visibilityClass}`}
     >
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-2 sm:py-4">
-        <Brand />
-        {menuEnabled.sp && navVisibility.sp && (
-          <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={handleToggle} />
-        )}
-        {menuEnabled.pc && navVisibility.pc && <PcNavigation items={navItems} />}
-      </div>
+      <HeaderShell
+        left={<Brand />}
+        center={showPcNav && <PcNavigation items={navItems} showIcons={showIcons} />}
+        right={
+          <>
+            {/* PC版: ヘッダー右側にCTAボタン */}
+            <Button variant="default" size="sm" className="hidden sm:inline-flex">
+              お問い合わせ
+            </Button>
+            {showSpNav && <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={toggleMenu} />}
+          </>
+        }
+      />
 
-      {menuEnabled.sp && navVisibility.sp && (
+      {showSpNav && (
         <SpNavigation
           isOpen={isMenuOpen}
           items={navItems}
-          onClose={handleClose}
+          showIcons={showIcons}
+          onClose={closeMenu}
           headerOffset={headerOffset}
+          footer={
+            /* SP版: メニュー下部にCTAボタン */
+            <Button variant="default" className="w-full">
+              お問い合わせ
+            </Button>
+          }
         />
       )}
     </header>

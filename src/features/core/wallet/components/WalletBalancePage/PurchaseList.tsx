@@ -2,7 +2,7 @@
 
 "use client";
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { SecTitle, Span } from "@/components/TextBlocks";
@@ -20,11 +20,12 @@ type PurchaseListProps = {
 
 export function PurchaseList({ slug, config }: PurchaseListProps) {
   return (
-    <Section space="sm">
-      <SecTitle as="h2" size="lg">
-        {config.label}購入
-      </SecTitle>
-      <Block space="none">
+    <Section>
+      <Stack space={4}>
+        <SecTitle as="h2" size="lg">
+          {config.label}購入
+        </SecTitle>
+        <Stack space={0}>
         {config.packages.map((pkg) => (
           <Flex
             key={pkg.amount}
@@ -55,7 +56,8 @@ export function PurchaseList({ slug, config }: PurchaseListProps) {
             </LinkButton>
           </Flex>
         ))}
-      </Block>
+        </Stack>
+      </Stack>
     </Section>
   );
 }

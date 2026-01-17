@@ -1,16 +1,16 @@
 // src/features/core/user/presenters.ts
 
-import { USER_ROLE_OPTIONS, formatUserStatusLabel } from "@/features/core/user/constants";
+import { getAllRoleOptions, formatUserStatusLabel } from "@/features/core/user/constants";
 import type { User } from "@/features/core/user/entities";
-import type { FieldPresenter } from "@/lib/crud/presenters";
+import type { FieldPresenter } from "@/lib/crud";
 import {
   formatDateValue,
   formatEnumLabel,
   formatString,
-} from "@/lib/crud/presenters";
+} from "@/lib/crud";
 import { formatDateJa } from "@/utils/date";
 
-const ROLE_LABEL_MAP = USER_ROLE_OPTIONS.reduce<Record<string, string>>((acc, option) => {
+const ROLE_LABEL_MAP = getAllRoleOptions().reduce<Record<string, string>>((acc, option) => {
   acc[option.id] = option.name;
   return acc;
 }, {});

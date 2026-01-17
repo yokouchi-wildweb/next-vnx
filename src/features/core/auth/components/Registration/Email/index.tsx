@@ -3,27 +3,37 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+
+import Link from "next/link";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { PasswordInput, TextInput } from "@/components/Form/Controlled";
-import { Input } from "@/components/Form/Manual";
+import { Input, SingleCardCheckbox } from "@/components/Form/Manual";
 import { Para } from "@/components/TextBlocks";
 import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/constants/localStorage";
+import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
-import { useLocalStorage } from "@/lib/localStorage";
+import { useLocalStorage } from "@/lib/browserStorage";
 import { err, HttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
+import { useGuardedNavigation } from "@/lib/transitionGuard";
+
+import { APP_FEATURES } from "@/config/app/app-features.config";
+import {
+  RoleSelector,
+  RoleProfileFields,
+} from "@/features/core/userProfile/components/common";
+import { REGISTRATION_PROFILES } from "../registrationProfiles";
 
 import { FormSchema, type FormValues, DefaultValues, isDoubleMode } from "./formEntities";
 
 export function EmailRegistrationForm() {
-  const router = useRouter();
+  const { guardedPush } = useGuardedNavigation();
   const [savedEmail] = useLocalStorage(EMAIL_SIGNUP_STORAGE_KEY, "");
   // ローカルストレージのメールアドレスを優先（認証時に保存された正しい値）
   const email = useMemo(() => savedEmail.trim(), [savedEmail]);
@@ -37,12 +47,15 @@ export function EmailRegistrationForm() {
   const { register, isLoading } = useRegistration();
   const { refreshSession } = useAuthSession();
 
+  // ロール選択を監視してプロフィールフィールドを動的に更新
+  const selectedRole = useWatch({ control: form.control, name: "role" });
+
   useEffect(() => {
     form.setValue("email", email, { shouldValidate: form.formState.isSubmitted });
   }, [email, form]);
 
   const handleSubmit = useCallback(
-    async ({ email: emailValue, displayName, password }: FormValues) => {
+    async ({ email: emailValue, displayName, password, role, profileData, agreeToTerms: _ }: FormValues) => {
       try {
         const currentUser = auth.currentUser;
 
@@ -62,15 +75,17 @@ export function EmailRegistrationForm() {
           email: emailValue,
           displayName,
           password,
+          role,
+          profileData,
         });
         await refreshSession();
-        router.push("/signup/complete");
+        guardedPush("/signup/complete");
       } catch (error) {
         const message = err(error, "本登録の処理に失敗しました");
         form.setError("root", { type: "server", message });
       }
     },
-    [form, refreshSession, register, router],
+    [form, refreshSession, register, guardedPush],
   );
 
   const rootErrorMessage = form.formState.errors.root?.message ?? null;
@@ -80,9 +95,20 @@ export function EmailRegistrationForm() {
       methods={form}
       onSubmit={handleSubmit}
       pending={isLoading}
-      className="space-y-4"
+      className="flex flex-col gap-4"
       noValidate
     >
+        {APP_FEATURES.auth.signup.showRoleSelection && (
+          <RoleSelector
+            control={form.control}
+            name="role"
+            categories={["user"]}
+            selectableRoles={REGISTRATION_ROLES}
+            showDescription
+            label="アカウントタイプ"
+          />
+        )}
+
         <FormFieldItem
           control={form.control}
           name="email"
@@ -140,6 +166,32 @@ export function EmailRegistrationForm() {
             )}
           />
         )}
+
+        <RoleProfileFields
+          methods={form}
+          role={selectedRole}
+          profiles={REGISTRATION_PROFILES}
+          tag="registration"
+          wrapperClassName="flex flex-col gap-4"
+        />
+
+        <FormFieldItem
+          control={form.control}
+          name="agreeToTerms"
+          renderInput={(field) => (
+            <SingleCardCheckbox
+              field={field}
+              label={
+                <>
+                  <Link href="/terms" className="text-primary hover:underline" target="_blank">利用規約</Link>
+                  と
+                  <Link href="/privacy-policy" className="text-primary hover:underline" target="_blank">プライバシーポリシー</Link>
+                  に同意する
+                </>
+              }
+            />
+          )}
+        />
 
         {rootErrorMessage ? (
           <Para tone="error" size="sm">

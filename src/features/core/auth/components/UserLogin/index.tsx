@@ -4,11 +4,13 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Mail, LockKeyhole } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
 import { Input, PasswordInput } from "@/components/Form/Manual";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 
 import { useEmailPasswordLogin } from "@/features/core/auth/hooks/useEmailPasswordLogin";
@@ -76,10 +78,10 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
 
   return (
     <section id="user-login" className="w-full">
-      <Block space="lg">
+      <Stack space={8}>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Block space="xs">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <Stack space={2}>
             <Label htmlFor="user-login-email" className="block text-foreground">
               メールアドレス
             </Label>
@@ -90,9 +92,11 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              leftIcon={<Mail className="size-4" />}
+              placeholder="例）maile@example.com"
             />
-          </Block>
-          <Block space="xs">
+          </Stack>
+          <Stack space={2}>
             <Label htmlFor="user-login-password" className="block text-foreground">
               パスワード
             </Label>
@@ -102,20 +106,34 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              leftIcon={<LockKeyhole className="size-4" />}
+              placeholder="ご登録のパスワード"
             />
-          </Block>
+            <div className="text-right">
+              <Link href="/" className="text-sm text-primary hover:underline">
+                パスワードをお忘れですか？ ▶
+              </Link>
+            </div>
+          </Stack>
           {errorMessage && (
             <Para tone="error" size="sm">
               {errorMessage}
             </Para>
           )}
           <Button type="submit" disabled={isLoading} className="w-full">
-            {isLoading ? "ログイン処理中..." : "ログイン"}
+            {isLoading ? "ログイン処理中..." : "メールアドレスでログイン"}
           </Button>
         </form>
         <ThirdPartySignupOptions />
 
-      </Block>
+        <div className="mt-8">
+          <Button variant="outline" asChild className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+            <Link href="/signup">
+              新規での会員登録はこちら <span className="ml-1 text-xs">▶</span>
+            </Link>
+          </Button>
+        </div>
+      </Stack>
     </section>
   );
 }

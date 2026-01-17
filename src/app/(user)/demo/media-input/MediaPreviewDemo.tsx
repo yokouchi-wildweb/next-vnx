@@ -4,7 +4,7 @@ import { useCallback, useId, useMemo, useRef, useState, type ChangeEvent } from 
 
 import { Button } from "@/components/Form/Button/Button";
 import { Input } from "@/components/Form/Manual/Input";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Para, Span } from "@/components/TextBlocks";
 import { MediaPreview, detectMediaType } from "@/lib/mediaInputSuite";
 import { useImageMetadata, useVideoMetadata } from "@/lib/mediaInputSuite/hooks";
@@ -75,7 +75,7 @@ export const MediaPreviewDemo = () => {
   const previewAvailable = Boolean(file || resolvedUrl);
 
   return (
-    <Block space="md" padding="xl" className="space-y-4">
+    <Stack space={6} padding="xl" className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={handleOpenFileDialog}>ファイルを選択</Button>
         <Button variant="ghost" size="sm" onClick={handleClear}>
@@ -92,7 +92,7 @@ export const MediaPreviewDemo = () => {
         )}
       </div>
 
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <Para tone="muted" size="sm">
           直接 URL を入力するとリモートファイルのプレビューを確認できます。
         </Para>
@@ -124,7 +124,7 @@ export const MediaPreviewDemo = () => {
       </Para>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Block appearance="surface" padding="lg" space="xs" className="h-full shadow-none">
+        <Stack appearance="surface" padding="lg" space={2} className="h-full shadow-none">
           <Span weight="semiBold">画像メタ情報</Span>
           {imageMetadata ? (
             <MetadataList
@@ -141,8 +141,8 @@ export const MediaPreviewDemo = () => {
               画像メタ情報は未取得です。
             </Para>
           )}
-        </Block>
-        <Block appearance="surface" padding="lg" space="xs" className="h-full shadow-none">
+        </Stack>
+        <Stack appearance="surface" padding="lg" space={2} className="h-full shadow-none">
           <Span weight="semiBold">動画メタ情報</Span>
           {videoMetadata ? (
             <MetadataList
@@ -160,7 +160,7 @@ export const MediaPreviewDemo = () => {
               動画メタ情報は未取得です。
             </Para>
           )}
-        </Block>
+        </Stack>
       </div>
 
       <input
@@ -170,7 +170,7 @@ export const MediaPreviewDemo = () => {
         className="sr-only"
         onChange={handleFileChange}
       />
-    </Block>
+    </Stack>
   );
 };
 
@@ -181,7 +181,7 @@ type MetadataItem = {
 
 const MetadataList = ({ items }: { items: MetadataItem[] }) => {
   return (
-    <dl className="mt-3 space-y-2 text-sm text-muted-foreground">
+    <dl className="mt-3 flex flex-col gap-2 text-sm text-muted-foreground">
       {items.map((item) => (
         <div key={item.label} className="flex items-center justify-between gap-2">
           <dt>{item.label}</dt>

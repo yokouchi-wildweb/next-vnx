@@ -6,10 +6,10 @@ import { useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast } from "@/lib/toast";
 
 import TabbedModal from "@/components/Overlays/TabbedModal";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { AppForm } from "@/components/Form/AppForm";
@@ -68,7 +68,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
     formState: { isSubmitting },
   } = methods;
 
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
   const { trigger, isMutating } = useAdjustWallet({ revalidateKeys: ["wallets"] });
   const { data: walletBalances } = useWalletBalances(user?.id);
   const walletType = useWatch({
@@ -117,24 +117,28 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
 
     try {
       await trigger({ userId: user.id, payload });
-      showAppToast(`${currencyLabel}を更新しました`, "success");
+      showToast(`${currencyLabel}を更新しました`, "success");
       handleRequestClose();
     } catch (error) {
-      showAppToast(err(error, `${currencyLabel}の操作に失敗しました`), "error");
+      showToast(err(error, `${currencyLabel}の操作に失敗しました`), "error");
     }
   };
 
   const isProcessing = isSubmitting || isMutating;
-  const regularBalance =
-    walletBalances?.wallets.find((wallet) => wallet.type === "regular_point")?.balance ?? null;
-  const temporaryBalance =
-    walletBalances?.wallets.find((wallet) => wallet.type === "temporary_point")?.balance ?? null;
+
+  // 全通貨の残高を動的に取得・表示
+  const balanceDisplay = Object.entries(CURRENCY_CONFIG)
+    .map(([type, config]) => {
+      const balance = walletBalances?.wallets.find((w) => w.type === type)?.balance ?? null;
+      return `${config.label}: ${formatBalance(balance)}`;
+    })
+    .join(" / ");
 
   const adjustTabContent = (
-    <Block space="sm" padding="md">
-      <Block
+    <Stack space={4} padding="md">
+      <Stack
         className="rounded-md border border-border bg-card px-4 py-3"
-        space="xs"
+        space={2}
       >
         <Flex direction="column" gap="xs">
           <Flex justify="between" align="center" gap="lg" wrap="wrap">
@@ -149,15 +153,15 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
             </div>
             <div className="text-right">
               <Para size="xs" tone="muted">
-                現在のポイント
+                現在の残高
               </Para>
               <Para size="sm">
-                通常: {formatBalance(regularBalance)} / 期間限定: {formatBalance(temporaryBalance)}
+                {balanceDisplay}
               </Para>
             </div>
           </Flex>
         </Flex>
-      </Block>
+      </Stack>
       <AppForm methods={methods} onSubmit={submit} pending={isProcessing} fieldSpace="md">
         <FormFieldItem
           control={control}
@@ -231,7 +235,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
           </Button>
         </Flex>
       </AppForm>
-    </Block>
+    </Stack>
   );
 
   return (

@@ -6,8 +6,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import Dialog from "@/components/Overlays/Dialog";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast } from "@/lib/toast";
 import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button/Button";
@@ -32,7 +33,7 @@ export function StatusTabContent({ user, onClose }: Props) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const router = useRouter();
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
   const { trigger: triggerStatusChange, isMutating } = useChangeUserStatus();
 
   const handleReset = () => {
@@ -63,11 +64,11 @@ export function StatusTabContent({ user, onClose }: Props) {
           reason: reason.trim() || undefined,
         },
       });
-      showAppToast("ステータスを変更しました", "success");
+      showToast("ステータスを変更しました", "success");
       handleClose();
       router.refresh();
     } catch (error) {
-      showAppToast(err(error, "ステータスの変更に失敗しました"), "error");
+      showToast(err(error, "ステータスの変更に失敗しました"), "error");
     }
   };
 
@@ -101,9 +102,9 @@ export function StatusTabContent({ user, onClose }: Props) {
 
   return (
     <>
-      <Block space="sm" padding="md">
+      <Stack space={4} padding="md">
         <UserInfoHeader user={user} />
-        <Block space="md" className="mt-4">
+        <Stack space={6} className="mt-4">
           <div>
             <Para size="sm" className="mb-2 font-medium">
               変更先ステータス
@@ -143,8 +144,8 @@ export function StatusTabContent({ user, onClose }: Props) {
               {isMutating ? "変更中..." : "ステータスを変更"}
             </Button>
           </Flex>
-        </Block>
-      </Block>
+        </Stack>
+      </Stack>
       <Dialog
         open={showConfirm}
         onOpenChange={setShowConfirm}

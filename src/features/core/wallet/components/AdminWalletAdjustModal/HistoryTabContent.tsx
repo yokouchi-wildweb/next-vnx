@@ -4,13 +4,12 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
-import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
+import DataTable, { type DataTableColumn } from "@/lib/tableSuite/DataTable";
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
 import { WalletHistoryTypeOptions } from "@/features/core/walletHistory/constants/field";
 import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
-import { Button } from "@/components/Form/Button/Button";
 import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
 import { walletHistoryBatchClient } from "@/features/core/walletHistory/services/client/walletHistoryBatchClient";
 import type { WalletHistoryBatchSummarySerialized } from "@/features/core/walletHistory/types/batch";
@@ -107,21 +106,6 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
       header: "操作種別",
       render: (history) => formatSourceTypes(history),
     },
-    {
-      header: "詳細",
-      render: (history) => (
-        <TableCellAction className="justify-start">
-          <Button
-            type="button"
-            size="xs"
-            variant="secondary"
-            onClick={() => setDetailHistory(history)}
-          >
-            詳細
-          </Button>
-        </TableCellAction>
-      ),
-    },
   ];
 
   const hasHistories = histories.length > 0;
@@ -163,7 +147,7 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
 
   return (
     <>
-    <Block space="md" padding="md">
+    <Stack space={6} padding="md">
       <Para size="xs" tone="muted">
         {total ? `合計 ${total} 件` : "履歴 0 件"}
       </Para>
@@ -184,6 +168,7 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
             maxHeight="none"
             getKey={(item) => item.batchId}
             emptyValueFallback="-"
+            onRowClick={setDetailHistory}
             scrollContainerRef={handleScrollContainerRef}
             bottomSentinelRef={handleBottomSentinelRef}
           />
@@ -208,7 +193,7 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
           <Para tone="muted">履歴はまだありません</Para>
         </div>
       )}
-    </Block>
+    </Stack>
     <DetailModal
       open={Boolean(detailHistory)}
       onOpenChange={(open) => {
@@ -220,7 +205,7 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
       rows={detailRows}
       footer={
         detailHistory ? (
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
             <Para size="sm" weight="medium">
               関連するバッチ処理
             </Para>

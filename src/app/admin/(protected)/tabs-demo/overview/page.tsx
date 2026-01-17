@@ -2,7 +2,7 @@ import { ActivityIcon, LayoutDashboardIcon, Settings2Icon } from "lucide-react";
 
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
 import { SolidTabs, UnderlineTabs, type PageTabItem } from "@/components/Navigation/PageTab";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
@@ -37,21 +37,23 @@ export default function AdminTabsDemoOverviewPage() {
   return (
     <AdminPage>
       <PageTitle>タブUIデモ</PageTitle>
-      <Section space="md">
-        <SecTitle>タブ切り替えデモ（概要）</SecTitle>
-        <Para tone="muted">
-          ナビゲーション専用のタブ部品を導入し、URL 遷移とタブUIを一貫して扱うためのデモページです。
-        </Para>
-        <SolidTabs tabs={ADMIN_TABS_DEMO_ITEMS} ariaLabel="タブUIデモ" />
-        <UnderlineTabs tabs={ADMIN_TABS_DEMO_ITEMS} ariaLabel="タブUIデモ（下線型）" />
-        <Block appearance="surface" padding="lg" space="sm">
-          <Para>
-            このページではタブUIの概要を紹介しています。同じタブセットを各ページに設置しており、クリックと同時に対応するルートへ遷移します。
+      <Section>
+        <Stack space={6}>
+          <SecTitle>タブ切り替えデモ（概要）</SecTitle>
+          <Para tone="muted">
+            ナビゲーション専用のタブ部品を導入し、URL 遷移とタブUIを一貫して扱うためのデモページです。
           </Para>
-          <Para>
-            体験としてはタブが切り替わっているように見えますが、実際には Next.js のルーティングが走ります。ルーティングに伴う状態管理や検証は各ページ側で責務を持ちます。
-          </Para>
-        </Block>
+          <SolidTabs tabs={ADMIN_TABS_DEMO_ITEMS} ariaLabel="タブUIデモ" />
+          <UnderlineTabs tabs={ADMIN_TABS_DEMO_ITEMS} ariaLabel="タブUIデモ（下線型）" />
+          <Stack appearance="surface" padding="lg" space={4}>
+            <Para>
+              このページではタブUIの概要を紹介しています。同じタブセットを各ページに設置しており、クリックと同時に対応するルートへ遷移します。
+            </Para>
+            <Para>
+              体験としてはタブが切り替わっているように見えますが、実際には Next.js のルーティングが走ります。ルーティングに伴う状態管理や検証は各ページ側で責務を持ちます。
+            </Para>
+          </Stack>
+        </Stack>
       </Section>
     </AdminPage>
   );

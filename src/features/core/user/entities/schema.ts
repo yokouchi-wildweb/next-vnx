@@ -32,50 +32,74 @@ export const UserCoreSchema = z.object({
     .transform((value) => emptyToNull(value)),
 });
 
-export const userMutableSchema = z.object({
-  // ダミーフィールド: 自己紹介文。
-  // introduction: z.string().optional(),
-
-  // サービス構築時は任意の可変フィールドをここに追加してください。
-});
-
 /**
- * 一般ユーザー用に利用するスキーマ。
- * 管理者ユーザーと一般ユーザーで可変フィールドの構成を変えたい場合は userMutableSchema を自由に調整してください。
+ * ユーザー更新用に項目をオプショナルにしたスキーマ。
+ * providerType と providerUid は必須のまま維持。
  */
-export const GeneralUserSchema = UserCoreSchema.merge(userMutableSchema);
-
-/**
- * 一般ユーザー更新用に項目をオプショナルにしたスキーマ。
- */
-export const GeneralUserOptionalSchema = GeneralUserSchema.partial().extend({
+export const UserOptionalSchema = UserCoreSchema.partial().extend({
   providerType: UserCoreSchema.shape.providerType,
   providerUid: UserCoreSchema.shape.providerUid,
 });
 
 /**
- * 管理者ユーザー用に利用するスキーマ。
- * 管理者ユーザーと一般ユーザーで可変フィールドの構成を変えたい場合は userMutableSchema を自由に調整してください。
+ * 管理者がユーザー情報を更新する際のスキーマ。
+ * 許可するフィールドをホワイトリストで明示的に指定。
  */
-export const AdminUserSchema = UserCoreSchema.merge(userMutableSchema);
-
-/**
- * 管理者ユーザー更新用に項目をオプショナルにしたスキーマ。
- */
-export const AdminUserOpotionalSchema = AdminUserSchema.partial().extend({
-  providerType: UserCoreSchema.shape.providerType,
-  providerUid: UserCoreSchema.shape.providerUid,
+export const UserUpdateByAdminSchema = UserOptionalSchema.pick({
+  displayName: true,
+  email: true,
+  localPassword: true,
+  status: true,
+  role: true,
+  isDemo: true,
 });
 
 /**
  * 一般ユーザーが自身でプロフィール情報を更新する際のスキーマ。
- * roleなど重要なコアフィールドを除害している。
+ * 許可するフィールドをホワイトリストで明示的に指定。
  */
-export const userSelfUpdateSchema = GeneralUserOptionalSchema.omit({
-  providerType: true,
-  providerUid: true,
-  role: true,
-  status: true,
-  lastAuthenticatedAt: true,
-  deletedAt: true,
+export const UserSelfUpdateSchema = UserOptionalSchema.pick({
+  displayName: true,
+  email: true,
+  localPassword: true,
 });
+
+/**
+ * 本登録時のユーザー有効化スキーマ。
+ * pending → active への状態遷移で更新可能なフィールドを定義。
+ */
+export const UserActivationSchema = z.object({
+  role: z.enum(USER_ROLES),
+  status: z.literal("active"),
+  displayName: z
+    .string()
+    .min(1, { message: "表示名を入力してください" })
+    .transform((value) => emptyToNull(value)),
+  email: z
+    .string()
+    .email()
+    .nullish()
+    .transform((value) => emptyToNull(value)),
+  lastAuthenticatedAt: z.coerce.date(),
+});
+
+/**
+ * 仮登録時のユーザー作成スキーマ。
+ * 新規作成 or withdrawn → pending への状態遷移で設定するフィールドを定義。
+ */
+export const UserPreRegistrationSchema = z.object({
+  providerType: z.enum(USER_PROVIDER_TYPES),
+  providerUid: z
+    .string({ required_error: "プロバイダー UID が不足しています" })
+    .trim()
+    .min(1, { message: "プロバイダー UID が不足しています" }),
+  role: z.literal("user"),
+  status: z.literal("pending"),
+  email: z
+    .string()
+    .email()
+    .nullish()
+    .transform((value) => emptyToNull(value)),
+  lastAuthenticatedAt: z.coerce.date(),
+});
+

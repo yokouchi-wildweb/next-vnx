@@ -2,17 +2,19 @@
 
 import type { User } from "@/features/core/user/entities";
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { GeneralUserSchema } from "@/features/core/user/entities/schema";
+import { UserCoreSchema } from "@/features/core/user/entities/schema";
 import { DomainError } from "@/lib/errors";
 import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { db } from "@/lib/drizzle";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
+import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
 
 export type CreateGeneralUserInput = {
   displayName: string;
   email: string;
   localPassword: string;
+  role?: string;
   actorId?: string;
   [key: string]: unknown;
 };
@@ -29,6 +31,10 @@ function validateInput(input: CreateGeneralUserInput): void {
 
 export async function createGeneralUser(data: CreateGeneralUserInput): Promise<User> {
   validateInput(data);
+
+  // ロールの有効性チェック
+  const role = data.role ?? "user";
+  assertRoleEnabled(role);
 
   const auth = getServerAuth();
 
@@ -47,8 +53,8 @@ export async function createGeneralUser(data: CreateGeneralUserInput): Promise<U
     }
   })();
 
-  const values = await GeneralUserSchema.parseAsync({
-    role: "user",
+  const values = await UserCoreSchema.parseAsync({
+    role,
     status: "active",
     providerType: "email",
     providerUid: firebaseUser.uid,

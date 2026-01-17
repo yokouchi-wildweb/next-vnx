@@ -27,6 +27,7 @@
 | useDetailModal | boolean | ⚪ No | 詳細モーダルの有無 |
 | addToAdminDataMenu | boolean | ⚪ No | adminDataMenu への自動追加 |
 | useDuplicateButton | boolean | ⚪ No | 複製ボタンの有無 |
+| useImportExport | boolean | ⚪ No | データ入出力機能の有無（CSV/ZIP形式） |
 | compositeUniques | string[][] | ⚪ No | 複合ユニーク制約（Neon のみ） |
 | generateFiles | GenerateFiles | 🟢 Yes | 生成対象ファイルの設定 |
 
@@ -73,27 +74,64 @@
 
 #### FieldType（Neon）
 
-```
-string, integer, float, boolean, enum, date, time,
-timestamp With Time Zone, email, password, bigint,
-numeric(10,2), uuid, Point, jsonb, array, mediaUploader
-```
+| 値 | 説明 |
+|---|---|
+| string | 文字列 |
+| integer | 整数 |
+| float | 浮動小数 |
+| boolean | 真偽値 |
+| enum | 列挙型 |
+| date | 日付 |
+| time | 時刻 |
+| timestamp With Time Zone | タイムゾーン付き日時 |
+| email | メールアドレス |
+| password | パスワード |
+| bigint | 64bit整数 |
+| numeric(10,2) | 固定小数（精度10、スケール2） |
+| uuid | UUID |
+| Point | 座標点 |
+| jsonb | JSONオブジェクト |
+| array | 配列 |
+| mediaUploader | メディアアップロード用 |
 
 #### FieldType（Firestore）
 
-```
-string, number, boolean, timestamp, email, password,
-array, geopoint, reference, map, null, mediaUploader
-```
+| 値 | 説明 |
+|---|---|
+| string | 文字列 |
+| number | 数値 |
+| boolean | 真偽値 |
+| timestamp | 日時 |
+| email | メールアドレス |
+| password | パスワード |
+| array | 配列 |
+| geopoint | 緯度経度 |
+| reference | ドキュメント参照 |
+| map | オブジェクト |
+| null | null値 |
+| mediaUploader | メディアアップロード用 |
 
 #### FormInput
 
-```
-textInput, numberInput, textarea, select, multiSelect,
-radio, checkbox, stepperInput, switchInput, dateInput,
-timeInput, datetimeInput, emailInput, passwordInput,
-mediaUploader, hidden, none
-```
+| 値 | 説明 |
+|---|---|
+| textInput | 1行テキスト |
+| numberInput | 数値入力 |
+| textarea | 複数行テキスト |
+| select | 単一選択セレクト |
+| multiSelect | 複数選択セレクト |
+| radio | ラジオボタン |
+| checkbox | チェックボックス |
+| stepperInput | 数値ステッパー |
+| switchInput | スイッチ |
+| dateInput | 日付入力 |
+| timeInput | 時刻入力 |
+| datetimeInput | 日時入力 |
+| emailInput | メール入力 |
+| passwordInput | パスワード入力 |
+| mediaUploader | メディアアップロード |
+| hidden | 非表示入力 |
+| none | 入力なし（フォームに出さない） |
 
 #### Option
 

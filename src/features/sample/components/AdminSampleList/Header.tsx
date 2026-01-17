@@ -5,6 +5,7 @@
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
 import Pagination from "../../../../components/Navigation/Pagination";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
+import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/sample/domain.json";
 
@@ -17,9 +18,13 @@ export type AdminSampleListHeaderProps = {
 export default function AdminSampleListHeader({ page, perPage, total }: AdminSampleListHeaderProps) {
   const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
   const params = useSearchParams();
+
   return (
     <ListTop title="登録済みサンプルの一覧" newHref="/admin/samples/new">
       {hasSearch && <SearchBox makeHref={(p) => `/admin/samples?${p.toString()}`} />}
+      {config.useImportExport && (
+        <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
+      )}
       <Pagination
         page={page}
         perPage={perPage}

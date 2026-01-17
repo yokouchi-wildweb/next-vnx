@@ -1,7 +1,7 @@
 // src/features/user/services/server/wrappers/update.ts
 
 import type { User } from "@/features/core/user/entities";
-import { AdminUserOpotionalSchema, userSelfUpdateSchema } from "@/features/core/user/entities";
+import { UserUpdateByAdminSchema, UserSelfUpdateSchema } from "@/features/core/user/entities";
 import type { UpdateUserInput } from "@/features/core/user/services/types";
 import { base } from "../drizzleBase";
 import { DomainError } from "@/lib/errors";
@@ -9,13 +9,8 @@ import { omitUndefined } from "@/utils/object";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
-
-const adminUpdateSchema = AdminUserOpotionalSchema.omit({
-  providerType: true,
-  providerUid: true,
-  lastAuthenticatedAt: true,
-  role: true,
-});
+import { hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";
+import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
 
 async function updateFirebaseEmail(uid: string, email: string): Promise<void> {
   const auth = getServerAuth();
@@ -43,7 +38,7 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     throw new DomainError("更新データが不正です", { status: 400 });
   }
 
-  const { newPassword, ...restRawData } = rawData;
+  const { newPassword, profileData, ...restRawData } = rawData;
   const normalizedNewPassword =
     typeof newPassword === "string" ? newPassword.trim() : undefined;
 
@@ -65,14 +60,16 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     throw new DomainError("この操作を実行する権限がありません", { status: 403 });
   }
 
-  if (isSelfUpdate && current.providerType === "local") {
+  // 非管理者が自分自身をローカル認証で更新しようとした場合はエラー
+  // Admin が管理画面から自分自身を編集する場合は許可
+  if (!isAdmin && isSelfUpdate && current.providerType === "local") {
     throw new DomainError(
       "現在、ローカル認証ユーザーでログイン中です。このユーザーにはプロフィール編集画面が提供されていません。",
       { status: 400 },
     );
   }
 
-  const schema = isAdmin ? adminUpdateSchema : userSelfUpdateSchema;
+  const schema = isAdmin ? UserUpdateByAdminSchema : UserSelfUpdateSchema;
   const result = await schema.safeParseAsync(restRawData);
 
   if (!result.success) {
@@ -107,9 +104,17 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     updatePayload.localPassword = localPassword;
   }
 
-  if (Object.keys(updatePayload).length === 0) {
-    return current;
+  // ユーザー情報の更新
+  const updatedUser =
+    Object.keys(updatePayload).length === 0
+      ? current
+      : await base.update(id, updatePayload);
+
+  // プロフィールデータの更新
+  const effectiveRole = (updatePayload.role ?? current.role) as UserRoleType;
+  if (profileData && hasRoleProfile(effectiveRole)) {
+    await userProfileService.upsertProfile(id, effectiveRole, profileData);
   }
 
-  return base.update(id, updatePayload);
+  return updatedUser;
 }

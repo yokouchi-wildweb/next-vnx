@@ -7,10 +7,11 @@ import { UserPenIcon, LogOutIcon, PauseCircleIcon, UserXIcon } from "lucide-reac
 
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
+import { Stack } from "@/components/Layout/Stack";
 import { SecTitle } from "@/components/TextBlocks";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
-import { USER_ROLE_OPTIONS, formatUserStatusLabel } from "@/features/core/user/constants";
+import { formatUserRoleLabel, formatUserStatusLabel } from "@/features/core/user/constants";
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/types";
 import { formatDateJa } from "@/utils/date";
@@ -21,12 +22,6 @@ import { UserInfoTable, type UserInfoRow } from "./UserInfoTable";
 type UserMyPageProps = {
   user: User;
 };
-
-const roleLabelMap = new Map<UserRoleType, string>(USER_ROLE_OPTIONS.map((option) => [option.id, option.name]));
-
-function resolveRoleLabel(role: UserRoleType): string {
-  return roleLabelMap.get(role) ?? role;
-}
 
 function formatLastAuthenticatedAt(date: User["lastAuthenticatedAt"]): string {
   if (!date) {
@@ -49,7 +44,7 @@ export default function UserMyPage({ user }: UserMyPageProps) {
   const rows: UserInfoRow[] = [
     { label: "ユーザーID", value: user.id },
     { label: "表示名", value: user.displayName ?? "未設定" },
-    { label: "権限", value: resolveRoleLabel(user.role) },
+    { label: "権限", value: formatUserRoleLabel(user.role, user.role) },
     { label: "ステータス", value: formatUserStatusLabel(user.status, user.status ?? "未設定") },
     { label: "プロバイダータイプ", value: user.providerType },
     { label: "メールアドレス", value: user.email ?? "未設定" },
@@ -58,45 +53,49 @@ export default function UserMyPage({ user }: UserMyPageProps) {
 
   return (
     <>
-      <Section space="sm">
-        <SecTitle as="h2">メニュー</SecTitle>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <ActionMenuCard
-            icon={UserPenIcon}
-            title="プロフィールを編集"
-            description="表示名やメールアドレスを変更"
-            href="/profile/edit"
-          />
-          <ActionMenuCard
-            icon={LogOutIcon}
-            title={isLoggingOut ? "ログアウト中..." : "ログアウト"}
-            description="このアカウントからログアウト"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-          />
-          {APP_FEATURES.user.pauseEnabled && (
+      <Section>
+        <Stack space={4}>
+          <SecTitle as="h2">メニュー</SecTitle>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <ActionMenuCard
-              icon={PauseCircleIcon}
-              title="休会する"
-              description="一時的にアカウントを休止"
-              href="/settings/pause"
-              variant="muted"
+              icon={UserPenIcon}
+              title="プロフィールを編集"
+              description="表示名やメールアドレスを変更"
+              href="/profile/edit"
             />
-          )}
-          <ActionMenuCard
-            icon={UserXIcon}
-            title="退会する"
-            description="アカウントを削除"
-            href="/settings/withdraw"
-            variant="destructive"
-          />
-        </div>
+            <ActionMenuCard
+              icon={LogOutIcon}
+              title={isLoggingOut ? "ログアウト中..." : "ログアウト"}
+              description="このアカウントからログアウト"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+            />
+            {APP_FEATURES.user.pauseEnabled && (
+              <ActionMenuCard
+                icon={PauseCircleIcon}
+                title="休会する"
+                description="一時的にアカウントを休止"
+                href="/settings/pause"
+                variant="muted"
+              />
+            )}
+            <ActionMenuCard
+              icon={UserXIcon}
+              title="退会する"
+              description="アカウントを削除"
+              href="/settings/withdraw"
+              variant="destructive"
+            />
+          </div>
+        </Stack>
       </Section>
-      <Section space="sm">
-        <SecTitle as="h2">アカウント情報</SecTitle>
-        <Block appearance="outlined" padding="lg">
-          <UserInfoTable rows={rows} />
-        </Block>
+      <Section>
+        <Stack space={4}>
+          <SecTitle as="h2">アカウント情報</SecTitle>
+          <Block appearance="outlined" padding="lg">
+            <UserInfoTable rows={rows} />
+          </Block>
+        </Stack>
       </Section>
     </>
   );

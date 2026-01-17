@@ -27,7 +27,3 @@ export const serviceRegistry: Record<string, any> = {
   // --- AUTO-GENERATED-END ---
 
 };
-
-export function registerService(domain: string, service: any) {
-  serviceRegistry[domain] = service;
-}

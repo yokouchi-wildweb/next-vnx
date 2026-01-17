@@ -2,7 +2,12 @@
 
 import type { z } from "zod";
 
-import { USER_REGISTERED_STATUSES } from "@/features/core/user/constants";
+import { REGISTRATION_DEFAULT_ROLE } from "@/features/core/auth/constants/registration";
+import {
+  USER_REGISTERED_STATUSES,
+  hasRoleProfile,
+  type UserRoleType,
+} from "@/features/core/user/constants";
 import { RegistrationSchema } from "@/features/core/auth/entities";
 import {
   SessionUserSchema,
@@ -10,7 +15,9 @@ import {
 } from "@/features/core/auth/entities/session";
 import type { User } from "@/features/core/user/entities";
 import { userService } from "@/features/core/user/services/server/userService";
-import { createFromRegistration } from "@/features/core/user/services/server/creation/createFromRegistration";
+import { registerFromAuth } from "@/features/core/user/services/server/registration";
+import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
+import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
@@ -34,8 +41,22 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     throw new DomainError("本登録の入力内容が不正です。", { status: 400 });
   }
 
-  const { providerType, providerUid, idToken, email, displayName, password } =
-    parsedResult.data;
+  const {
+    providerType,
+    providerUid,
+    idToken,
+    email,
+    displayName,
+    password,
+    role: requestedRole,
+    profileData,
+  } = parsedResult.data;
+
+  // ロールの決定（指定がない場合はデフォルトを使用）
+  const role = requestedRole ?? REGISTRATION_DEFAULT_ROLE;
+
+  // ロールの有効性チェック
+  assertRoleEnabled(role);
 
   const auth = getServerAuth();
 
@@ -57,7 +78,11 @@ export async function register(input: unknown): Promise<RegistrationResult> {
 
   const existingUser = await userService.findByProvider(providerType, providerUid);
 
-  if (existingUser && USER_REGISTERED_STATUSES.includes(existingUser.status)) {
+  if (!existingUser) {
+    throw new DomainError("仮登録が完了していません。先に仮登録を行ってください", { status: 400 });
+  }
+
+  if (USER_REGISTERED_STATUSES.includes(existingUser.status)) {
     throw new DomainError("このアカウントはすでに本登録が完了しています", { status: 409 });
   }
 
@@ -74,14 +99,18 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     }
   }
 
-  // ユーザー作成処理を user ドメインに委譲
-  const { user } = await createFromRegistration({
-    providerType,
-    providerUid,
+  // ユーザー登録処理を user ドメインに委譲
+  const { user } = await registerFromAuth({
     email,
     displayName,
     existingUser,
+    role,
   });
+
+  // プロフィールを持つロールの場合、プロフィールデータを保存
+  if (hasRoleProfile(role as UserRoleType) && profileData) {
+    await userProfileService.upsertProfile(user.id, role as UserRoleType, profileData);
+  }
 
   const sessionUser = SessionUserSchema.parse({
     userId: user.id,
