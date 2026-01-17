@@ -3,6 +3,7 @@
 import { Sparkles, Play } from "lucide-react";
 import { HudFrame } from "@/components/Widgets/HudFrame";
 import { Button } from "@/components/Form/Button/Button";
+import { Stack } from "@/components/Layout/Stack";
 import { TypingText } from "./TypingText";
 
 /** ヒーローセクション アクションパネル */
@@ -21,7 +22,7 @@ export function ActionPanel() {
         showStatusBar
         statusText="準備OK？?"
       >
-        <div className="px-4 py-4 md:px-6 md:py-5 space-y-3 md:space-y-3">
+        <Stack space={3} className="px-4 py-4 md:px-6 md:py-5">
           {/* キャッチフレーズ */}
           <p className="text-center text-lg md:text-xl">
             <TypingText text='今すぐ"VNX"を体験しよう！' variant="mono" />
@@ -58,7 +59,7 @@ export function ActionPanel() {
               公開中のシナリオ一覧へ
             </span>
           </button>
-        </div>
+        </Stack>
       </HudFrame>
     </div>
   );

@@ -1,3 +1,5 @@
+import { Stack } from "@/components/Layout/Stack";
+
 export function ServiceAboutSection() {
   return (
     <section className="relative py-16 md:py-24">
@@ -74,8 +76,9 @@ export function ServiceAboutSection() {
               </div>
 
               {/* 右：テキスト（前面に表示） */}
-              <div
-                className="relative z-10 flex-1 text-white font-bold text-center space-y-6"
+              <Stack
+                space={6}
+                className="relative z-10 flex-1 text-white font-bold text-center"
                 style={{
                   textShadow: `
                     0 0 30px rgba(255, 255, 255, 0.7),
@@ -97,7 +100,7 @@ export function ServiceAboutSection() {
                   それらを難しい知識や複雑なツールに縛られることなく
                   思い通りのシナリオとして形にできます。
                 </p>
-              </div>
+              </Stack>
             </div>
           </div>
         </div>

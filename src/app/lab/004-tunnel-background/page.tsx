@@ -16,6 +16,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react"
 import { generateTunnelSVG, type TunnelSVGOptions } from "./generateTunnelSVG"
 import { HeroSection } from "@/app/(user)/draft/HeroSection";
+import { Stack } from "@/components/Layout/Stack";
 
 /* ============================================
    🎯 プレビュー設定
@@ -322,7 +323,7 @@ export default function TunnelBackgroundPage() {
           {/* グラデーション */}
           <div className="mb-4">
             <label className="block text-sm mb-2">グラデーション</label>
-            <div className="space-y-2">
+            <Stack space={2}>
               <div>
                 <label className="block text-xs text-gray-400 mb-1">開始色</label>
                 <div className="flex gap-1">
@@ -359,7 +360,7 @@ export default function TunnelBackgroundPage() {
                   />
                 </div>
               </div>
-            </div>
+            </Stack>
           </div>
 
           {/* グラデーション方向 */}
@@ -560,7 +561,7 @@ export default function TunnelBackgroundPage() {
             </button>
 
             {showSavePanel && (
-              <div className="space-y-3">
+              <Stack space={3}>
                 {/* 新規保存 */}
                 <div className="flex gap-2">
                   <input
@@ -582,7 +583,7 @@ export default function TunnelBackgroundPage() {
 
                 {/* 保存済み一覧 */}
                 {savedPresets.length > 0 && (
-                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                  <Stack space={1} className="max-h-40 overflow-y-auto">
                     {savedPresets.map((preset, index) => (
                       <div
                         key={index}
@@ -612,7 +613,7 @@ export default function TunnelBackgroundPage() {
                         </button>
                       </div>
                     ))}
-                  </div>
+                  </Stack>
                 )}
 
                 {savedPresets.length === 0 && (
@@ -620,7 +621,7 @@ export default function TunnelBackgroundPage() {
                     保存した設定はありません
                   </p>
                 )}
-              </div>
+              </Stack>
             )}
           </div>
         </div>

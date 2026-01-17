@@ -1,6 +1,7 @@
 "use client";
 
 import { HudFrame } from "@/components/Widgets/HudFrame";
+import { Stack } from "@/components/Layout/Stack";
 
 type HudFrameSectionProps = {
   maxWidth?: string;
@@ -44,7 +45,7 @@ function HudFrameContent() {
       />
 
       {/* コンテンツ */}
-      <div className="relative text-center space-y-6 md:space-y-8">
+      <Stack space={6} className="relative text-center md:gap-8">
         {/* メインタイトル */}
         <h2
           className="text-2xl md:text-4xl lg:text-5xl font-bold tracking-wide"
@@ -79,7 +80,7 @@ function HudFrameContent() {
         </div>
 
         {/* 説明文 */}
-        <div className="space-y-3 md:space-y-4 max-w-2xl mx-auto">
+        <Stack space={3} className="md:gap-4 max-w-2xl mx-auto">
           <p className="text-lg md:text-2xl font-light tracking-wide text-white/90">
             誰もが物語のクリエイターに
           </p>
@@ -100,8 +101,8 @@ function HudFrameContent() {
           >
             次世代の創作スタジオ
           </p>
-        </div>
-      </div>
+        </Stack>
+      </Stack>
 
       {/* 浮遊する装飾 */}
       <div className="absolute top-8 left-8 text-xs font-mono animate-float-particle text-cyan-400/20">

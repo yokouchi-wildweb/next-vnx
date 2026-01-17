@@ -8,6 +8,7 @@
 import { useState, useRef, useEffect } from "react"
 import axios from "axios"
 import { useAppToast } from "@/hooks/useAppToast"
+import { Stack } from "@/components/Layout/Stack"
 import {
   NPCConfig,
   NPCDialogueRequest,
@@ -469,7 +470,7 @@ export default function AIDialoguePage() {
             まだ手がかりはありません。NPCから情報を引き出しましょう。
           </p>
         ) : (
-          <ul className="space-y-1">
+          <ul className="flex flex-col gap-1">
             {obtainedClues.map((clue) => (
               <li key={`${clue.npcId}-${clue.id}`} className="flex items-start gap-2">
                 <span className="text-green-400">✓</span>
@@ -485,7 +486,7 @@ export default function AIDialoguePage() {
       </div>
 
       {/* 履歴表示 */}
-      <div className="border border-gray-700 rounded p-4 h-[35vh] overflow-y-auto mb-4 space-y-3">
+      <Stack space={3} className="border border-gray-700 rounded p-4 h-[35vh] overflow-y-auto mb-4">
         {messages.length === 0 && (
           <p className="text-gray-500">メッセージを送信してください</p>
         )}
@@ -511,7 +512,7 @@ export default function AIDialoguePage() {
           </div>
         )}
         <div ref={messagesEndRef} />
-      </div>
+      </Stack>
 
       {/* 入力フォーム */}
       <form onSubmit={handleSubmit} className="flex gap-2">
@@ -558,7 +559,7 @@ export default function AIDialoguePage() {
             <div className="bg-gray-800 border border-gray-600 rounded p-3 text-xs">
               <p className="text-green-400 font-bold mb-2">Last Response</p>
               {lastResponse ? (
-                <div className="space-y-2 overflow-auto max-h-[300px]">
+                <Stack space={2} className="overflow-auto max-h-[300px]">
                   <div>
                     <span className="text-gray-400">impression:</span>{" "}
                     <span className={lastResponse.impression.type === "positive" ? "text-green-400" : lastResponse.impression.type === "negative" ? "text-red-400" : "text-gray-300"}>
@@ -611,7 +612,7 @@ export default function AIDialoguePage() {
                       {String(lastResponse.conversation?.should_end)}
                     </span>
                   </div>
-                </div>
+                </Stack>
               ) : (
                 <p className="text-gray-500">No response yet</p>
               )}
@@ -620,7 +621,7 @@ export default function AIDialoguePage() {
             {/* 右: ログ履歴 */}
             <div className="bg-gray-800 border border-gray-600 rounded p-3 text-xs">
               <p className="text-green-400 font-bold mb-2">Log History ({debugLog.length})</p>
-              <div className="space-y-1 overflow-auto max-h-[300px]">
+              <Stack space={1} className="overflow-auto max-h-[300px]">
                 {debugLog.length === 0 ? (
                   <p className="text-gray-500">No logs yet</p>
                 ) : (
@@ -643,7 +644,7 @@ export default function AIDialoguePage() {
                     </div>
                   ))
                 )}
-              </div>
+              </Stack>
             </div>
           </div>
         )}
