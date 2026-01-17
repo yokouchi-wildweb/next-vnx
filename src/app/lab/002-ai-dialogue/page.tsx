@@ -7,7 +7,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import axios from "axios"
-import { useAppToast } from "@/hooks/useAppToast"
+import { toast } from "sonner"
 import { Stack } from "@/components/Layout/Stack"
 import {
   NPCConfig,
@@ -91,7 +91,6 @@ export default function AIDialoguePage() {
 
   const inputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { showAppToast } = useAppToast()
 
   // デバッグログ追加ヘルパー
   const addDebugLog = (type: DebugEntry["type"], data: unknown) => {
@@ -178,7 +177,7 @@ export default function AIDialoguePage() {
     setLastBehavior(null)
     // 該当NPCから得た手がかりを削除
     setObtainedClues((prev) => prev.filter((c) => c.npcId !== activeNpcId))
-    showAppToast("会話をリセットしました", "info", "center")
+    toast.info("会話をリセットしました")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -286,13 +285,13 @@ export default function AIDialoguePage() {
       if (newClues.length > 0) {
         // 手がかり獲得トースト（振る舞いトーストを上書き）
         const clueLabels = newClues.map((c) => c.label).join("、")
-        showAppToast(`「${clueLabels}」の情報を獲得！`, "success", "center")
+        toast.success(`「${clueLabels}」の情報を獲得！`)
         setObtainedClues((prev) => [...prev, ...newClues])
       } else if (data.behavior?.type) {
         // 振る舞いトースト
         const behaviorToast = activeNpc.behaviors?.[data.behavior.type]?.toast
           || `${activeNpc.name}${BEHAVIOR_TOAST[data.behavior.type] || ""}`
-        showAppToast(behaviorToast, "info", "center")
+        toast.info(behaviorToast)
       }
 
       // アシスタントメッセージ追加
@@ -308,11 +307,7 @@ export default function AIDialoguePage() {
 
       // 会話終了判定
       if (data.conversation?.should_end) {
-        showAppToast(
-          data.conversation.end_reason || "会話が終了しました",
-          "warning",
-          "center"
-        )
+        toast.warning(data.conversation.end_reason || "会話が終了しました")
       }
     } catch (error) {
       console.error("API Error:", error)

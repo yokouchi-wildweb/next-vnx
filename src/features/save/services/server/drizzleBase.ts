@@ -1,6 +1,6 @@
 // src/features/save/services/server/drizzleBase.ts
 
-import { getDomainConfig, type DomainConfig } from "@/features/core/domainConfig/getDomainConfig";
+import { getDomainConfig, type DomainConfig } from "@/lib/domain/config";
 import { SaveTable } from "@/features/save/entities/drizzle";
 import { SaveCreateSchema, SaveUpdateSchema } from "@/features/save/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
