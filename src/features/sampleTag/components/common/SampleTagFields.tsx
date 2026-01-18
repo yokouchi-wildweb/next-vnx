@@ -1,39 +1,24 @@
 // src/features/sampleTag/components/common/SampleTagFields.tsx
 
-import { useMemo } from "react";
-import type { FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
-import {
-  DomainFieldRenderer,
-  type DomainFieldRenderConfig,
-  type DomainMediaState,
-} from "@/components/Form/DomainFieldRenderer";
+import type { FieldValues, UseFormReturn } from "react-hook-form";
+import { FieldRenderer, type MediaState } from "@/components/Form/FieldRenderer";
+import type { FieldConfig } from "@/components/Form/Field";
 import domainConfig from "@/features/sampleTag/domain.json";
 
 export type SampleTagFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
-  onMediaStateChange?: (state: DomainMediaState | null) => void;
+  onMediaStateChange?: (state: MediaState | null) => void;
 };
 
 export function SampleTagFields<TFieldValues extends FieldValues>({
   methods,
   onMediaStateChange,
 }: SampleTagFieldsProps<TFieldValues>) {
-  const relationFieldConfigs = useMemo<DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>[]>(
-    () => [],
-    [],
-  );
-
-
-
-  const customFields = relationFieldConfigs;
-  const filteredDomainJsonFields = (domainConfig.fields ?? []) as Parameters<typeof DomainFieldRenderer>["0"]["domainJsonFields"];
-
   return (
-    <DomainFieldRenderer
+    <FieldRenderer
       control={methods.control}
       methods={methods}
-      fields={customFields}
-      domainJsonFields={filteredDomainJsonFields}
+      baseFields={(domainConfig.fields ?? []) as FieldConfig[]}
       onMediaStateChange={onMediaStateChange}
     />
   );

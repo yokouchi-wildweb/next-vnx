@@ -1,18 +1,15 @@
 // src/features/sample/components/common/SampleFields.tsx
 
 import { useMemo } from "react";
-import type { FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
-import {
-  DomainFieldRenderer,
-  type DomainFieldRenderConfig,
-  type DomainMediaState,
-} from "@/components/Form/DomainFieldRenderer";
+import type { FieldValues, UseFormReturn } from "react-hook-form";
+import { FieldRenderer, type MediaState } from "@/components/Form/FieldRenderer";
+import type { FieldConfig } from "@/components/Form/Field";
 import type { Options } from "@/components/Form/types";
 import domainConfig from "@/features/sample/domain.json";
 
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
-  onMediaStateChange?: (state: DomainMediaState | null) => void;
+  onMediaStateChange?: (state: MediaState | null) => void;
   sampleCategoryOptions?: Options[];
   sampleTagOptions?: Options[];
 };
@@ -23,35 +20,31 @@ export function SampleFields<TFieldValues extends FieldValues>({
   sampleCategoryOptions,
   sampleTagOptions,
 }: SampleFieldsProps<TFieldValues>) {
-  const relationFieldConfigs = useMemo<DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>[]>(
+  const fieldPatches = useMemo<FieldConfig[]>(
     () => [
       {
-        type: "select",
-        name: "sample_category_id" as FieldPath<TFieldValues>,
+        name: "sample_category_id",
         label: "サンプルカテゴリ",
-        options: sampleCategoryOptions,
+        formInput: "select",
+        options: sampleCategoryOptions as FieldConfig["options"],
       },
       {
-        type: "checkGroup",
-        name: "sample_tag_ids" as FieldPath<TFieldValues>,
+        name: "sample_tag_ids",
         label: "サンプルタグ",
-        options: sampleTagOptions,
+        formInput: "checkbox",
+        fieldType: "array",
+        options: sampleTagOptions as FieldConfig["options"],
       }
     ],
     [sampleCategoryOptions, sampleTagOptions],
   );
 
-
-
-  const customFields = relationFieldConfigs;
-  const filteredDomainJsonFields = (domainConfig.fields ?? []) as Parameters<typeof DomainFieldRenderer>["0"]["domainJsonFields"];
-
   return (
-    <DomainFieldRenderer
+    <FieldRenderer
       control={methods.control}
       methods={methods}
-      fields={customFields}
-      domainJsonFields={filteredDomainJsonFields}
+      fieldPatches={fieldPatches}
+      baseFields={(domainConfig.fields ?? []) as FieldConfig[]}
       onMediaStateChange={onMediaStateChange}
     />
   );

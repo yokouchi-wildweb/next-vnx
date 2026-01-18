@@ -1,34 +1,57 @@
+// src/components/Form/Field/Configured/ConfiguredMediaField.tsx
+// config経由のメディアフィールドコンポーネント（FieldRenderer用）
+
 "use client";
 
 import { useEffect, useRef } from "react";
 import { useWatch } from "react-hook-form";
 import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
-import { FieldItem } from "@/components/Form";
-import { useMediaUploaderField } from "@/lib/mediaInputSuite";
+import { FieldItem } from "../Controlled";
+import { useMediaUploaderField } from "@/components/Form/MediaHandler/useMediaUploaderField";
+import type { FieldConfig } from "../types";
+import type { SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 
-import type { MediaUploaderFieldConfig } from "./fieldTypes";
+export type MediaHandleEntry = {
+  isUploading: boolean;
+  commit: (finalUrl?: string | null) => Promise<void>;
+  reset: () => Promise<void>;
+};
 
-type MediaFieldItemProps<
+/**
+ * メディアフィールド用の拡張設定
+ * FieldConfig に onMetadataChange を追加
+ */
+export type MediaFieldConfig = FieldConfig & {
+  onMetadataChange?: (metadata: SelectedMediaMetadata) => void;
+};
+
+export type ConfiguredMediaFieldProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 > = {
   control: Control<TFieldValues, any, TFieldValues>;
   methods: UseFormReturn<TFieldValues>;
-  config: MediaUploaderFieldConfig<TFieldValues, TName>;
-  onHandleChange: (
-    name: TName,
-    entry:
-      | {
-          isUploading: boolean;
-          commit: (finalUrl?: string | null) => Promise<void>;
-          reset: () => Promise<void>;
-        }
-      | null,
-  ) => void;
+  config: MediaFieldConfig;
+  onHandleChange: (name: TName, entry: MediaHandleEntry | null) => void;
 };
 
-export function MediaFieldItem<
+/**
+ * config経由のメディアアップロードフィールド
+ *
+ * DomainFieldRenderer から使用される。メディア状態を親に通知する機能を持つ。
+ *
+ * @example
+ * ```tsx
+ * <ConfiguredMediaField
+ *   control={control}
+ *   methods={methods}
+ *   config={mediaFieldConfig}
+ *   onHandleChange={handleMediaHandleChange}
+ * />
+ * ```
+ */
+export function ConfiguredMediaField<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 >({
@@ -36,12 +59,14 @@ export function MediaFieldItem<
   methods,
   config,
   onHandleChange,
-}: MediaFieldItemProps<TFieldValues, TName>) {
+}: ConfiguredMediaFieldProps<TFieldValues, TName>) {
+  const fieldName = config.name as TName;
+
   const mediaHandle = useMediaUploaderField({
     methods,
-    name: config.name,
+    name: fieldName,
     uploaderProps: {
-      uploadPath: config.uploadPath,
+      uploadPath: config.uploadPath ?? "",
       accept: config.accept,
       helperText: config.helperText,
       validationRule: config.validationRule,
@@ -50,19 +75,19 @@ export function MediaFieldItem<
   });
 
   useEffect(() => {
-    onHandleChange(config.name, {
+    onHandleChange(fieldName, {
       isUploading: mediaHandle.isUploading,
       commit: mediaHandle.commit,
       reset: mediaHandle.reset,
     });
     return () => {
-      onHandleChange(config.name, null);
+      onHandleChange(fieldName, null);
     };
-  }, [config.name, mediaHandle.isUploading, mediaHandle.commit, mediaHandle.reset, onHandleChange]);
+  }, [fieldName, mediaHandle.isUploading, mediaHandle.commit, mediaHandle.reset, onHandleChange]);
 
   const watchedValue = useWatch({
     control,
-    name: config.name,
+    name: fieldName,
   }) as string | null | undefined;
   const previousValueRef = useRef<string | null>(
     typeof watchedValue === "string" && watchedValue.length > 0 ? watchedValue : null,
@@ -87,9 +112,9 @@ export function MediaFieldItem<
   return (
     <FieldItem
       control={control}
-      name={config.name}
+      name={fieldName}
       label={config.label}
-      description={config.description}
+      required={config.required}
       renderInput={mediaHandle.render}
     />
   );
