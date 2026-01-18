@@ -4,8 +4,8 @@ import { useForm } from "react-hook-form";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { TextInput } from "@/components/Form/Controlled";
+import { FieldItem } from "@/components/Form";
+import { TextInput } from "@/components/Form/Input/Controlled";
 
 type EmailInputFormValues = {
   email: string;
@@ -31,7 +31,7 @@ export function EmailInputState({ onSubmit }: EmailInputStateProps) {
       className="flex flex-col gap-4"
       noValidate
     >
-      <FormFieldItem
+      <FieldItem
         control={form.control}
         name="email"
         label="メールアドレス"

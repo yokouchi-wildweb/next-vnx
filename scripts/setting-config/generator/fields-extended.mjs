@@ -120,7 +120,7 @@ function generateFieldJsx(field) {
       renderInput = `<TextInput field={field} />`;
   }
 
-  return `      <FormFieldItem
+  return `      <FieldItem
         control={control}
         name={"${name}" as FieldPath<TFieldValues>}
         label="${label}"${descriptionProp}
@@ -143,12 +143,12 @@ export default function generateFieldsExtended() {
   // インポート文を構築
   let controlledImportLine = "";
   if (controlledImports.length > 0) {
-    controlledImportLine = `import { ${controlledImports.join(", ")} } from "@/components/Form/Controlled";`;
+    controlledImportLine = `import { ${controlledImports.join(", ")} } from "@/components/Form/Input/Controlled";`;
   }
 
   let manualImportLine = "";
   if (manualImports.length > 0) {
-    manualImportLine = `import { ${manualImports.join(", ")} } from "@/components/Form/Manual";`;
+    manualImportLine = `import { ${manualImports.join(", ")} } from "@/components/Form/Input/Manual";`;
   }
 
   let mediaUploaderImportLine = "";
@@ -164,7 +164,7 @@ export default function generateFieldsExtended() {
 "use client";
 
 import { FieldValues, type Control, type FieldPath } from "react-hook-form";
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
+import { FieldItem } from "@/components/Form";
 ${controlledImportLine}
 ${manualImportLine}
 ${mediaUploaderImportLine}

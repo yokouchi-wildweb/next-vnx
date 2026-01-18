@@ -10,9 +10,9 @@ import Link from "next/link";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { PasswordInput, TextInput } from "@/components/Form/Controlled";
-import { Input, SingleCardCheckbox } from "@/components/Form/Manual";
+import { FieldItem } from "@/components/Form";
+import { PasswordInput, SingleCardCheckbox, TextInput } from "@/components/Form/Input/Controlled";
+import { Input } from "@/components/Form/Input/Manual";
 import { Para } from "@/components/TextBlocks";
 import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/constants/localStorage";
 import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";
@@ -109,7 +109,7 @@ export function EmailRegistrationForm() {
           />
         )}
 
-        <FormFieldItem
+        <FieldItem
           control={form.control}
           name="email"
           label={<span className="text-sm font-medium">メールアドレス</span>}
@@ -123,10 +123,11 @@ export function EmailRegistrationForm() {
           )}
         />
 
-        <FormFieldItem
+        <FieldItem
           control={form.control}
           name="displayName"
-          label={<span className="text-sm font-medium">表示名</span>}
+          label="表示名"
+          required
           renderInput={(field) => (
             <TextInput
               field={field}
@@ -137,10 +138,11 @@ export function EmailRegistrationForm() {
           )}
         />
 
-        <FormFieldItem
+        <FieldItem
           control={form.control}
           name="password"
-          label={<span className="text-sm font-medium">パスワード</span>}
+          label="パスワード"
+          required
           renderInput={(field) => (
             <PasswordInput
               field={field}
@@ -152,10 +154,11 @@ export function EmailRegistrationForm() {
         />
 
         {isDoubleMode && (
-          <FormFieldItem
+          <FieldItem
             control={form.control}
             name="passwordConfirmation"
-            label={<span className="text-sm font-medium">パスワード（確認）</span>}
+            label="パスワード（確認）"
+            required
             renderInput={(field) => (
               <PasswordInput
                 field={field}
@@ -175,7 +178,7 @@ export function EmailRegistrationForm() {
           wrapperClassName="flex flex-col gap-4"
         />
 
-        <FormFieldItem
+        <FieldItem
           control={form.control}
           name="agreeToTerms"
           renderInput={(field) => (

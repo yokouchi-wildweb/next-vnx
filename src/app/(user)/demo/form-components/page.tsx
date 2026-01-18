@@ -13,26 +13,24 @@ import {
 } from "@/components/_shadcn/form";
 import { Button } from "@/components/Form/Button/Button";
 import {
+  BooleanCheckboxInput,
+  CheckGroupInput,
   DateInput,
   DatetimeInput,
   EmailInput,
   FileInput,
-  TimeInput,
+  MultiSelectInput,
   NumberInput,
   PasswordInput,
+  RadioGroupInput,
+  SelectInput,
   SwitchInput,
   TextInput,
   Textarea,
-} from "@/components/Form/Controlled";
-import {
-  BooleanCheckboxInput,
-  CheckGroupInput,
-  MultiSelectInput,
-  RadioGroupInput,
-  SelectInput,
-  StepperInput,
-} from "src/components/Form/Manual";
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
+  TimeInput,
+} from "@/components/Form/Input/Controlled";
+import { StepperInput } from "@/components/Form/Input/Manual";
+import { FieldItem } from "@/components/Form";
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
@@ -178,7 +176,7 @@ export default function FormComponentsDemoPage() {
                 className="grid gap-8 rounded-lg border bg-background p-6 shadow-sm"
             >
               <div className="grid gap-6 md:grid-cols-2">
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="text"
                     label="TextInput"
@@ -187,7 +185,7 @@ export default function FormComponentsDemoPage() {
                     )}
                 />
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="email"
                     label="EmailInput（leftIcon付き）"
@@ -200,7 +198,7 @@ export default function FormComponentsDemoPage() {
                     )}
                 />
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="password"
                     label="PasswordInput（leftIcon付き）"
@@ -213,7 +211,7 @@ export default function FormComponentsDemoPage() {
                     )}
                 />
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="description"
                     label="Textarea"
@@ -222,7 +220,7 @@ export default function FormComponentsDemoPage() {
                     )}
                 />
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="date"
                     label="DateInput"
@@ -230,21 +228,21 @@ export default function FormComponentsDemoPage() {
                 />
 
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="time"
                     label="TimeInput"
                     renderInput={(field) => <TimeInput field={field} />}
                 />
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="datetime"
                     label="DatetimeInput"
                     renderInput={(field) => <DatetimeInput field={field} />}
                 />
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="radio"
                     label="RadioGroupInput"
@@ -253,7 +251,7 @@ export default function FormComponentsDemoPage() {
                     )}
                 />
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="radioStandard"
                     label="RadioGroupInput（Standard Button）"
@@ -266,7 +264,7 @@ export default function FormComponentsDemoPage() {
                     )}
                 />
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="checkGroupRounded"
                     label="CheckGroupInput（Rounded）"
@@ -275,7 +273,7 @@ export default function FormComponentsDemoPage() {
                     )}
                 />
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="checkGroupStandard"
                     label="CheckGroupInput（Standard Button）"
@@ -284,7 +282,7 @@ export default function FormComponentsDemoPage() {
                     )}
                 />
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="checkGroupBookmark"
                     label="CheckGroupInput（Bookmark Tag）"
@@ -293,7 +291,7 @@ export default function FormComponentsDemoPage() {
                     )}
                 />
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="checkGroupCheckbox"
                     label="CheckGroupInput（Checkbox）"
@@ -302,7 +300,7 @@ export default function FormComponentsDemoPage() {
                     )}
                 />
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="select"
                     label="SelectInput"
@@ -311,7 +309,7 @@ export default function FormComponentsDemoPage() {
                     )}
                 />
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="multiSelect"
                     label="MultiSelectInput"
@@ -324,7 +322,7 @@ export default function FormComponentsDemoPage() {
                     )}
                 />
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="file"
                     label="FileInput"
@@ -341,7 +339,7 @@ export default function FormComponentsDemoPage() {
                     )}
                 />
 
-                <FormFieldItem
+                <FieldItem
                     control={form.control}
                     name="number"
                     label="NumberInput"

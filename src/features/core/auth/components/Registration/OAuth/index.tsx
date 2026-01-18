@@ -9,9 +9,8 @@ import Link from "next/link";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { TextInput } from "@/components/Form/Controlled";
-import { SingleCardCheckbox } from "@/components/Form/Manual";
+import { FieldItem } from "@/components/Form";
+import { SingleCardCheckbox, TextInput } from "@/components/Form/Input/Controlled";
 import { Para } from "@/components/TextBlocks";
 import { USER_PROVIDER_TYPES } from "@/features/core/user/constants";
 import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";
@@ -123,10 +122,11 @@ export function OAuthRegistrationForm() {
           />
         )}
 
-        <FormFieldItem
+        <FieldItem
           control={form.control}
           name="email"
-          label={<span className="text-sm font-medium">メールアドレス</span>}
+          label="メールアドレス"
+          required
           renderInput={(field) => (
             <TextInput
               field={field}
@@ -138,10 +138,11 @@ export function OAuthRegistrationForm() {
           )}
         />
 
-        <FormFieldItem
+        <FieldItem
           control={form.control}
           name="displayName"
-          label={<span className="text-sm font-medium">表示名</span>}
+          label="表示名"
+          required
           renderInput={(field) => (
             <TextInput
               field={field}
@@ -160,7 +161,7 @@ export function OAuthRegistrationForm() {
           wrapperClassName="flex flex-col gap-4"
         />
 
-        <FormFieldItem
+        <FieldItem
           control={form.control}
           name="agreeToTerms"
           renderInput={(field) => (
@@ -190,4 +191,3 @@ export function OAuthRegistrationForm() {
     </AppForm>
   );
 }
-

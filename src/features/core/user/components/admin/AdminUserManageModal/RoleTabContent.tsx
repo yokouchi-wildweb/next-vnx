@@ -12,7 +12,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button/Button";
-import { SelectInput, Input, SwitchInput } from "@/components/Form/Manual";
+import { SelectInput, Input, SwitchInput } from "@/components/Form/Input/Manual";
 import { err } from "@/lib/errors";
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/constants/role";
@@ -130,10 +130,8 @@ export function RoleTabContent({ user, onClose }: Props) {
               変更先ロール
             </Para>
             <SelectInput
-              field={{
-                value: selectedRole,
-                onChange: (value) => setSelectedRole(String(value ?? "")),
-              }}
+              value={selectedRole}
+              onChange={(value) => setSelectedRole(String(value ?? ""))}
               options={roleOptions}
               placeholder="ロールを選択"
               contentClassName="surface-ui-layer"
@@ -155,11 +153,9 @@ export function RoleTabContent({ user, onClose }: Props) {
           {currentRoleHasProfile && (
             <Block className="rounded-md border border-border bg-muted/30 p-4">
               <SwitchInput
-                field={{
-                  name: "deleteOldProfile",
-                  value: deleteOldProfile,
-                  onChange: setDeleteOldProfile,
-                }}
+                value={deleteOldProfile}
+                name="deleteOldProfile"
+                onChange={setDeleteOldProfile}
                 label="現在のロールのプロフィールを削除する"
                 description="削除すると復元できません"
                 activeColor="destructive"

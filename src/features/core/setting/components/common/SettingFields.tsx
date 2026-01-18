@@ -1,8 +1,8 @@
 // src/features/setting/components/common/SettingFields.tsx
 
 import { FieldValues, type Control, type FieldPath } from "react-hook-form";
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { TextInput } from "@/components/Form/Controlled";
+import { FieldItem } from "@/components/Form";
+import { TextInput } from "@/components/Form/Input/Controlled";
 
 export type SettingFieldsProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues, any, TFieldValues>;
@@ -13,7 +13,7 @@ export function SettingFields<TFieldValues extends FieldValues>({
 }: SettingFieldsProps<TFieldValues>) {
   return (
     <>
-      <FormFieldItem
+      <FieldItem
         control={control}
         name={"adminListPerPage" as FieldPath<TFieldValues>}
         label="一覧表示件数"

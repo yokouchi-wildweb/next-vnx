@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { MultiSelectInput } from "@/components/Form/Manual/MultiSelectInput";
-import type { MultiSelectInputProps } from "@/components/Form/Manual/MultiSelectInput";
+import { MultiSelectInput } from "@/components/Form/Input/Manual/MultiSelectInput";
+import type { MultiSelectInputProps } from "@/components/Form/Input/Manual/MultiSelectInput";
 import { normalizeOptionValues, type OptionPrimitive } from "@/components/Form/utils";
 import { POPUP_ATTR } from "../constants";
 import type { SelectEditorProps } from "../types";
@@ -33,11 +33,9 @@ export function MultiSelectEditor<T>({
   return (
     <div className="w-full px-2 py-1">
       <MultiSelectInput
-        field={{
-          value: normalizedMultiValue,
-          name: fieldName,
-          onChange: handleMultiSelectChange,
-        }}
+        value={normalizedMultiValue}
+        name={fieldName}
+        onChange={handleMultiSelectChange}
         options={column.options ?? []}
         placeholder={placeholder}
         open={popupOpen}

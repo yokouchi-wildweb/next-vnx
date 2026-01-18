@@ -9,8 +9,8 @@ import { toast } from "sonner";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { TextInput } from "@/components/Form/Controlled";
+import { FieldItem } from "@/components/Form";
+import { TextInput } from "@/components/Form/Input/Controlled";
 import { Flex } from "@/components/Layout/Flex";
 import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
@@ -71,7 +71,7 @@ export function UserProfileForm({
 
   return (
     <AppForm methods={methods} onSubmit={submit} pending={isMutating} fieldSpace="md">
-      <FormFieldItem
+      <FieldItem
         control={control}
         name="displayName"
         label="表示名"

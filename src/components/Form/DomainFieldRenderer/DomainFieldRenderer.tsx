@@ -3,29 +3,30 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Control, ControllerRenderProps, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
+import { FieldItem } from "@/components/Form/Field/FieldItem";
 import {
+  BooleanCheckboxInput,
+  CheckGroupInput,
   DateInput,
   DatetimeInput,
   EmailInput,
+  MultiSelectInput,
   NumberInput,
   PasswordInput,
+  RadioGroupInput,
+  SelectInput,
+  SwitchInput,
   TextInput,
   Textarea,
   TimeInput,
-} from "@/components/Form/Controlled";
-import { SelectInput } from "@/components/Form/Manual";
-import { CheckGroupInput } from "@/components/Form/Manual";
-import { MultiSelectInput } from "@/components/Form/Manual";
-import StepperInput from "@/components/Form/Manual/StepperInput";
-import { RadioGroupInput } from "@/components/Form/Manual";
-import { SwitchInput } from "@/components/Form/Controlled";
-import { BooleanCheckboxInput } from "@/components/Form/Manual/BooleanCheckboxInput";
+} from "@/components/Form/Input/Controlled";
+import StepperInput from "@/components/Form/Input/Manual/StepperInput";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";
 
 import { buildFieldConfigsFromDomainJson, type DomainJsonField } from "./fieldMapper";
 import { FieldGroup } from "./FieldGroup";
-import type { DomainFieldGroup } from "./types";
+import { FieldItemGroup } from "@/components/Form/Field/FieldItemGroup";
+import type { DomainFieldGroup, DomainInlineGroup } from "./types";
 import type {
   DomainFieldRenderConfig,
   TextFieldConfig,
@@ -61,6 +62,8 @@ export type DomainFieldRendererProps<TFieldValues extends FieldValues> = {
   domainJsonFields?: DomainJsonField[];
   /** フィールドグループ定義（指定時はグループ化表示） */
   fieldGroups?: DomainFieldGroup[];
+  /** インラインフィールドグループ定義（横並び表示） */
+  inlineGroups?: DomainInlineGroup[];
   onMediaStateChange?: (state: DomainMediaState | null) => void;
   /** 全フィールドの前に挿入するUI */
   beforeAll?: ReactNode;
@@ -78,6 +81,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   fields = [],
   domainJsonFields = [],
   fieldGroups,
+  inlineGroups,
   onMediaStateChange,
   beforeAll,
   afterAll,
@@ -121,7 +125,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderTextField = (
     fieldConfig: TextFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -134,7 +138,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderNumberField = (
     fieldConfig: NumberFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -147,7 +151,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderTextareaField = (
     fieldConfig: TextareaFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -166,7 +170,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderSelectField = (
     fieldConfig: SelectFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -179,7 +183,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderCheckGroupField = (
     fieldConfig: CheckGroupFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -198,7 +202,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderMultiSelectField = (
     fieldConfig: MultiSelectFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -217,7 +221,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderRadioField = (
     fieldConfig: RadioFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -290,7 +294,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderDateField = (
     fieldConfig: DateFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -303,7 +307,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderTimeField = (
     fieldConfig: TimeFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -316,7 +320,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderDatetimeField = (
     fieldConfig: DatetimeFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -329,7 +333,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderEmailField = (
     fieldConfig: EmailFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -342,7 +346,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderPasswordField = (
     fieldConfig: PasswordFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -496,6 +500,49 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
     [control, methods, handleMediaHandleChange, beforeField, afterField],
   );
 
+  // 入力コンポーネントのみを返す関数（インライングループ用）
+  const renderInputComponent = useCallback(
+    (
+      fieldConfig: DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>,
+      field: ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>
+    ): React.ReactNode => {
+      switch (fieldConfig.type) {
+        case "text":
+          return <TextInput field={field} readOnly={fieldConfig.readOnly} />;
+        case "number":
+          return <NumberInput field={field} readOnly={fieldConfig.readOnly} />;
+        case "textarea":
+          return (
+            <Textarea
+              field={field}
+              placeholder={(fieldConfig as TextareaFieldConfig<TFieldValues, FieldPath<TFieldValues>>).placeholder}
+              readOnly={fieldConfig.readOnly}
+            />
+          );
+        case "select":
+          return (
+            <SelectInput
+              field={field}
+              options={(fieldConfig as SelectFieldConfig<TFieldValues, FieldPath<TFieldValues>>).options}
+            />
+          );
+        case "date":
+          return <DateInput field={field} readOnly={fieldConfig.readOnly} />;
+        case "time":
+          return <TimeInput field={field} readOnly={fieldConfig.readOnly} />;
+        case "datetime":
+          return <DatetimeInput field={field} readOnly={fieldConfig.readOnly} />;
+        case "email":
+          return <EmailInput field={field} readOnly={fieldConfig.readOnly} />;
+        case "password":
+          return <PasswordInput field={field} readOnly={fieldConfig.readOnly} />;
+        default:
+          return null;
+      }
+    },
+    [],
+  );
+
   // フィールド名からconfigを取得するマップ
   const fieldConfigMap = useMemo(() => {
     const map = new Map<string, { config: DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>; index: number }>();
@@ -504,6 +551,90 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
     });
     return map;
   }, [combinedFields]);
+
+  // インライングループに含まれるフィールド名のSet
+  const inlineGroupFieldsSet = useMemo(() => {
+    const set = new Set<string>();
+    inlineGroups?.forEach((group) => {
+      group.fields.forEach((fieldName) => set.add(fieldName));
+    });
+    return set;
+  }, [inlineGroups]);
+
+  // インライングループの先頭フィールド名 → グループ定義 のマップ
+  const inlineGroupByFirstField = useMemo(() => {
+    const map = new Map<string, DomainInlineGroup>();
+    inlineGroups?.forEach((group) => {
+      if (group.fields.length > 0) {
+        map.set(group.fields[0], group);
+      }
+    });
+    return map;
+  }, [inlineGroups]);
+
+  // インライングループをレンダリングする関数
+  const renderInlineGroup = useCallback(
+    (group: DomainInlineGroup) => {
+      const groupFieldConfigs = group.fields
+        .map((fieldName) => fieldConfigMap.get(fieldName))
+        .filter((entry): entry is NonNullable<typeof entry> => entry != null);
+
+      if (groupFieldConfigs.length === 0) return null;
+
+      // フィールド名の配列を取得
+      const names = groupFieldConfigs.map(({ config }) => config.name) as readonly FieldPath<TFieldValues>[];
+
+      return (
+        <FieldItemGroup
+          key={group.key}
+          control={control}
+          names={names}
+          label={group.label}
+          fieldWidths={group.fieldWidths}
+          required={group.required}
+          description={group.description}
+          renderInputs={(fields) =>
+            fields.map((field, index) => {
+              const config = groupFieldConfigs[index]?.config;
+              if (!config) return null;
+              return renderInputComponent(config, field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>);
+            }).filter((el) => el != null)
+          }
+        />
+      );
+    },
+    [control, fieldConfigMap, renderInputComponent],
+  );
+
+  // セクショングループ内のフィールドをレンダリング（インライングループ対応）
+  const renderFieldsWithInlineSupport = useCallback(
+    (fieldEntries: { config: DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>; index: number }[]) => {
+      const elements: React.ReactNode[] = [];
+      const processedInlineGroups = new Set<string>();
+
+      fieldEntries.forEach(({ config, index }) => {
+        const fieldName = config.name;
+
+        // インライングループに含まれるフィールドの場合
+        if (inlineGroupFieldsSet.has(fieldName)) {
+          // 先頭フィールドの場合のみインライングループをレンダリング
+          const inlineGroup = inlineGroupByFirstField.get(fieldName);
+          if (inlineGroup && !processedInlineGroups.has(inlineGroup.key)) {
+            processedInlineGroups.add(inlineGroup.key);
+            elements.push(renderInlineGroup(inlineGroup));
+          }
+          // 先頭以外のフィールドはスキップ
+          return;
+        }
+
+        // 通常のフィールド
+        elements.push(renderSingleField(config, index));
+      });
+
+      return elements;
+    },
+    [inlineGroupFieldsSet, inlineGroupByFirstField, renderInlineGroup, renderSingleField],
+  );
 
   // グループ化されたフィールドのレンダリング
   const renderedGroupedFields = useMemo(() => {
@@ -531,7 +662,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
           defaultCollapsed={group.defaultCollapsed}
           bgColor={group.bgColor}
         >
-          {groupFields.map(({ config, index }) => renderSingleField(config, index))}
+          {renderFieldsWithInlineSupport(groupFields)}
         </FieldGroup>
       );
     });
@@ -546,18 +677,39 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
         {groups}
         {ungroupedFields.length > 0 && (
           <div className="flex flex-col gap-4">
-            {ungroupedFields.map(({ config, index }) => renderSingleField(config, index))}
+            {renderFieldsWithInlineSupport(ungroupedFields)}
           </div>
         )}
       </>
     );
-  }, [fieldGroups, fieldConfigMap, combinedFields, renderSingleField]);
+  }, [fieldGroups, fieldConfigMap, combinedFields, renderFieldsWithInlineSupport]);
 
-  // フラット表示（従来通り）
+  // フラット表示（インライングループ対応）
   const renderedFields = useMemo(() => {
     if (fieldGroups && fieldGroups.length > 0) return null;
-    return combinedFields.map((fieldConfig, index) => renderSingleField(fieldConfig, index));
-  }, [fieldGroups, combinedFields, renderSingleField]);
+
+    const elements: React.ReactNode[] = [];
+
+    combinedFields.forEach((fieldConfig, index) => {
+      const fieldName = fieldConfig.name;
+
+      // インライングループに含まれるフィールドの場合
+      if (inlineGroupFieldsSet.has(fieldName)) {
+        // 先頭フィールドの場合のみインライングループをレンダリング
+        const inlineGroup = inlineGroupByFirstField.get(fieldName);
+        if (inlineGroup) {
+          elements.push(renderInlineGroup(inlineGroup));
+        }
+        // 先頭以外のフィールドはスキップ（グループ内でレンダリング済み）
+        return;
+      }
+
+      // 通常のフィールド
+      elements.push(renderSingleField(fieldConfig, index));
+    });
+
+    return elements;
+  }, [fieldGroups, combinedFields, renderSingleField, inlineGroupFieldsSet, inlineGroupByFirstField, renderInlineGroup]);
 
   useEffect(() => {
     if (!onMediaStateChange) return;
