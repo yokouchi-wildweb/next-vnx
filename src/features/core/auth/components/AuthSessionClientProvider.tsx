@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import { useCallback, useMemo, useState } from "react";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
+import { useFirebaseAuthSync } from "@/features/core/auth/hooks/useFirebaseAuthSync";
+import { useDauTracker } from "@/features/core/analytics/hooks/useDauTracker";
 import { fetchSession } from "@/features/core/auth/services/client/session";
 
 import type { AuthSessionValue } from "./AuthSessionContext";
@@ -16,6 +18,12 @@ type AuthSessionClientProviderProps = {
 
 export function AuthSessionClientProvider({ initialUser, children }: AuthSessionClientProviderProps) {
   const [user, setUser] = useState<SessionUser | null>(initialUser);
+
+  // Firebase Auth とローカルセッションの同期を維持する。
+  useFirebaseAuthSync(user);
+
+  // DAU（日次アクティブユーザー）を記録する（1日1回）。
+  useDauTracker(user);
 
   const refreshSession = useCallback(async () => {
     try {

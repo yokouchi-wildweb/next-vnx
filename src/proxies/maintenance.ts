@@ -9,6 +9,26 @@ import { parseSessionCookie } from "@/lib/jwt";
 import type { ProxyHandler } from "./types";
 
 /**
+ * 現在時刻がメンテナンス期間内かチェック
+ */
+const isInMaintenanceWindow = (): boolean => {
+  const { start, end } = maintenanceConfig.schedule;
+  const now = new Date();
+
+  // 開始時刻が設定されていて、まだ開始前なら期間外
+  if (start && now < new Date(start)) {
+    return false;
+  }
+
+  // 終了時刻が設定されていて、終了後なら期間外
+  if (end && now >= new Date(end)) {
+    return false;
+  }
+
+  return true;
+};
+
+/**
  * パスが許可リストに含まれるかチェック
  */
 const isAllowedPath = (pathname: string): boolean => {
@@ -25,15 +45,20 @@ const isAllowedPath = (pathname: string): boolean => {
 
 /**
  * メンテナンスモード用Proxy
- * 有効時、許可されたパスと管理者以外のアクセスをメンテナンスページにリダイレクト
+ * - メンテナンス中: 許可されたパスと管理者以外のアクセスをメンテナンスページにリダイレクト
+ * - メンテナンス時間外: /maintenance へのアクセスを redirectAfterEnd にリダイレクト
  */
 export const maintenanceProxy: ProxyHandler = async (request) => {
-  // メンテナンスモードが無効なら何もしない
-  if (!maintenanceConfig.enabled) {
+  const pathname = request.nextUrl.pathname;
+  const inMaintenance = maintenanceConfig.enabled && isInMaintenanceWindow();
+
+  // メンテナンス時間外: /maintenance にいるユーザーをリダイレクト
+  if (!inMaintenance) {
+    if (pathname === maintenanceConfig.redirectTo) {
+      return NextResponse.redirect(new URL(maintenanceConfig.redirectAfterEnd, request.url));
+    }
     return;
   }
-
-  const pathname = request.nextUrl.pathname;
 
   // 許可されたパスならスキップ
   if (isAllowedPath(pathname)) {

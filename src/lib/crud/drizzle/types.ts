@@ -1,7 +1,13 @@
 // src/lib/crud/drizzle/types.ts
 
+import type { SQL } from "drizzle-orm";
 import type { PgTable, AnyPgColumn } from "drizzle-orm/pg-core";
-import type { CreateCrudServiceOptions } from "@/lib/crud/types";
+import type {
+  CreateCrudServiceOptions,
+  BelongsToRelation,
+  BelongsToManyObjectRelation,
+  CountableRelation,
+} from "@/lib/crud/types";
 import type { db } from "@/lib/drizzle";
 
 /**
@@ -43,6 +49,35 @@ export type BelongsToManyRelationConfig<TData extends Record<string, any>> = {
   targetProperty: string;
 };
 
+/**
+ * Drizzle固有の追加WHERE条件オプション。
+ * search / searchWithDeleted で WhereExpr DSL では表現できない
+ * Drizzle SQL条件（サブクエリ、EXISTS、JSONB演算子等）を注入する。
+ */
+export type ExtraWhereOption = {
+  extraWhere?: SQL;
+};
+
 export type DrizzleCrudServiceOptions<TData extends Record<string, any>> = CreateCrudServiceOptions<TData> & {
   belongsToManyRelations?: Array<BelongsToManyRelationConfig<TData>>;
+  /**
+   * withRelations オプション用: belongsTo リレーション設定。
+   * 外部キーからリレーション先のオブジェクトを取得する。
+   */
+  belongsToRelations?: BelongsToRelation[];
+  /**
+   * withRelations オプション用: belongsToMany のオブジェクト展開設定。
+   * 中間テーブルを経由してリレーション先のオブジェクト配列を取得する。
+   */
+  belongsToManyObjectRelations?: BelongsToManyObjectRelation[];
+  /**
+   * withCount オプション用: カウント取得対象のリレーション設定。
+   */
+  countableRelations?: CountableRelation[];
+  /**
+   * reorder メソッド用: sortOrder カラム。
+   * 設定するとドラッグ&ドロップでの並び替えが可能になる。
+   * Fractional Indexing（文字列ベース）を使用。
+   */
+  sortOrderColumn?: AnyPgColumn;
 };

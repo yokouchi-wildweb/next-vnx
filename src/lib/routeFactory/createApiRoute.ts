@@ -2,8 +2,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
+import { APP_FEATURES } from "@/config/app/app-features.config";
+import type { RateLimitCategory } from "@/config/app/rate-limit.config";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import type { SessionUser } from "@/features/core/auth/entities/session";
+import { checkRateLimit } from "@/features/core/rateLimit/services/server/wrappers/rateLimitHelper";
+import type { RecaptchaAction } from "@/lib/recaptcha/constants";
+import { RECAPTCHA_V2_INTERNALS, RECAPTCHA_V3_INTERNALS, RECAPTCHA_DEBUG } from "@/lib/recaptcha/constants";
+import { verifyRecaptcha, verifyRecaptchaV2 } from "@/lib/recaptcha/server";
 import { isDomainError } from "@/lib/errors";
 
 /**
@@ -12,6 +18,18 @@ import { isDomainError } from "@/lib/errors";
  * - write: 書き込み操作（create, update, delete）
  */
 export type OperationType = "read" | "write";
+
+/**
+ * reCAPTCHA検証設定
+ */
+export type RecaptchaConfig = {
+  /** reCAPTCHAアクション名 */
+  action: RecaptchaAction;
+  /** v3スコア閾値（デフォルト: 設定値） */
+  threshold?: number;
+  /** v2チャレンジ閾値（デフォルト: 設定値）。v2が有効な場合のみ使用 */
+  v2Threshold?: number;
+};
 
 /**
  * APIルートの設定
@@ -28,6 +46,23 @@ export type ApiRouteConfig = {
    * - false: スキップしない（デモでも実行を許可）
    */
   skipForDemo?: boolean;
+  /**
+   * レート制限カテゴリ
+   * 指定するとIPベースのレート制限が適用される
+   * カテゴリは src/config/app/rate-limit.config.ts で定義
+   */
+  rateLimit?: RateLimitCategory;
+  /**
+   * サブネット単位（/24）のレート制限カテゴリ
+   * 指定するとIPの上位3オクテットでレート制限が適用される
+   * iCloud Private Relay 等でIPが分散する攻撃に有効
+   */
+  rateLimitSubnet?: RateLimitCategory;
+  /**
+   * reCAPTCHA v3 検証設定
+   * 指定するとリクエストボディのrecaptchaTokenを検証する
+   */
+  recaptcha?: RecaptchaConfig;
 };
 
 /**
@@ -83,9 +118,119 @@ export function createApiRoute<TParams = Record<string, string>, TResult = unkno
         return NextResponse.json({ success: true, demo: true });
       }
 
+      // レート制限チェック
+      if (config.rateLimit) {
+        const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+        const limit = await checkRateLimit(config.rateLimit, ip);
+        if (!limit.allowed) {
+          return NextResponse.json(
+            {
+              message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。",
+              resetAt: limit.resetAt,
+            },
+            { status: 429 }
+          );
+        }
+      }
+
+      // サブネット単位（/24）レート制限チェック
+      if (config.rateLimitSubnet) {
+        const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+        const subnet = ip.split(".").slice(0, 3).join(".");
+        const limit = await checkRateLimit(config.rateLimitSubnet, subnet);
+        if (!limit.allowed) {
+          return NextResponse.json(
+            {
+              message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。",
+              resetAt: limit.resetAt,
+              silent: true,
+            },
+            { status: 429 }
+          );
+        }
+      }
+
+      // reCAPTCHA 検証
+      // v3トークン: X-Recaptcha-Token ヘッダー
+      // v2トークン: X-Recaptcha-V2-Token ヘッダー
+      if (config.recaptcha) {
+        const threshold = config.recaptcha.threshold ?? APP_FEATURES.auth.signup.recaptchaThreshold;
+        const v2ThresholdConfig = config.recaptcha.v2Threshold ?? APP_FEATURES.auth.signup.recaptchaV2Threshold;
+
+        if (RECAPTCHA_DEBUG.enabled) {
+          console.log("[reCAPTCHA] Config:", {
+            v3Enabled: RECAPTCHA_V3_INTERNALS.enabled,
+            v2Enabled: RECAPTCHA_V2_INTERNALS.enabled,
+            threshold,
+            v2Threshold: v2ThresholdConfig,
+            forceScore: RECAPTCHA_DEBUG.forceScore,
+          });
+        }
+
+        const v2Token = req.headers.get("X-Recaptcha-V2-Token");
+
+        // v2トークンがある場合はv2検証を実行（v2チャレンジ完了後のリトライ）
+        if (v2Token) {
+          const v2Result = await verifyRecaptchaV2(v2Token);
+          if (RECAPTCHA_DEBUG.enabled) {
+            console.log("[reCAPTCHA] v2 Result:", { valid: v2Result.valid, error: v2Result.error });
+          }
+          if (!v2Result.valid) {
+            console.warn(`[reCAPTCHA] v2 verification failed: ${v2Result.error}`);
+            return NextResponse.json(
+              { message: "現在は登録ができません。" },
+              { status: 403 }
+            );
+          }
+          // v2検証成功 → 続行
+        } else {
+          // v3検証を実行
+          const token = req.headers.get("X-Recaptcha-Token") ?? "";
+          // v2が有効な場合のみv2Thresholdを渡す
+          const v2Threshold = RECAPTCHA_V2_INTERNALS.enabled ? v2ThresholdConfig : undefined;
+
+          const result = await verifyRecaptcha(
+            token,
+            config.recaptcha.action,
+            threshold,
+            v2Threshold,
+          );
+
+          if (RECAPTCHA_DEBUG.enabled) {
+            console.log("[reCAPTCHA] v3 Result:", {
+              valid: result.valid,
+              score: result.score,
+              requireV2Challenge: result.requireV2Challenge,
+              error: result.error,
+            });
+          }
+
+          if (!result.valid) {
+            console.warn(`[reCAPTCHA] v3 verification failed: ${result.error}, score: ${result.score}`);
+
+            // v2チャレンジが必要な場合（中間スコア）
+            if (result.requireV2Challenge && RECAPTCHA_V2_INTERNALS.enabled) {
+              return NextResponse.json(
+                {
+                  message: "追加の認証が必要です",
+                  requireV2Challenge: true,
+                  recaptchaV2SiteKey: RECAPTCHA_V2_INTERNALS.siteKey,
+                },
+                { status: 428 } // Precondition Required
+              );
+            }
+
+            // 完全なブロック
+            return NextResponse.json(
+              { message: "現在は登録ができません。" },
+              { status: 403 }
+            );
+          }
+        }
+      }
+
       // 将来の拡張ポイント:
       // - メンテナンスモードチェック
-      // - レート制限
       // - 監査ログ（前処理）
 
       // ===== ハンドラー実行 =====

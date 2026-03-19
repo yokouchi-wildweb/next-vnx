@@ -3,11 +3,19 @@
 "use client";
 
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
-import Pagination from "../../../../components/Navigation/Pagination";
+import { Pagination } from "@/components/Navigation";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
-import config from "@/features/__domain__/domain.json";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawConfig from "@/features/__domain__/domain.json";
+
+const config = normalizeDomainJsonConfig(rawConfig);
+import { CreateButton } from "@/lib/crud";
+import { getAdminPaths } from "@/lib/crud/utils";
+
+const paths = getAdminPaths("__domainsSlug__");
+const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
 
 export type Admin__Domain__ListHeaderProps = {
   page: number;
@@ -16,13 +24,12 @@ export type Admin__Domain__ListHeaderProps = {
 };
 
 export default function Admin__Domain__ListHeader({ page, perPage, total }: Admin__Domain__ListHeaderProps) {
-  const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
   const params = useSearchParams();
 
   return (
-    <ListTop title="登録済み__DomainLabel__の一覧" newHref="/admin/__domainsSlug__/new">
-      {hasSearch && <SearchBox makeHref={(p) => `/admin/__domainsSlug__?${p.toString()}`} />}
-      {config.useImportExport === true && (
+    <ListTop title="登録済み__DomainLabel__の一覧">
+      {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
+      {"useImportExport" in config && config.useImportExport === true && (
         <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
       )}
       <Pagination
@@ -32,9 +39,10 @@ export default function Admin__Domain__ListHeader({ page, perPage, total }: Admi
         makeHref={(p) => {
           const search = new URLSearchParams(params.toString());
           search.set("page", String(p));
-          return `/admin/__domainsSlug__?${search.toString()}`;
+          return `${paths.list}?${search.toString()}`;
         }}
       />
+      <CreateButton domain="__domain__" />
     </ListTop>
   );
 }

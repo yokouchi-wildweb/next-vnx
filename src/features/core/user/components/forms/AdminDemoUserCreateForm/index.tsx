@@ -5,11 +5,10 @@
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-
+import { useToast } from "@/lib/toast";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FieldItem } from "@/components/Form";
+import { ControlledField } from "@/components/Form";
 import { PasswordInput, SelectInput, TextInput } from "@/components/Form/Input/Controlled";
 import { err } from "@/lib/errors";
 import { useCreateDemoUser } from "@/features/user/hooks/useCreateDemoUser";
@@ -34,6 +33,7 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
   });
 
   const router = useRouter();
+  const { showToast } = useToast();
   const { trigger, isMutating } = useCreateDemoUser();
 
   // ロール選択を監視してプロフィールフィールドを動的に更新
@@ -42,10 +42,10 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
   const submit = async (values: FormValues) => {
     try {
       await trigger(values);
-      toast.success("デモユーザーを作成しました");
+      showToast("デモユーザーを作成しました", "success");
       router.push(redirectPath);
     } catch (error) {
-      toast.error(err(error, "デモユーザーの作成に失敗しました"));
+      showToast(err(error, "デモユーザーの作成に失敗しました"), "error");
     }
   };
 
@@ -61,9 +61,9 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
       methods={methods}
       onSubmit={submit}
       pending={isMutating}
-      fieldSpace="md"
+      fieldSpace={6}
     >
-      <FieldItem
+      <ControlledField
         control={control}
         name="role"
         label="権限"
@@ -78,19 +78,19 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
           />
         )}
       />
-      <FieldItem
+      <ControlledField
         control={control}
-        name="displayName"
+        name="name"
         label="表示名"
         renderInput={(field) => <TextInput field={field} />}
       />
-      <FieldItem
+      <ControlledField
         control={control}
         name="email"
         label="メールアドレス"
         renderInput={(field) => <TextInput type="email" field={field} />}
       />
-      <FieldItem
+      <ControlledField
         control={control}
         name="localPassword"
         label="パスワード"

@@ -3,14 +3,16 @@
 import type { User } from "@/features/core/user/entities";
 import { UserUpdateByAdminSchema, UserSelfUpdateSchema } from "@/features/core/user/entities";
 import type { UpdateUserInput } from "@/features/core/user/services/types";
-import { base } from "../drizzleBase";
+import { base, baseOptions } from "../drizzleBase";
 import { DomainError } from "@/lib/errors";
 import { omitUndefined } from "@/utils/object";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
-import { hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";
+import { getRoleCategory, hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";
 import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
+import { syncBelongsToManyRelations } from "@/lib/crud/drizzle/belongsToMany";
+import { db } from "@/lib/drizzle";
 
 async function updateFirebaseEmail(uid: string, email: string): Promise<void> {
   const auth = getServerAuth();
@@ -33,12 +35,41 @@ async function updateFirebasePassword(uid: string, password: string): Promise<vo
   }
 }
 
+async function updateFirebasePhoneNumber(uid: string, phoneNumber: string | null): Promise<void> {
+  const auth = getServerAuth();
+  try {
+    await auth.updateUser(uid, { phoneNumber });
+  } catch (error) {
+    if (hasFirebaseErrorCode(error, "auth/phone-number-already-exists")) {
+      throw new DomainError("同じ電話番号のユーザーが既に存在します", { status: 409 });
+    }
+    throw new DomainError("電話番号の更新に失敗しました", { status: 500 });
+  }
+
+  // 電話番号クリア時は phone プロバイダーも解除する
+  // （プロバイダーが残ると再登録時に auth/provider-already-linked エラーになる）
+  // updateUser の phoneNumber:null と providersToUnlink は同時指定できないため分離
+  if (phoneNumber === null) {
+    try {
+      const user = await auth.getUser(uid);
+      const hasPhoneProvider = user.providerData.some(
+        (p) => p.providerId === "phone",
+      );
+      if (hasPhoneProvider) {
+        await auth.updateUser(uid, { providersToUnlink: ["phone"] });
+      }
+    } catch {
+      // プロバイダー解除失敗は電話番号クリア自体には影響しないため無視
+    }
+  }
+}
+
 export async function update(id: string, rawData?: UpdateUserInput): Promise<User> {
   if (!rawData || typeof rawData !== "object") {
     throw new DomainError("更新データが不正です", { status: 400 });
   }
 
-  const { newPassword, profileData, ...restRawData } = rawData;
+  const { newPassword, profileData, user_tag_ids, ...restRawData } = rawData;
   const normalizedNewPassword =
     typeof newPassword === "string" ? newPassword.trim() : undefined;
 
@@ -53,7 +84,7 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     throw new DomainError("ユーザーが見つかりません", { status: 404 });
   }
 
-  const isAdmin = sessionUser.role === "admin";
+  const isAdmin = getRoleCategory(sessionUser.role) === "admin";
   const isSelfUpdate = sessionUser.userId === id;
 
   if (!isAdmin && !isSelfUpdate) {
@@ -77,7 +108,10 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     throw new DomainError(message, { status: 400 });
   }
 
+  // phoneNumber は管理者更新時のみスキーマに含まれる
+  const parsedData = result.data as Record<string, unknown>;
   const { localPassword, ...rest } = result.data;
+  const phoneNumber = parsedData.phoneNumber as string | null | undefined;
 
   const shouldSyncFirebaseEmail =
     current.providerType === "email" &&
@@ -98,10 +132,29 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     await updateFirebasePassword(current.providerUid, normalizedNewPassword);
   }
 
+  // 電話番号の Firebase 同期（local 以外 = Firebase Auth 連携ユーザー）
+  const shouldSyncFirebasePhone =
+    current.providerType !== "local" &&
+    phoneNumber !== undefined &&
+    phoneNumber !== current.phoneNumber;
+
+  if (shouldSyncFirebasePhone) {
+    await updateFirebasePhoneNumber(
+      current.providerUid,
+      phoneNumber ?? null,
+    );
+  }
+
   const updatePayload = omitUndefined(rest) as Partial<User>;
 
   if (current.providerType === "local" && localPassword !== undefined) {
     updatePayload.localPassword = localPassword;
+  }
+
+  // 電話番号変更時に phoneVerifiedAt も更新
+  if (phoneNumber !== undefined && phoneNumber !== current.phoneNumber) {
+    updatePayload.phoneNumber = phoneNumber;
+    updatePayload.phoneVerifiedAt = phoneNumber ? new Date() : null;
   }
 
   // ユーザー情報の更新
@@ -114,6 +167,19 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
   const effectiveRole = (updatePayload.role ?? current.role) as UserRoleType;
   if (profileData && hasRoleProfile(effectiveRole)) {
     await userProfileService.upsertProfile(id, effectiveRole, profileData);
+  }
+
+  // ユーザータグの同期
+  if (user_tag_ids !== undefined) {
+    const relationValues = new Map<string, unknown[]>();
+    relationValues.set("user_tag_ids", user_tag_ids);
+    await syncBelongsToManyRelations(
+      db,
+      baseOptions.belongsToManyRelations,
+      id,
+      relationValues,
+    );
+    (updatedUser as User).user_tag_ids = user_tag_ids;
   }
 
   return updatedUser;

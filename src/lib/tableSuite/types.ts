@@ -1,5 +1,43 @@
 // src/lib/tableSuite/types.ts
 
+import type React from "react";
+
+// バリアント定義を再エクスポート
+export {
+  type RowHeight,
+  ROW_HEIGHT_CLASS,
+  type PaddingSize,
+  PADDING_X_CLASS,
+  PADDING_Y_CLASS,
+  resolvePaddingClass,
+  type TableColumnAlignment,
+  resolveColumnTextAlignClass,
+  resolveColumnFlexAlignClass,
+} from "./table-variants";
+
+import type { RowHeight, PaddingSize } from "./table-variants";
+
+// ============================================================
+// 共通Props
+// ============================================================
+export type TableCellStyleProps = {
+  /**
+   * 行の高さ。デフォルト: "md"
+   */
+  rowHeight?: RowHeight;
+  /**
+   * セルの水平パディング。デフォルト: "sm" (px-2)
+   */
+  cellPaddingX?: PaddingSize;
+  /**
+   * セルの垂直パディング。デフォルト: "none"
+   */
+  cellPaddingY?: PaddingSize;
+};
+
+// ============================================================
+// 行クラス解決
+// ============================================================
 export type TableRowClassContext = {
   index: number;
   /**
@@ -38,20 +76,6 @@ export type TableStylingProps<T> = {
   bottomSentinelRef?: React.Ref<HTMLDivElement>;
 };
 
-export type TableColumnAlignment = "left" | "center" | "right";
-
-const columnTextAlignClassMap: Record<TableColumnAlignment, string> = {
-  left: "text-left",
-  center: "text-center",
-  right: "text-right",
-};
-
-const columnFlexAlignClassMap: Record<TableColumnAlignment, string> = {
-  left: "justify-start text-left",
-  center: "justify-center text-center",
-  right: "justify-end text-right",
-};
-
 export const resolveRowClassName = <T,>(
   rowClassName: RowClassNameResolver<T> | undefined,
   item: T,
@@ -66,16 +90,63 @@ export const resolveRowClassName = <T,>(
   return rowClassName;
 };
 
-export const resolveColumnTextAlignClass = (align?: TableColumnAlignment) => {
-  if (!align) {
-    return undefined;
-  }
-  return columnTextAlignClassMap[align];
+// ============================================================
+// カラムソート
+// ============================================================
+export type SortDirection = "asc" | "desc";
+
+export type SortState = {
+  /** ソート対象のカラムキー */
+  field: string;
+  /** ソート方向 */
+  direction: SortDirection;
 };
 
-export const resolveColumnFlexAlignClass = (align?: TableColumnAlignment) => {
-  if (!align) {
-    return undefined;
+export type ColumnSortProps = {
+  /** 現在のソート状態 */
+  sort?: SortState;
+  /** ヘッダークリック時のコールバック */
+  onSortChange?: (sort: SortState) => void;
+};
+
+/**
+ * ヘッダークリック時の次のソート状態を算出する。
+ * 同じフィールド → 方向を反転、別フィールド → asc で開始。
+ */
+export const resolveNextSort = (current: SortState | undefined, field: string): SortState => {
+  if (current?.field === field && current.direction === "asc") {
+    return { field, direction: "desc" };
   }
-  return columnFlexAlignClassMap[align];
+  return { field, direction: "asc" };
+};
+
+// ============================================================
+// セルアクション
+// ============================================================
+
+/**
+ * セルのクリックアクション設定
+ */
+export type CellAction<T> = {
+  /**
+   * セルクリック時のコールバック（popover 使用時は省略可）
+   */
+  onClick?: (item: T) => void;
+  /**
+   * ポップオーバーモード：CellClickOverlay をトリガーとして受け取り、ポップオーバーを返す
+   * onClick の代わりに使用する
+   */
+  popover?: (item: T, trigger: React.ReactNode) => React.ReactNode;
+  /**
+   * 右端に表示するインジケーター。
+   * デフォルト: 目のアイコン
+   * ReactNode または関数を渡すことで自由にカスタマイズ可能（文字列、アイコン、コンポーネントなど）
+   * 関数を渡すと行データに基づいて動的にインジケーターを生成できる
+   */
+  indicator?: React.ReactNode | ((item: T) => React.ReactNode);
+  /**
+   * セル全体をクリック領域にする（デフォルト: false）
+   * true の場合、ホバー時にセル全体がオーバーレイされる
+   */
+  fullWidth?: boolean;
 };

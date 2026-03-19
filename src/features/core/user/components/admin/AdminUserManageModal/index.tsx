@@ -4,6 +4,8 @@
 
 import TabbedModal from "@/components/Overlays/TabbedModal";
 import type { User } from "@/features/core/user/entities";
+import { SummaryTabContent } from "./SummaryTabContent";
+import { AuthTabContent } from "./AuthTabContent";
 import { StatusTabContent } from "./StatusTabContent";
 import { RoleTabContent } from "./RoleTabContent";
 import { DeleteTabContent } from "./DeleteTabContent";
@@ -32,6 +34,16 @@ export default function AdminUserManageModal({ open, user, onClose }: Props) {
       maxWidth={700}
       height="60vh"
       tabs={[
+        {
+          value: "summary",
+          label: "概要",
+          content: <SummaryTabContent user={user} />,
+        },
+        {
+          value: "auth",
+          label: "認証情報",
+          content: <AuthTabContent user={user} onClose={onClose} />,
+        },
         {
           value: "status",
           label: "ステータス変更",

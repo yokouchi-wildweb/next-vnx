@@ -1,6 +1,29 @@
 // src/features/core/purchaseRequest/types/payment.ts
 
 /**
+ * 購入者住所情報（決済ページで事前入力）
+ * Square の buyer_address に対応するプロバイダ非依存な型
+ */
+export type BuyerAddress = {
+  /** 名（名前） */
+  firstName?: string;
+  /** 姓 */
+  lastName?: string;
+  /** 住所1行目（番地等） */
+  addressLine1?: string;
+  /** 住所2行目（建物名等） */
+  addressLine2?: string;
+  /** 市区町村 */
+  locality?: string;
+  /** 都道府県 */
+  administrativeArea?: string;
+  /** 郵便番号 */
+  postalCode?: string;
+  /** 国コード（ISO 3166-1 alpha-2） */
+  country?: string;
+};
+
+/**
  * 決済セッション作成パラメータ
  */
 export type CreatePaymentSessionParams = {
@@ -16,6 +39,14 @@ export type CreatePaymentSessionParams = {
   cancelUrl: string;
   /** 追加メタデータ */
   metadata?: Record<string, string>;
+  /** 購入者メールアドレス（決済ページで事前入力） */
+  buyerEmail?: string;
+  /** 購入者電話番号（E.164形式、決済ページで事前入力） */
+  buyerPhoneNumber?: string;
+  /** 購入者住所情報（決済ページで事前入力） */
+  buyerAddress?: BuyerAddress;
+  /** プロバイダ固有のオプション（下流から自由に渡せる） */
+  providerOptions?: Record<string, unknown>;
 };
 
 /**
@@ -38,6 +69,32 @@ export type PaymentResult = {
   success: boolean;
   /** 決済サービス側のセッションID */
   sessionId: string;
+  /** プロバイダ側の取引ID（問い合わせ・追跡用） */
+  transactionId?: string;
+  /** 実際に使用された支払い方法 */
+  paymentMethod?: string;
+  /** 支払い完了日時 */
+  paidAt?: Date;
+  /** プロバイダ固有データ（デバッグ用） */
+  rawResponse?: unknown;
+  /** エラーコード */
+  errorCode?: string;
+  /** エラーメッセージ */
+  errorMessage?: string;
+};
+
+/**
+ * 決済ステータス照会結果（ポーリング用）
+ */
+export type PaymentStatusResult = {
+  /** 決済ステータス */
+  status: "pending" | "processing" | "completed" | "failed" | "expired";
+  /** 決済サービス側のセッションID */
+  sessionId: string;
+  /** プロバイダ側の取引ID */
+  transactionId?: string;
+  /** 支払い完了日時 */
+  paidAt?: Date;
   /** エラーコード */
   errorCode?: string;
   /** エラーメッセージ */
@@ -65,4 +122,19 @@ export interface PaymentProvider {
    * @returns 決済結果
    */
   verifyWebhook(request: Request): Promise<PaymentResult>;
+
+  /**
+   * Webhook署名を検証（本文解析前の検証）
+   * @param request HTTPリクエスト（clone済み）
+   * @param signature 署名ヘッダーの値
+   * @returns 署名が有効かどうか
+   */
+  verifyWebhookSignature?(request: Request, signature: string): Promise<boolean>;
+
+  /**
+   * 決済ステータスを照会（Webhook未着時のフォールバック用）
+   * @param sessionId 決済セッションID
+   * @returns 決済ステータス
+   */
+  getPaymentStatus?(sessionId: string): Promise<PaymentStatusResult>;
 }

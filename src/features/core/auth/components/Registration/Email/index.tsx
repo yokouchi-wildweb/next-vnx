@@ -2,38 +2,49 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
-import Link from "next/link";
-
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FieldItem } from "@/components/Form";
+import { ControlledField } from "@/components/Form";
 import { PasswordInput, SingleCardCheckbox, TextInput } from "@/components/Form/Input/Controlled";
 import { Input } from "@/components/Form/Input/Manual";
 import { Para } from "@/components/TextBlocks";
+import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/constants/localStorage";
 import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
+import type { RegistrationInput } from "@/features/core/auth/hooks/useRegistration";
 import { useLocalStorage } from "@/lib/browserStorage";
-import { err, HttpError } from "@/lib/errors";
+import { err, HttpError, isHttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
+import {
+  getRecaptchaToken,
+  RecaptchaBadge,
+  RecaptchaV2Challenge,
+  useRecaptchaV2Challenge,
+  isV2ChallengeRequired,
+  useRecaptcha,
+} from "@/lib/recaptcha";
 import { useGuardedNavigation } from "@/lib/transitionGuard";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
+const showInviteCode = APP_FEATURES.marketing.referral.enabled;
 import {
   RoleSelector,
   RoleProfileFields,
 } from "@/features/core/userProfile/components/common";
 import { REGISTRATION_PROFILES } from "../registrationProfiles";
 
+import { RateLimitWarningModal } from "../RateLimitWarningModal";
+import { isSilentRateLimit } from "../RateLimitWarningContent";
 import { FormSchema, type FormValues, DefaultValues, isDoubleMode } from "./formEntities";
 
 export function EmailRegistrationForm() {
   const { guardedPush } = useGuardedNavigation();
+  const { executeRecaptcha } = useRecaptcha();
   const [savedEmail] = useLocalStorage(EMAIL_SIGNUP_STORAGE_KEY, "");
   // ローカルストレージのメールアドレスを優先（認証時に保存された正しい値）
   const email = useMemo(() => savedEmail.trim(), [savedEmail]);
@@ -46,6 +57,19 @@ export function EmailRegistrationForm() {
   });
   const { register, isLoading } = useRegistration();
   const { refreshSession } = useAuthSession();
+  const [showRateLimitWarning, setShowRateLimitWarning] = useState(false);
+
+  // v2チャレンジの状態管理
+  const {
+    challengeState,
+    handleV2ChallengeRequired,
+    handleV2Verify,
+    closeChallenge,
+    hasV2Token,
+  } = useRecaptchaV2Challenge();
+
+  // v2認証成功後に再送信するためのペイロード保存
+  const pendingPayloadRef = useRef<RegistrationInput | null>(null);
 
   // ロール選択を監視してプロフィールフィールドを動的に更新
   const selectedRole = useWatch({ control: form.control, name: "role" });
@@ -54,8 +78,34 @@ export function EmailRegistrationForm() {
     form.setValue("email", email, { shouldValidate: form.formState.isSubmitted });
   }, [email, form]);
 
+  // v2認証成功後に自動的に再送信
+  useEffect(() => {
+    if (hasV2Token && pendingPayloadRef.current) {
+      const payload = pendingPayloadRef.current;
+      pendingPayloadRef.current = null;
+      // v2トークンで再送信
+      register(payload, { recaptchaV2Token: challengeState.v2Token ?? undefined })
+        .then(async () => {
+          await refreshSession();
+          guardedPush("/signup/complete");
+        })
+        .catch((error) => {
+          if (isHttpError(error) && error.status === 429) {
+            if (isSilentRateLimit(error)) {
+              form.setError("root", { type: "server", message: error.message });
+            } else {
+              setShowRateLimitWarning(true);
+            }
+            return;
+          }
+          const message = err(error, "本登録の処理に失敗しました");
+          form.setError("root", { type: "server", message });
+        });
+    }
+  }, [hasV2Token, challengeState.v2Token, register, refreshSession, guardedPush, form]);
+
   const handleSubmit = useCallback(
-    async ({ email: emailValue, displayName, password, role, profileData, agreeToTerms: _ }: FormValues) => {
+    async ({ email: emailValue, name, password, role, profileData, inviteCode, agreeToTerms: _ }: FormValues) => {
       try {
         const currentUser = auth.currentUser;
 
@@ -68,24 +118,63 @@ export function EmailRegistrationForm() {
 
         const idToken = await currentUser.getIdToken();
 
-        await register({
+        // reCAPTCHA トークンを取得
+        const recaptchaToken = await getRecaptchaToken(
+          executeRecaptcha,
+          RECAPTCHA_ACTIONS.REGISTER,
+        );
+
+        const payload: RegistrationInput = {
           providerType: "email",
           providerUid: currentUser.uid,
           idToken,
           email: emailValue,
-          displayName,
+          name,
           password,
           role,
           profileData,
-        });
+          inviteCode: inviteCode || undefined,
+        };
+
+        await register(payload, { recaptchaToken });
         await refreshSession();
         guardedPush("/signup/complete");
       } catch (error) {
+        // v2チャレンジが必要な場合
+        if (isV2ChallengeRequired(error)) {
+          const currentUser = auth.currentUser;
+          if (currentUser) {
+            const idToken = await currentUser.getIdToken();
+            const values = form.getValues();
+            pendingPayloadRef.current = {
+              providerType: "email",
+              providerUid: currentUser.uid,
+              idToken,
+              email: values.email,
+              name: values.name,
+              password: values.password,
+              role: values.role,
+              profileData: values.profileData,
+              inviteCode: values.inviteCode || undefined,
+            };
+          }
+          handleV2ChallengeRequired(error);
+          return;
+        }
+        // レートリミット発動時
+        if (isHttpError(error) && error.status === 429) {
+          if (isSilentRateLimit(error)) {
+            form.setError("root", { type: "server", message: error.message });
+          } else {
+            setShowRateLimitWarning(true);
+          }
+          return;
+        }
         const message = err(error, "本登録の処理に失敗しました");
         form.setError("root", { type: "server", message });
       }
     },
-    [form, refreshSession, register, guardedPush],
+    [form, refreshSession, register, guardedPush, executeRecaptcha, handleV2ChallengeRequired],
   );
 
   const rootErrorMessage = form.formState.errors.root?.message ?? null;
@@ -109,7 +198,7 @@ export function EmailRegistrationForm() {
           />
         )}
 
-        <FieldItem
+        <ControlledField
           control={form.control}
           name="email"
           label={<span className="text-sm font-medium">メールアドレス</span>}
@@ -123,9 +212,9 @@ export function EmailRegistrationForm() {
           )}
         />
 
-        <FieldItem
+        <ControlledField
           control={form.control}
-          name="displayName"
+          name="name"
           label="表示名"
           required
           renderInput={(field) => (
@@ -138,7 +227,7 @@ export function EmailRegistrationForm() {
           )}
         />
 
-        <FieldItem
+        <ControlledField
           control={form.control}
           name="password"
           label="パスワード"
@@ -154,7 +243,7 @@ export function EmailRegistrationForm() {
         />
 
         {isDoubleMode && (
-          <FieldItem
+          <ControlledField
             control={form.control}
             name="passwordConfirmation"
             label="パスワード（確認）"
@@ -178,7 +267,21 @@ export function EmailRegistrationForm() {
           wrapperClassName="flex flex-col gap-4"
         />
 
-        <FieldItem
+        {showInviteCode && (
+          <ControlledField
+            control={form.control}
+            name="inviteCode"
+            label="招待コード"
+            renderInput={(field) => (
+              <TextInput
+                field={field}
+                placeholder="お持ちの場合は入力してください"
+              />
+            )}
+          />
+        )}
+
+        <ControlledField
           control={form.control}
           name="agreeToTerms"
           renderInput={(field) => (
@@ -186,9 +289,9 @@ export function EmailRegistrationForm() {
               field={field}
               label={
                 <>
-                  <Link href="/terms" className="text-primary hover:underline" target="_blank">利用規約</Link>
+                  <span className="text-primary">利用規約</span>
                   と
-                  <Link href="/privacy-policy" className="text-primary hover:underline" target="_blank">プライバシーポリシー</Link>
+                  <span className="text-primary">プライバシーポリシー</span>
                   に同意する
                 </>
               }
@@ -202,9 +305,27 @@ export function EmailRegistrationForm() {
           </Para>
         ) : null}
 
+        <RecaptchaBadge />
+
         <Button type="submit" className="w-full justify-center" disabled={isLoading}>
           {isLoading ? "登録処理中..." : "登録を完了"}
         </Button>
+
+        {/* v2チャレンジモーダル */}
+        {challengeState.siteKey && (
+          <RecaptchaV2Challenge
+            open={challengeState.isOpen}
+            onClose={closeChallenge}
+            onVerify={handleV2Verify}
+            siteKey={challengeState.siteKey}
+          />
+        )}
+
+        {/* レートリミット警告モーダル */}
+        <RateLimitWarningModal
+          open={showRateLimitWarning}
+          onOpenChange={setShowRateLimitWarning}
+        />
     </AppForm>
   );
 }

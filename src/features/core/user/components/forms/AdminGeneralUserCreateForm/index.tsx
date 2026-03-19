@@ -5,14 +5,17 @@
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-
+import { useToast } from "@/lib/toast";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FieldItem } from "@/components/Form";
+import { ControlledField } from "@/components/Form";
 import { PasswordInput, TextInput } from "@/components/Form/Input/Controlled";
+import { CheckGroupInput } from "@/components/Form/Input/Controlled/CheckGroupInput";
 import { err } from "@/lib/errors";
 import { useCreateUser } from "@/features/user/hooks/useCreateUser";
+import { useUserTagList } from "@/features/core/userTag/hooks/useUserTagList";
+import { TAG_COLOR_STYLES } from "@/features/core/userTag/constants/colors";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import {
   RoleSelector,
   RoleProfileFields,
@@ -34,7 +37,11 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
   });
 
   const router = useRouter();
+  const { showToast } = useToast();
   const { trigger, isMutating } = useCreateUser();
+  const enableUserTag = APP_FEATURES.user.enableUserTag;
+  const { data: userTags = [] } = useUserTagList({ isPaused: () => !enableUserTag });
+  const tagOptions = userTags.map((tag) => ({ value: tag.id, label: tag.name, color: tag.color ?? undefined }));
 
   // ロール選択を監視してプロフィールフィールドを動的に更新
   const selectedRole = useWatch({ control: methods.control, name: "role" });
@@ -42,10 +49,10 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
   const submit = async (values: FormValues) => {
     try {
       await trigger(values);
-      toast.success("ユーザー登録が完了しました");
+      showToast("ユーザー登録が完了しました", "success");
       router.push(redirectPath);
     } catch (error) {
-      toast.error(err(error, "ユーザー登録に失敗しました"));
+      showToast(err(error, "ユーザー登録に失敗しました"), "error");
     }
   };
 
@@ -61,27 +68,37 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
       methods={methods}
       onSubmit={submit}
       pending={isMutating}
-      fieldSpace="md"
+      fieldSpace={6}
     >
+      {enableUserTag && tagOptions.length > 0 && (
+        <ControlledField
+          control={control}
+          name="user_tag_ids"
+          label="ユーザータグ"
+          renderInput={(field) => (
+            <CheckGroupInput field={field} options={tagOptions} displayType="bookmark" colorMap={TAG_COLOR_STYLES} />
+          )}
+        />
+      )}
       <RoleSelector
         control={control}
         name="role"
         categories={["user"]}
         inputType="select"
       />
-      <FieldItem
+      <ControlledField
         control={control}
-        name="displayName"
+        name="name"
         label="表示名"
         renderInput={(field) => <TextInput field={field} />}
       />
-      <FieldItem
+      <ControlledField
         control={control}
         name="email"
         label="メールアドレス"
         renderInput={(field) => <TextInput type="email" field={field} />}
       />
-      <FieldItem
+      <ControlledField
         control={control}
         name="localPassword"
         label="パスワード"

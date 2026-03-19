@@ -25,11 +25,20 @@ export const UserCoreSchema = z.object({
     .transform((value) => emptyToNull(value))
     .transform(async (value) => await createHashPreservingNullish(value)),
   lastAuthenticatedAt: z.coerce.date().nullish(),
+  phoneNumber: z
+    .string()
+    .regex(/^\+[1-9]\d{1,14}$/, { message: "電話番号はE.164形式で入力してください" })
+    .nullish(),
+  phoneVerifiedAt: z.coerce.date().nullish(),
+  avatarUrl: z.string().url().nullish(),
+  signupIp: z.string().nullish(),
+  metadata: z.record(z.unknown()).default({}),
   deletedAt: z.coerce.date().nullish(),
-  displayName: z
+  name: z
     .string()
     .nullish()
     .transform((value) => emptyToNull(value)),
+  user_tag_ids: z.array(z.string()).optional(),
 });
 
 /**
@@ -46,12 +55,13 @@ export const UserOptionalSchema = UserCoreSchema.partial().extend({
  * 許可するフィールドをホワイトリストで明示的に指定。
  */
 export const UserUpdateByAdminSchema = UserOptionalSchema.pick({
-  displayName: true,
+  name: true,
   email: true,
   localPassword: true,
   status: true,
   role: true,
   isDemo: true,
+  phoneNumber: true,
 });
 
 /**
@@ -59,9 +69,10 @@ export const UserUpdateByAdminSchema = UserOptionalSchema.pick({
  * 許可するフィールドをホワイトリストで明示的に指定。
  */
 export const UserSelfUpdateSchema = UserOptionalSchema.pick({
-  displayName: true,
+  name: true,
   email: true,
   localPassword: true,
+  avatarUrl: true,
 });
 
 /**
@@ -71,7 +82,7 @@ export const UserSelfUpdateSchema = UserOptionalSchema.pick({
 export const UserActivationSchema = z.object({
   role: z.enum(USER_ROLES),
   status: z.literal("active"),
-  displayName: z
+  name: z
     .string()
     .min(1, { message: "表示名を入力してください" })
     .transform((value) => emptyToNull(value)),

@@ -7,11 +7,13 @@ import { DomainError } from "@/lib/errors";
 import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { db } from "@/lib/drizzle";
+import { findSoftDeletedUser } from "@/features/core/user/services/server/finders/findSoftDeletedUser";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
 import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
+import { restoreSoftDeletedUser } from "./restore";
 
 export type CreateGeneralUserInput = {
-  displayName: string;
+  name: string;
   email: string;
   localPassword: string;
   role?: string;
@@ -36,6 +38,23 @@ export async function createGeneralUser(data: CreateGeneralUserInput): Promise<U
   const role = data.role ?? "user";
   assertRoleEnabled(role);
 
+  // ソフトデリート済みユーザーを検索（Firebase Authチェック前に実行）
+  const softDeletedUser = await findSoftDeletedUser({
+    providerType: "email",
+    email: data.email,
+  });
+
+  // ソフトデリート済みユーザーが存在する場合は復元処理
+  if (softDeletedUser) {
+    return restoreSoftDeletedUser({
+      existingUser: softDeletedUser,
+      name: data.name,
+      localPassword: data.localPassword,
+      role,
+      actorId: data.actorId,
+    });
+  }
+
   const auth = getServerAuth();
 
   const firebaseUser = await (async () => {
@@ -43,7 +62,7 @@ export async function createGeneralUser(data: CreateGeneralUserInput): Promise<U
       return await auth.createUser({
         email: data.email,
         password: data.localPassword,
-        displayName: data.displayName || undefined,
+        displayName: data.name || undefined,
       });
     } catch (error) {
       if (hasFirebaseErrorCode(error, "auth/email-already-exists")) {
@@ -60,7 +79,7 @@ export async function createGeneralUser(data: CreateGeneralUserInput): Promise<U
     providerUid: firebaseUser.uid,
     localPassword: null,
     email: data.email,
-    displayName: data.displayName,
+    name: data.name,
   });
 
   const [user] = await db.insert(UserTable).values(values).returning();
@@ -77,7 +96,7 @@ export async function createGeneralUser(data: CreateGeneralUserInput): Promise<U
         role: user.role,
         status: user.status,
         email: user.email,
-        displayName: user.displayName,
+        name: user.name,
         providerType: user.providerType,
       },
       reason: null,

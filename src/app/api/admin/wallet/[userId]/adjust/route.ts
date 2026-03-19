@@ -4,10 +4,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/lib/routeFactory";
+import { getRoleCategory } from "@/features/core/user/constants";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
+import { sendAdjustmentNotification } from "@/features/core/wallet/services/server/notification/sendAdjustmentNotification";
 import type { WalletAdjustRequestPayload } from "@/features/core/wallet/services/types";
 import { WalletHistoryMetaSchema } from "@/features/core/walletHistory/entities/schema";
+import { REASON_CATEGORY_VALUES } from "@/config/app/wallet-reason-category.config";
 
 type Params = { userId: string };
 
@@ -23,6 +27,7 @@ const WalletAdjustPayloadSchema = z
       .trim()
       .max(200, { message: "理由は200文字以内で入力してください。" })
       .optional(),
+    reasonCategory: z.enum(REASON_CATEGORY_VALUES).default("admin_adjustment"),
     requestBatchId: z.string().uuid().optional(),
     meta: WalletHistoryMetaSchema.nullable().optional(),
   })
@@ -49,7 +54,7 @@ export const POST = createApiRoute<Params>(
       return NextResponse.json({ message: "ユーザーIDが指定されていません。" }, { status: 400 });
     }
 
-    if (!session || session.role !== "admin") {
+    if (!session || getRoleCategory(session.role) !== "admin") {
       return NextResponse.json({ message: "この操作を行う権限がありません。" }, { status: 403 });
     }
 
@@ -79,8 +84,24 @@ export const POST = createApiRoute<Params>(
       sourceType: "admin_action",
       requestBatchId: payload.requestBatchId,
       reason: payload.reason,
+      reasonCategory: payload.reasonCategory,
       meta: mergedMeta,
     });
+
+    // 操作タイプに応じて通知を送信（Safe版: 失敗しても本体処理に影響しない）
+    const notifyFlags = APP_FEATURES.wallet.notifyOnAdjust;
+    const shouldNotify = notifyFlags[payload.changeMethod.toLowerCase() as keyof typeof notifyFlags] ?? false;
+    if (shouldNotify) {
+      await sendAdjustmentNotification({
+        userId,
+        walletType: payload.walletType,
+        changeMethod: payload.changeMethod,
+        amount: payload.amount,
+        balanceBefore: result.history?.balance_before ?? 0,
+        balanceAfter: result.wallet.balance,
+        reason: payload.reason,
+      });
+    }
 
     return result;
   },

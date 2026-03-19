@@ -3,7 +3,7 @@
 > **FORMAT_RULE**: AI agent optimized. No tables, no verbose prose. Use key:value, inline separators (|, ,), bullet points. Keep additions in this style.
 
 ## STACK
-next: 16 (react 19, app router) | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: firebase-storage | http: axios (client), fetch (server)
+next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: firebase-storage | http: axios (client), fetch (server)
 
 ## CODE_PLACEMENT (3-tier)
 domain: src/features/, all including entities
@@ -28,6 +28,14 @@ ref: docs/!must-read/設計思想とアーキテクチャ.md
 boundary: Hook/ClientService → HTTP → APIRoute → ServerService | Page(SSR) → ServerService direct OK | Hook → ServerService NG
 rules: client axios only | server fetch OK | DB access via ServerService only
 
+## PROXY (replaces middleware)
+entry: src/proxy.ts (default export, receives NextRequest) | handlers: src/proxies/
+pattern: handler chain — each ProxyHandler returns Response (intercept) or void (pass-through). Final fallback: NextResponse.next()
+handlers: maintenanceProxy → demoModeProxy → featureGateProxy → redirectProxy (order matters)
+headers: proxy.ts sets x-pathname on request headers → server components read via headers().get("x-pathname")
+adding_handler: create src/proxies/\<name\>.ts implementing ProxyHandler → register in src/proxies/index.ts
+note: Next.js 16 uses proxy (src/proxy.ts), NOT middleware (middleware.ts)
+
 ## DIRECTORY_STRUCTURE
 all paths under src/
 
@@ -35,7 +43,7 @@ features/\<domain\>/:
 - components/Admin{List,Create,Edit}/ (generated), common/
 - entities/: schema.ts(XxxBaseSchema,XxxCreateSchema,XxxUpdateSchema), form.ts(z.infer types), model.ts(TS types), drizzle.ts(DB table)
 - services/client/, services/server/{drizzleBase(generated), wrappers/, xxxService.ts}
-- hooks/use{Create,Update,Search,Delete}*.ts (generated)
+- hooks/ (generated, ref: CRUD_SERVICE)
 - constants/, types/, presenters.ts, domain.json
 
 code_generation:
@@ -54,19 +62,31 @@ ref: src/stores/README.md
 ## DOMAINS
 core: src/features/core/, no domain.json, manual. examples: auth, user, wallet, setting, mail
 business: src/features/, has domain.json, dc:generate. examples: sample, sampleCategory, sampleTag
+path_alias: tsconfig paths maps @/features/\<coreDomain\>/* → @/features/core/\<coreDomain\>/*. omit core/ in imports (preferred)
 
 commands: dc:init | dc:generate -- \<Domain\> | dc:generate:all | dc:delete -- \<Domain\> | dc:add -- \<Domain\>
+config_utils: src/lib/domain/ | getDomainConfig(domain), extractFields(config), getRelations(domain) | client: index.ts, server: server.ts
+new_domain_json: MUST read src/features/README.md before creating or editing any domain.json to verify schema format
 ref: src/features/README.md
 
 ## API_ROUTES
 required: routeFactory (createApiRoute / createDomainRoute)
-generic: GET|POST / (list|create) | GET|PATCH|DELETE /[id] (get|update|soft-delete) | POST /search, /upsert, /bulk/delete-by-ids, /[id]/duplicate, /[id]/restore | DELETE /[id]/hard-delete
+generic: GET|POST / (list|create) | GET|PATCH|DELETE /[id] (get|update|soft-delete) | POST /search, /count, /upsert, /bulk/delete-by-ids, /[id]/duplicate, /[id]/restore | DELETE /[id]/hard-delete
 domain-specific: auth/, admin/, wallet/, webhook/, storage/
 ref: src/lib/routeFactory/README.md
 
 ## CRUD_SERVICE (createCrudService)
-operations: create, list, get, update, remove, search, query, upsert, bulkDeleteByIds, bulkDeleteByQuery | drizzle-only: belongsToMany
-extension: 1.check base methods → 2.base.query()+wrappers → 3.custom service
+operations: create, list, get, update, remove, search, count, query, upsert, duplicate, restore, hardDelete, bulkDeleteByIds, bulkDeleteByQuery, bulkUpsert, bulkUpdate | drizzle-only: belongsToMany, reorder(id,afterId), searchForSorting(auto-init NULL sort_order) | sorting requires: sortOrderColumn option
+conditional: duplicate(useDuplicateButton), restore/hardDelete(useSoftDelete), reorder/searchForSorting(sortOrderField)
+note: list is a subset of search — use only for simple full-fetch. for relations, filtering, pagination → use search. count returns { total } without fetching records
+hooks: each operation auto-generates a corresponding use\<Op\>\<Domain\> hook (conditional ops generate only when enabled)
+hook_naming_exceptions: get→use\<Domain\>, list→use\<Domain\>List, remove→useDelete\<Domain\>, count→useCount\<Domain\>
+server-only(no hook): query, belongsToMany
+hook-only: use\<Domain\>ViewModal(useDetailModal)
+relationWhere: search/searchWithDeleted/searchForSorting/count accept `relationWhere?: RelationFilter[]` for filtering by relations (Drizzle only). Two variants: BelongsToManyFilter(targetIds+mode:any|all|none) for M2M | BelongsToFilter(where:WhereExpr) for belongsTo. Discriminated by targetIds vs where. Type: RelationFilter from @/lib/crud/types
+extraWhere: search/searchWithDeleted/searchForSorting/count accept `extraWhere?: SQL` (Drizzle only) for conditions beyond WhereExpr DSL (subqueries, EXISTS, JSONB, etc.). Type: ExtraWhereOption from @/lib/crud/drizzle
+withRelations: `withRelations?: boolean | number`. true/1 = 1 level, 2+ = recursive nested relation fetch (requires nested config on relation definition). use\<Domain\>/use\<Domain\>List hooks do NOT accept WithOptions — use useSearch\<Domain\> (search hook) which passes WithOptions through params
+extension: 1.check base methods → 2.relationWhere for relation filtering → 3.extraWhere for SQL injection → 4.base.query()+wrappers → 5.custom service
 files: xxxService.ts(import only) | wrappers/(CRUD override) | \<other\>/(domain-specific)
 firestore_limits: no or | single orderBy | no belongsToMany
 
@@ -86,7 +106,9 @@ ui_layers:
 
 page_controls: AppFrames/User/controls/ (header/footer/bottomMenu visibility, use in page.tsx)
 FieldRenderer: baseFields, fieldPatches, fieldGroups, inlineGroups | onMediaStateChange(MediaState)
-FormInputType: textInput, numberInput, textarea, select, multiSelect, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, mediaUploader, hidden, none
+FormInputType: textInput, numberInput, textarea, select, multiSelect, combobox, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, colorInput, mediaUploader, hidden, custom, none
+programmatic_value: hidden(in schema, no UI, value submitted) or custom(in schema, own UI) | none = excluded from schema entirely, NOT for programmatic use
+async_select: AsyncComboboxInput(single), AsyncMultiSelectInput(multi) — async search+select. User-specific: UserAsyncCombobox/UserAsyncMultiSelect (features/core/user/components/common/) — props: role, where, initialId(s), formatLabel
 ref: src/components/README.md
 
 ## ERROR_HANDLING
@@ -99,6 +121,7 @@ components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: cam
 - client fetch (use axios)
 - direct DB in API routes (use ServerService)
 - raw HTML when wrapper exists
+- direct _shadcn imports (use wrappers: button→Form/Button, input→Form/Input/*, skeleton→Skeleton/BaseSkeleton, etc. | no wrapper? → propose creating one)
 - form schemas in entities/schema.ts (use formEntities.ts)
 - Hook calling ServerService
 - skip normalizeHttpError in ClientService
@@ -110,14 +133,15 @@ components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: cam
 - space-y/space-x classes (use Layout/Stack instead. Stack: flex flex-col with gap, space prop accepts Tailwind spacing scale numbers)
 
 ## CORE_FILES (approval required)
-src/lib/, src/features/core/, src/components/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css
+src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css
 src/config/: value changes OK | structure changes (add/remove keys, type change, rename) require approval
 
 ## TOOLS
-playwright-mcp: CSS/UI verification, dynamic content, WebSearch/WebFetch fallback
+playwright-mcp: available | use only when explicitly instructed by user
 
 ## SCRIPTS
 ref: scripts/README.md | claude:test: API connection check (requires ANTHROPIC_API_KEY)
+db:query "SQL": execute SQL | db:tables: list tables | db:describe \<table\>: show structure | db:count [table]: row counts
 
 ## DOCS
 location: docs/ | structure: !must-read/, concepts/, how-to/, core-specs/, troubleshooting/, reference/, self-evaluation/

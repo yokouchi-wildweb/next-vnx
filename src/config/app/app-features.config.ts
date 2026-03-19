@@ -2,23 +2,17 @@
 
 // アプリ全体で利用する機能トグルを定義します。
 // ここで定義された値を参照することで、UI や機能を環境ごとに切り替えられるようにします。
+// ルートのブロックは featureGate (src/proxies/featureGate.ts) で自動制御されます。
 
-/**
- * ドメインロック設定
- * true にすると該当ルート全体が404になる（middlewareで制御）
- */
-export const DOMAIN_LOCKS = {
-  wallet: false,
-  // shop: false,
-} as const;
+import type { EmailCheckMode, HideMyEmailAction, SelectionBehavior, SignupMode, WalletPurchaseRestriction } from "./types";
 
 export const APP_FEATURES = {
   auth: {
     thirdPartyProviders: {
-      google: true,
-      yahoo: true,
-      facebook: true,
-      twitter: true,
+      google: false,
+      yahoo: false,
+      facebook: false,
+      twitter: false,
     },
     session: {
       /** JWT セッション Cookie の名前 */
@@ -29,6 +23,10 @@ export const APP_FEATURES = {
       demoMaxAgeSeconds: 60 * 10,
     },
     signup: {
+      /** サインアップ機能を有効にする（falseで完全ロック: 画面・API共にアクセス不可） */
+      enabled: true,
+      /** サインアップモード: "normal"=通常登録, "earlyRegistration"=事前登録 */
+      mode: "normal" as SignupMode,
       /** 認証完了後の遷移先パス */
       afterVerificationPath: "/signup/register",
       /** 本登録ページに進捗インディケーターを表示する */
@@ -49,15 +47,63 @@ export const APP_FEATURES = {
       defaultRole: "user",
       /** メール認証完了後の動作: "manual"=ボタン表示, "auto"=自動遷移 */
       emailVerificationRedirect: "auto" as "manual" | "auto",
+      /**
+       * reCAPTCHA v3 スコア閾値（0.0〜1.0）
+       * - スコア >= recaptchaThreshold → 通過
+       * - スコア >= recaptchaV2Threshold かつ < recaptchaThreshold → v2チャレンジ
+       * - スコア < recaptchaV2Threshold → ブロック
+       */
+      recaptchaThreshold: 0.7,
+      /** reCAPTCHA v2チャレンジ閾値（これ未満は即ブロック） */
+      recaptchaV2Threshold: 0.3,
+      /**
+       * メールアドレスチェックモード
+       * - disabled: チェックなし
+       * - full: 4段階フルチェック（信頼ドメイン→TLD→OSS→DeBounce）
+       * - strict: 信頼ドメイン（TRUSTED_DOMAINS）のみ許可
+       */
+      emailCheckMode: "disabled" as EmailCheckMode,
+      /**
+       * Hide My Email（Apple「メールを非公開」）検知時のアクション
+       * - disabled: チェックなし
+       * - block: 検知時にサイレントブロック（メール送信しない）
+       * - challenge: 検知時にreCAPTCHA v2チャレンジを要求
+       */
+      hideMyEmailAction: "challenge" as HideMyEmailAction,
     },
   },
   user: {
     /** 休会機能を有効にする */
     pauseEnabled: false,
+    /** 退会機能を有効にする */
+    withdrawEnabled: false,
+    /** 電話番号認証機能を有効にする */
+    phoneVerificationEnabled: false,
+    /** アバター画像の変更機能を有効にする */
+    avatarEnabled: false,
+    /** ユーザータグ機能を有効にする（false の場合はメニュー非表示・ページ 404・フォーム非表示） */
+    enableUserTag: true,
   },
   adminConsole: {
-    enableDarkModeSwitch: false,
-    enableSidebarResizing: false,
+    enableDarkModeSwitch: true,
+    enableSidebarResizing: true,
+    /** ユーザー管理モーダルを有効にする（false の場合は削除ボタンのみ表示） */
+    enableUserManagement: true,
+    /** デモユーザー機能を有効にする（false の場合はメニュー非表示・ページ 404） */
+    enableDemoUser: true,
+    /** ユーザー一覧ページの挙動設定 */
+    userListPage: {
+      /** セレクションテーブルの選択方式 */
+      selectionBehavior: "row" as SelectionBehavior,
+      /** バルクアクションバーを常に表示する */
+      bulkActionsAlwaysVisible: true,
+      /** セレクションテーブルを有効にするユーザー種別 */
+      enableSelectionTable: {
+        general: true,
+        managerial: false,
+        demo: false,
+      },
+    },
     dashboard: {
       showMainMetrics: false,
       showAdditionalMetrics: false,
@@ -66,12 +112,52 @@ export const APP_FEATURES = {
     },
   },
   wallet: {
+    /** ウォレット機能を有効にする */
+    enabled: true,
     /** 管理者による残高調整ボタンを有効にする */
     enableAdminBalanceAdjust: false,
+    /**
+     * 購入制限モード
+     * - none: 制限なし
+     * - phoneVerified: SMS認証済みユーザーのみ購入可能
+     */
+    purchaseRestriction: "phoneVerified" as WalletPurchaseRestriction,
+    /** 管理者による残高変更時にユーザーへ通知を送信する（操作タイプ別） */
+    notifyOnAdjust: {
+      increment: false,
+      decrement: false,
+      set: false,
+    },
   },
   dataMigration: {
     /** 最大レコード数制限（デフォルト: 1000） */
     maxRecordLimit: 1000,
+  },
+  marketing: {
+    /** 管理画面のメニューにマーケティングカテゴリーを表示する */
+    showInAdminMenu: true,
+    coupon: {
+      /** クーポン機能を有効にする */
+      enabled: true,
+    },
+    referral: {
+      /** 紹介機能を有効にする */
+      enabled: true,
+    },
+    notification: {
+      /** 管理者による全体配信を有効にする（false: 管理画面メニュー非表示・ページ404） */
+      enableAdminBroadcast: false,
+      /** ユーザー側に未読通知モーダルを表示する */
+      showUnreadModal: false,
+      /** 未読通知モーダルを表示するパス一覧（完全一致。末尾 * で前方一致） */
+      unreadModalPaths: ["/"] as readonly string[],
+    },
+  },
+  demo: {
+    /** デモページ（/demo配下）を有効にする */
+    samplePages: true,
+    /** デモログイン機能を有効にする */
+    login: true,
   },
 } as const;
 

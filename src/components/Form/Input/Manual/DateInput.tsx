@@ -74,11 +74,13 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
     if (event && !event.isTrusted) return;
     const el = localRef.current;
     if (el && typeof (el as any).showPicker === "function") {
-      try {
-        (el as any).showPicker();
-      } catch {
-        // showPicker はユーザー操作でないと失敗するため握りつぶす
-      }
+      requestAnimationFrame(() => {
+        try {
+          (el as any).showPicker();
+        } catch {
+          // showPicker はユーザー操作でないと失敗するため握りつぶす
+        }
+      });
     }
   }, []);
 
@@ -104,12 +106,12 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
       : {};
 
   return (
-    <div className={cn("relative flex h-fit items-center", containerClassName)}>
+    <div className={cn("relative flex h-fit items-center", className, containerClassName)}>
       <Input
         {...rest}
         ref={assignRef}
         type="date"
-        className={cn("pr-8", className)}
+        className="pr-8"
         {...inputValueProps}
         onFocus={(event) => {
           onFocus?.(event);

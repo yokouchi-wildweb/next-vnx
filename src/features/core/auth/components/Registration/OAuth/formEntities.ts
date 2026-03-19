@@ -15,7 +15,7 @@ const emailSchema = z
   .min(1, { message: "メールアドレスを入力してください" })
   .email({ message: "メールアドレスの形式が不正です" });
 
-const displayNameSchema = z
+const nameSchema = z
   .string({ required_error: "表示名を入力してください" })
   .trim()
   .min(1, { message: "表示名を入力してください" });
@@ -27,9 +27,10 @@ const agreeToTermsSchema = z.boolean().refine((val) => val === true, {
 export const FormSchema = z
   .object({
     email: emailSchema,
-    displayName: displayNameSchema,
+    name: nameSchema,
     role: z.string(),
     profileData: z.record(z.unknown()).optional(),
+    inviteCode: z.string().trim().optional(),
     agreeToTerms: agreeToTermsSchema,
   })
   .superRefine((value, ctx) => {
@@ -39,16 +40,18 @@ export const FormSchema = z
 
 export type FormValues = {
   email: string;
-  displayName: string;
+  name: string;
   role: string;
   profileData?: Record<string, unknown>;
+  inviteCode?: string;
   agreeToTerms: boolean;
 };
 
 export const DefaultValues: FormValues = {
   email: "",
-  displayName: "",
+  name: "",
   role: REGISTRATION_DEFAULT_ROLE,
   profileData: {},
+  inviteCode: "",
   agreeToTerms: false,
 };

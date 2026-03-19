@@ -2,13 +2,24 @@
 
 import { getDomainConfig, type DomainConfig } from "@/lib/domain";
 import { SampleTable, SampleToSampleTagTable } from "@/features/sample/entities/drizzle";
+import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
+import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";
 import { SampleCreateSchema, SampleUpdateSchema } from "@/features/sample/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { IdType, OrderBySpec } from "@/lib/crud/types";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
-const conf = getDomainConfig("sample") as DomainConfig & { useSoftDelete?: boolean };
+const conf = getDomainConfig("sample") as DomainConfig & {
+  useSoftDelete?: boolean;
+  sortOrderField?: string | null;
+};
+
+// sortOrderField が設定されている場合、対応するカラムを取得
+const sortOrderColumn = conf.sortOrderField
+  ? ((SampleTable as unknown as Record<string, unknown>)[conf.sortOrderField] as AnyPgColumn)
+  : undefined;
 
 export const baseOptions = {
   idType: conf.idType as IdType,
@@ -27,6 +38,29 @@ export const baseOptions = {
       targetProperty: "sampleTagId",
     }
   ],
+  belongsToRelations: [
+    {
+      field: "sample_category",
+      foreignKey: "sample_category_id",
+      table: SampleCategoryTable,
+    }
+  ],
+  belongsToManyObjectRelations: [
+    {
+      field: "sample_tags",
+      targetTable: SampleTagTable,
+      throughTable: SampleToSampleTagTable,
+      sourceColumn: SampleToSampleTagTable.sampleId,
+      targetColumn: SampleToSampleTagTable.sampleTagId,
+    }
+  ],
+  countableRelations: [
+    {
+      field: "sample_tags",
+      throughTable: SampleToSampleTagTable,
+      foreignKey: "sampleId",
+    }
+  ],
 
 } satisfies DrizzleCrudServiceOptions<
   z.infer<typeof SampleCreateSchema>
@@ -41,6 +75,7 @@ export const sampleServiceOptions = baseOptions;
 
 export const base = createCrudService(SampleTable, {
   ...baseOptions,
+  sortOrderColumn,
   parseCreate: (data) => SampleCreateSchema.parse(data),
   parseUpdate: (data) => SampleUpdateSchema.parse(data),
   parseUpsert: (data) => SampleCreateSchema.parse(data),

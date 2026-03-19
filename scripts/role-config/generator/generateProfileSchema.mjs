@@ -13,18 +13,7 @@ const GENERATED_DIR = path.join(
   "src/features/core/userProfile/generated"
 );
 
-const DATETIME_TYPE = `z.preprocess(
-  (value) => {
-    if (value == null) return undefined;
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      if (!trimmed) return undefined;
-      return trimmed;
-    }
-    return value;
-  },
-  z.coerce.date()
-)`;
+const DATETIME_TYPE = "nullableDatetime";
 
 function mapZodType(type) {
   switch (type) {
@@ -74,10 +63,15 @@ function isEmailField(fieldType) {
 }
 
 let usesEmptyToNull = false;
+let usesNullableDatetime = false;
 
 function fieldLine({ name, label, type, required, fieldType }) {
   if (fieldType === "array") {
     return `  ${name}: ${type}.default([]),`;
+  }
+
+  if (isTimestampField(fieldType)) {
+    usesNullableDatetime = true;
   }
 
   const resolvedLabel = label || name;
@@ -100,9 +94,6 @@ function fieldLine({ name, label, type, required, fieldType }) {
   }
 
   if (!required) {
-    if (isTimestampField(fieldType)) {
-      segments.push(`.or(z.literal("").transform(() => undefined))`);
-    }
     segments.push(".nullish()");
     if (isStringField(fieldType)) {
       usesEmptyToNull = true;
@@ -122,7 +113,24 @@ export function generateProfileSchema(roleConfig, profileConfig) {
   const rolePascal = toPascalCase(roleId);
 
   usesEmptyToNull = false;
+  usesNullableDatetime = false;
   const lines = [];
+
+  // belongsTo リレーションの FK フィールド
+  (profileConfig.relations || []).forEach((rel) => {
+    if (rel.relationType !== "belongsTo") return;
+    const camelName = toCamelCase(rel.fieldName);
+    const zodType = "z.string()";
+    lines.push(
+      fieldLine({
+        name: camelName,
+        label: rel.label,
+        type: zodType,
+        required: rel.required,
+        fieldType: "uuid",
+      })
+    );
+  });
 
   // フィールド定義
   (profileConfig.fields || []).forEach((f) => {
@@ -148,6 +156,9 @@ export function generateProfileSchema(roleConfig, profileConfig) {
   const importStatements = [];
   if (usesEmptyToNull) {
     importStatements.push(`import { emptyToNull } from "@/utils/string";`);
+  }
+  if (usesNullableDatetime) {
+    importStatements.push(`import { nullableDatetime } from "@/lib/crud/utils";`);
   }
   importStatements.push(`import { z } from "zod";`);
 

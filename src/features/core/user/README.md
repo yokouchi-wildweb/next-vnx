@@ -154,7 +154,7 @@ pnpm drizzle-kit push
 | `providerType` | Enum | 認証プロバイダ種別 |
 | `providerUid` | Text | プロバイダ側の UID |
 | `email` | Text | メールアドレス |
-| `displayName` | Text | 表示名 |
+| `name` | Text | 表示名 |
 | `role` | Enum | ロール |
 | `localPassword` | Text | ローカル認証用パスワードハッシュ |
 | `status` | Enum | ステータス |
@@ -229,6 +229,78 @@ pending, active, paused, withdrawn
    - `userProfile/profiles/index.ts` に追加
    - `userProfile/entities/{role}Profile.ts` を作成
    - `userProfile/registry/` を更新
+
+## プロフィール横断検索
+
+ユーザー検索時に、プロフィールテーブルのフィールドも含めて横断検索できる。
+テキスト横断検索（`searchQuery`）と構造化フィルタ（`profileWhere`）の 2 つの仕組みを提供。
+
+### サーバー（SSR ページ / ServerService）
+
+```typescript
+import { userService } from "@/features/core/user/services/server/userService";
+
+// テキスト横断検索
+const result = await userService.searchWithProfile("contributor", {
+  searchQuery: "田中",
+  page: 1,
+  limit: 20,
+});
+
+// プロフィールフィールドで構造化フィルタ
+const result = await userService.searchWithProfile("contributor", {
+  profileWhere: { field: "prefecture", op: "eq", value: "東京都" },
+  page: 1,
+  limit: 20,
+});
+
+// 両方の組み合わせ
+const result = await userService.searchWithProfile("contributor", {
+  searchQuery: "田中",
+  profileWhere: {
+    and: [
+      { field: "prefecture", op: "eq", value: "東京都" },
+      { field: "age", op: "gte", value: 20 },
+    ],
+  },
+  page: 1,
+  limit: 20,
+});
+```
+
+### クライアント（Hook）
+
+```tsx
+import { useSearchUserWithProfile } from "@/features/core/user/hooks/useSearchUserWithProfile";
+
+const { data, total, isLoading } = useSearchUserWithProfile("contributor", {
+  searchQuery: "田中",
+  profileWhere: { field: "prefecture", op: "eq", value: "東京都" },
+  page: 1,
+  limit: 20,
+});
+```
+
+### クライアント（サービス直接）
+
+```typescript
+import { userClient } from "@/features/core/user/services/client/userClient";
+
+const result = await userClient.searchWithProfile("contributor", {
+  searchQuery: "田中",
+  profileWhere: { field: "prefecture", op: "eq", value: "東京都" },
+  page: 1,
+  limit: 20,
+});
+```
+
+**パラメータ:**
+- `searchQuery`: テキスト横断検索。ユーザーの `searchFields`（name, email 等）+ プロフィールの `searchFields` で ILIKE 検索（OR 結合）
+- `profileWhere`: プロフィールフィールドの構造化フィルタ（`WhereExpr` DSL）。EXISTS サブクエリとして適用
+- 両方指定時は AND 結合。いずれも未指定の場合は通常の `userService.search()` にフォールバック
+
+> API エンドポイント: `GET /api/admin/user/search-with-profile?role=contributor&searchQuery=田中&profileWhere={"field":"prefecture","op":"eq","value":"東京都"}`
+> 検索対象のプロフィールフィールドは `profile.json` の `searchFields` で設定する。`profileWhere` の DSL 詳細は `src/features/core/userProfile/README.md` を参照。
 
 ## 関連ファイル
 

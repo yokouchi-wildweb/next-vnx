@@ -64,34 +64,6 @@ function cleanupProfilesIndex(roleId) {
 }
 
 /**
- * profileBaseRegistry.ts からエントリを削除
- */
-function cleanupProfileBaseRegistry(roleId) {
-  const filePath = path.join(ROOT_DIR, "src/registry/profileBaseRegistry.ts");
-
-  const tableVar = `${toPascalCase(roleId)}ProfileTable`;
-  const patterns = [
-    `import { ${tableVar} }`,
-    `${roleId}: createProfileBase(${tableVar})`,
-  ];
-
-  return removeLines(filePath, patterns);
-}
-
-/**
- * profileTableRegistry.ts からエントリを削除
- */
-function cleanupProfileTableRegistry(roleId) {
-  const filePath = path.join(ROOT_DIR, "src/registry/profileTableRegistry.ts");
-
-  const patterns = [
-    `export * from "@/features/core/userProfile/generated/${roleId}"`,
-  ];
-
-  return removeLines(filePath, patterns);
-}
-
-/**
  * profileSchemaRegistry.ts からエントリを削除
  */
 function cleanupProfileSchemaRegistry(roleId) {
@@ -153,10 +125,11 @@ function updateRoleHasProfile(roleId) {
  * @param {string} roleId - ロールID
  * @param {Object} options - オプション
  * @param {boolean} options.deleteEntity - 生成フォルダも削除するか（デフォルト: true）
+ * @param {boolean} options.updateHasProfile - hasProfile を false に更新するか（デフォルト: true）
  * @param {boolean} options.silent - ログ出力を抑制するか（デフォルト: false）
  */
 export function cleanupProfile(roleId, options = {}) {
-  const { deleteEntity = true, silent = false } = options;
+  const { deleteEntity = true, updateHasProfile = true, silent = false } = options;
 
   const log = silent ? () => {} : console.log;
 
@@ -164,11 +137,10 @@ export function cleanupProfile(roleId, options = {}) {
 
   const results = {
     profilesIndex: cleanupProfilesIndex(roleId),
-    profileBaseRegistry: cleanupProfileBaseRegistry(roleId),
-    profileTableRegistry: cleanupProfileTableRegistry(roleId),
+    // profileBaseRegistry と profileTableRegistry は全件再生成方式のためクリーンアップ不要
     profileSchemaRegistry: cleanupProfileSchemaRegistry(roleId),
     generatedFolder: deleteEntity ? cleanupGeneratedFolder(roleId) : false,
-    roleHasProfile: updateRoleHasProfile(roleId),
+    roleHasProfile: updateHasProfile ? updateRoleHasProfile(roleId) : false,
   };
 
   // generated/index.ts を更新（フォルダ削除後）
@@ -178,8 +150,6 @@ export function cleanupProfile(roleId, options = {}) {
 
   if (!silent) {
     if (results.profilesIndex) log("  ✓ profiles/index.ts を更新");
-    if (results.profileBaseRegistry) log("  ✓ profileBaseRegistry.ts を更新");
-    if (results.profileTableRegistry) log("  ✓ profileTableRegistry.ts を更新");
     if (results.profileSchemaRegistry) log("  ✓ profileSchemaRegistry.ts を更新");
     if (results.generatedFolder) log("  ✓ generated/ フォルダを削除");
     if (results.roleHasProfile) log("  ✓ ロール設定の hasProfile を false に更新");

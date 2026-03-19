@@ -5,14 +5,17 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-
+import { useToast } from "@/lib/toast";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FieldItem } from "@/components/Form";
-import { TextInput, PasswordInput } from "@/components/Form/Input/Controlled";
+import { ControlledField } from "@/components/Form";
+import { TextInput } from "@/components/Form/Input/Controlled";
+import { CheckGroupInput } from "@/components/Form/Input/Controlled/CheckGroupInput";
 import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
+import { useUserTagList } from "@/features/core/userTag/hooks/useUserTagList";
+import { TAG_COLOR_STYLES } from "@/features/core/userTag/constants/colors";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import type { User } from "@/features/user/entities";
 import {
   RoleProfileFields,
@@ -40,25 +43,26 @@ export default function GeneralUserEditForm({
   });
 
   const router = useRouter();
+  const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateUser();
+  const enableUserTag = APP_FEATURES.user.enableUserTag;
+  const { data: userTags = [] } = useUserTagList({ isPaused: () => !enableUserTag });
+  const tagOptions = userTags.map((tag) => ({ value: tag.id, label: tag.name, color: tag.color ?? undefined }));
 
   const submit = async (values: FormValues) => {
-    const trimmedPassword = values.newPassword.trim();
-    const resolvedNewPassword = trimmedPassword.length > 0 ? trimmedPassword : undefined;
     try {
       await trigger({
         id: user.id,
         data: {
-          displayName: values.displayName,
-          email: values.email,
-          newPassword: resolvedNewPassword,
+          name: values.name,
           profileData: values.profileData,
+          user_tag_ids: values.user_tag_ids,
         },
       });
-      toast.success("ユーザーを更新しました");
+      showToast("ユーザーを更新しました", "success");
       router.push(redirectPath);
     } catch (error) {
-      toast.error(err(error, "ユーザー更新に失敗しました"));
+      showToast(err(error, "ユーザー更新に失敗しました"), "error");
     }
   };
 
@@ -74,27 +78,23 @@ export default function GeneralUserEditForm({
       methods={methods}
       onSubmit={submit}
       pending={isMutating}
-      fieldSpace="md"
+      fieldSpace={6}
     >
-      <FieldItem
+      {enableUserTag && tagOptions.length > 0 && (
+        <ControlledField
+          control={control}
+          name="user_tag_ids"
+          label="ユーザータグ"
+          renderInput={(field) => (
+            <CheckGroupInput field={field} options={tagOptions} displayType="bookmark" colorMap={TAG_COLOR_STYLES} />
+          )}
+        />
+      )}
+      <ControlledField
         control={control}
-        name="displayName"
+        name="name"
         label="表示名"
         renderInput={(field) => <TextInput field={field} />}
-      />
-      <FieldItem
-        control={control}
-        name="email"
-        label="メールアドレス"
-        renderInput={(field) => <TextInput type="email" field={field} />}
-      />
-      <FieldItem
-        control={control}
-        name="newPassword"
-        label="パスワード"
-        renderInput={(field) => (
-          <PasswordInput field={field} placeholder="新しいパスワード" />
-        )}
       />
       <RoleProfileFields methods={methods} role={user.role} profiles={getProfilesByCategory("user")} />
       <div className="flex justify-center gap-3">

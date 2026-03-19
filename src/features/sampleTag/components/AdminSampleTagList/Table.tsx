@@ -3,14 +3,15 @@
 "use client";
 
 import type { SampleTag } from "@/features/sampleTag/entities";
-import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
-import EditButton from "@/components/Fanctional/EditButton";
-import DeleteButton from "@/components/Fanctional/DeleteButton";
-import { useDeleteSampleTag } from "@/features/sampleTag/hooks/useDeleteSampleTag";
-import config from "@/features/sampleTag/domain.json";
+import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
+import { EditButton, DeleteButton } from "@/lib/crud";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawConfig from "@/features/sampleTag/domain.json";
 import presenters from "@/features/sampleTag/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+
+const config = normalizeDomainJsonConfig(rawConfig);
 
 export type AdminSampleTagListTableProps = {
   /**
@@ -30,8 +31,8 @@ const columns: DataTableColumn<SampleTag>[] = buildDomainColumns<SampleTag>({
     header: "操作",
     render: (d: SampleTag) => (
       <TableCellAction>
-        <EditButton href={`/admin/sample-tags/${d.id}/edit`} />
-        <DeleteButton id={d.id} useDelete={useDeleteSampleTag} title="サンプルタグ削除" />
+        <EditButton domain="sampleTag" id={d.id} />
+        <DeleteButton domain="sampleTag" id={d.id} />
       </TableCellAction>
     ),
   },

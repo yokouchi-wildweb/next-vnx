@@ -12,7 +12,10 @@ import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
-import domainConfig from "@/features/sampleTag/domain.json";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawDomainConfig from "@/features/sampleTag/domain.json";
+
+const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
 
 type Props = {
   redirectPath?: string;
@@ -47,7 +50,6 @@ export default function CreateSampleTagForm({ redirectPath = "/" }: Props) {
       onSubmitAction={submit}
       isMutating={isMutating}
       submitLabel="登録"
-      processingLabel="処理中..."
       onCancel={() => router.push(redirectPath)}
     />
   );

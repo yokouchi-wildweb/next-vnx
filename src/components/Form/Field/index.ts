@@ -3,32 +3,32 @@
 // 型定義
 export * from "./types";
 
-// Manual: 低レベルコンポーネント（手動でエラーを渡す）
+// Manual: 低レベルコンポーネント（手動でエラーを渡す、自由なレイアウト向け）
 export {
-  ManualFieldItem,
-  ManualFieldItemGroup,
+  ManualField,
+  ManualFieldGroup,
+  ManualFieldController,
 } from "./Manual";
 export type {
-  ManualFieldItemProps,
-  ManualFieldItemDescription,
-  ManualFieldItemGroupProps,
-  ManualFieldItemGroupDescription,
+  ManualFieldProps,
+  ManualFieldDescription,
+  ManualFieldGroupProps,
+  ManualFieldGroupDescription,
+  ManualFieldControllerProps,
 } from "./Manual";
 
 // Controlled: 高レベルコンポーネント（React Hook Form 統合、エラー自動取得）
 export {
-  FieldItem,
-  FieldController,
-  FieldItemGroup,
-  MediaFieldItem,
+  ControlledField,
+  ControlledFieldGroup,
+  ControlledMediaField,
 } from "./Controlled";
 export type {
-  FieldItemProps,
-  FieldItemDescription,
-  FieldControllerProps,
-  FieldItemGroupProps,
-  MediaFieldItemProps,
+  ControlledFieldProps,
+  ControlledFieldGroupProps,
+  ControlledMediaFieldProps,
 } from "./Controlled";
+// FieldItemDescription は types.ts からエクスポート済み
 
 // Configured: 設定ベースのコンポーネント（FieldConfig から自動生成）
 export {
@@ -36,6 +36,7 @@ export {
   ConfiguredFieldGroup,
   ConfiguredFields,
   ConfiguredMediaField,
+  ConfiguredAsyncRelationField,
   renderInputByFormType,
   hasVisibleInput,
   shouldUseFieldItem,
@@ -46,6 +47,7 @@ export type {
   ConfiguredFieldGroupProps,
   ConfiguredFieldsProps,
   ConfiguredMediaFieldProps,
+  ConfiguredAsyncRelationFieldProps,
   MediaFieldConfig,
   MediaHandleEntry,
 } from "./Configured";

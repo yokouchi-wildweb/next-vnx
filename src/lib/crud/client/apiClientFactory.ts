@@ -4,11 +4,16 @@ import axios from "axios";
 import type {
   ApiClient,
   SearchParams,
+  CountParams,
+  CountResult,
   PaginatedResult,
   UpsertOptions,
   BulkUpsertOptions,
   BulkUpsertResult,
+  BulkUpdateRecord,
+  BulkUpdateResult,
   WhereExpr,
+  WithOptions,
 } from "../types";
 import type { CrudAction } from "./events";
 import { emitCrudEvent } from "./events";
@@ -41,12 +46,26 @@ async function handleRequest<R>(action: CrudAction, fn: () => Promise<R>): Promi
   }
 }
 
+/**
+ * WithOptionsをクエリパラメータ文字列に変換
+ */
+function buildWithOptionsParams(options?: WithOptions): string {
+  if (!options) return "";
+  const params = new URLSearchParams();
+  if (options.withRelations) params.set("withRelations", String(options.withRelations));
+  if (options.withCount) params.set("withCount", "true");
+  const str = params.toString();
+  return str ? `?${str}` : "";
+}
+
 export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>>(
   baseUrl: string,
 ): ApiClient<T, CreateData, UpdateData> {
   return {
-    getAll: () => handleRequest("getAll", async () => (await axios.get<T[]>(baseUrl)).data),
-    getById: (id) => handleRequest("getById", async () => (await axios.get<T>(`${baseUrl}/${id}`)).data),
+    getAll: (options?: WithOptions) =>
+      handleRequest("getAll", async () => (await axios.get<T[]>(`${baseUrl}${buildWithOptionsParams(options)}`)).data),
+    getById: (id, options?: WithOptions) =>
+      handleRequest("getById", async () => (await axios.get<T>(`${baseUrl}/${id}${buildWithOptionsParams(options)}`)).data),
     create: (data: CreateData) =>
       handleRequest("create", async () => (await axios.post<T>(baseUrl, { data })).data),
     update: (id, data: UpdateData) =>
@@ -56,7 +75,7 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
         await axios.delete(`${baseUrl}/${id}`);
         return undefined;
       }),
-    search: (params: SearchParams) =>
+    search: (params: SearchParams & WithOptions) =>
       handleRequest("search", async () => {
         const queryParams: Record<string, unknown> = { ...params };
 
@@ -64,6 +83,12 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
           queryParams.where = JSON.stringify(params.where);
         } else {
           delete queryParams.where;
+        }
+
+        if (params.relationWhere) {
+          queryParams.relationWhere = JSON.stringify(params.relationWhere);
+        } else {
+          delete queryParams.relationWhere;
         }
 
         return (await axios.get<PaginatedResult<T>>(`${baseUrl}/search`, { params: queryParams })).data;
@@ -89,6 +114,18 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
         async () =>
           (await axios.post<BulkUpsertResult<T>>(`${baseUrl}/bulk/upsert`, { records, options })).data,
       ),
+    bulkUpdate: (records: BulkUpdateRecord<UpdateData>[]) =>
+      handleRequest(
+        "bulkUpdate",
+        async () =>
+          (await axios.post<BulkUpdateResult<T>>(`${baseUrl}/bulk/update`, { records })).data,
+      ),
+    bulkUpdateByIds: (ids: string[], data: UpdateData) =>
+      handleRequest(
+        "bulkUpdateByIds",
+        async () =>
+          (await axios.post<{ count: number }>(`${baseUrl}/bulk/update-by-ids`, { ids, data })).data,
+      ),
     duplicate: (id: string) =>
       handleRequest(
         "duplicate",
@@ -104,5 +141,11 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
         await axios.delete(`${baseUrl}/${id}/hard-delete`);
         return undefined;
       }),
+    reorder: (id: string, afterItemId: string | null) =>
+      handleRequest("reorder", async () => (await axios.post<T>(`${baseUrl}/${id}/reorder`, { afterItemId })).data),
+    searchForSorting: (params: SearchParams) =>
+      handleRequest("searchForSorting", async () => (await axios.post<PaginatedResult<T>>(`${baseUrl}/search-for-sorting`, params)).data),
+    count: (params: CountParams) =>
+      handleRequest("count", async () => (await axios.post<CountResult>(`${baseUrl}/count`, params)).data),
   };
 }

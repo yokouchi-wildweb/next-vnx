@@ -1,7 +1,9 @@
 // src/components/Form/Field/types.ts
 // フィールド設定の型定義
 
-import type { FileValidationRule } from "@/lib/mediaInputSuite";
+import type { ReactNode } from "react";
+import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
+import type { ParaProps } from "@/components/TextBlocks/Para";
 
 /**
  * フォーム入力種別（domain.json formInput）
@@ -13,6 +15,7 @@ export type FormInputType =
   | "textarea"
   | "select"
   | "multiSelect"
+  | "combobox"
   | "radio"
   | "checkbox"
   | "stepperInput"
@@ -22,9 +25,13 @@ export type FormInputType =
   | "datetimeInput"
   | "emailInput"
   | "passwordInput"
+  | "colorInput"
   | "mediaUploader"
   | "hidden"
-  | "none";
+  | "none"
+  | "custom"
+  | "asyncCombobox"
+  | "asyncMultiSelect";
 
 /**
  * フィールドの型（domain.json fieldType - Neon）
@@ -98,6 +105,8 @@ export type FieldConfig = {
   required?: boolean;
   /** 読み取り専用（textInput, numberInput, textarea のみ） */
   readonly?: boolean;
+  /** 無効化（select, radio, checkbox 等で使用） */
+  disabled?: boolean;
   /** デフォルト値 */
   defaultValue?: unknown;
   /** 選択肢（select, radio, checkbox, multiSelect で使用） */
@@ -121,4 +130,77 @@ export type FieldConfig = {
   helperText?: string;
   /** メタデータを別フィールドに保存 */
   metadataBinding?: Record<string, string>;
+  /** メタデータ変更時のコールバック（mediaUploader用） */
+  onMetadataChange?: (metadata: SelectedMediaMetadata) => void;
+
+  // === 非同期リレーション用メタデータ（ランタイム専用） ===
+  /** リレーション先 API パス（例: "/api/sampleCategory"） */
+  asyncApiPath?: string;
+  /** リレーション先のラベルに使うフィールド名（デフォルト: "name"） */
+  asyncLabelField?: string;
+  /** リレーション先の検索対象フィールド */
+  asyncSearchFields?: string[];
+};
+
+// ============================================
+// フィールドコンポーネント共通Props
+// ============================================
+
+/**
+ * 説明テキストの設定
+ */
+export type FieldItemDescription = {
+  /** 説明テキスト */
+  text: ReactNode;
+  /** テキストのトーン */
+  tone?: ParaProps["tone"];
+  /** テキストのサイズ */
+  size?: ParaProps["size"];
+  /** 表示位置（入力の前 or 後） */
+  placement?: "before" | "after";
+};
+
+/**
+ * フィールドレイアウトの設定
+ */
+export type FieldLayoutOptions = {
+  /** レイアウト方向（デフォルト: "vertical"） */
+  layout?: "vertical" | "horizontal" | "responsive";
+  /** ラベルに適用するクラス名（例: "w-[120px]", "text-lg font-bold"） */
+  labelClass?: string;
+};
+
+/**
+ * フィールド表示の共通オプション
+ */
+export type FieldDisplayOptions = FieldLayoutOptions & {
+  /** FormItem全体に適用するクラス名 */
+  className?: string;
+  /** 内部のInputコンポーネントに適用するクラス名 */
+  inputClassName?: string;
+  /** ラベルを視覚的に非表示にする */
+  hideLabel?: boolean;
+  /** エラーメッセージを非表示にする */
+  hideError?: boolean;
+};
+
+/**
+ * 必須マーク関連の共通オプション
+ */
+export type RequiredMarkOptions = {
+  /** フィールドが必須かどうか */
+  required?: boolean;
+  /** カスタム必須マーク（省略時はデフォルトの赤い * を表示） */
+  requiredMark?: ReactNode;
+  /** 必須マークの位置（デフォルト: "after"） */
+  requiredMarkPosition?: "before" | "after";
+};
+
+/**
+ * フィールド共通Props（表示 + 必須マーク + 説明）
+ * ControlledField, ControlledMediaField, ConfiguredField 等で共通使用
+ */
+export type FieldCommonProps = FieldDisplayOptions & RequiredMarkOptions & {
+  /** 説明テキスト */
+  description?: FieldItemDescription;
 };

@@ -1,0 +1,102 @@
+import React from "react";
+import { X } from "lucide-react";
+
+import { Button } from "@/components/Form/Button";
+import { cn } from "@/lib/cn";
+
+export type BulkActionSelection<T> = {
+  /** 選択されたレコードのキー配列 */
+  selectedKeys: React.Key[];
+  /** 選択されたレコードのオブジェクト配列 */
+  selectedRows: T[];
+  /** 選択されたレコードのID配列（文字列） */
+  selectedIds: string[];
+  /** 選択件数 */
+  count: number;
+  /** 選択をクリアする関数 */
+  clear: () => void;
+};
+
+export type BulkActionBarSpacing = "sm" | "md" | "lg";
+
+export type BulkActionBarPosition = "top" | "bottom" | "both";
+
+const SPACING_MB: Record<BulkActionBarSpacing, string> = {
+  sm: "mb-1",
+  md: "mb-2",
+  lg: "mb-3",
+};
+
+const SPACING_MT: Record<BulkActionBarSpacing, string> = {
+  sm: "mt-1",
+  md: "mt-2",
+  lg: "mt-3",
+};
+
+type BulkActionBarProps<T> = {
+  selection: BulkActionSelection<T>;
+  bulkActions: (selection: BulkActionSelection<T>) => React.ReactNode;
+  /** テーブルとの余白 @default "md" */
+  spacing?: BulkActionBarSpacing;
+  /** テーブルの上か下か @default "top" */
+  placement?: "top" | "bottom";
+  /** 常に表示するかどうか @default false */
+  alwaysVisible?: boolean;
+  /** 0件選択時のメッセージ @default "行を選択して一括処理を実行" */
+  emptyMessage?: string;
+};
+
+export function BulkActionBar<T>({
+  selection,
+  bulkActions,
+  spacing = "md",
+  placement = "top",
+  alwaysVisible = false,
+  emptyMessage = "行を選択して一括処理を実行",
+}: BulkActionBarProps<T>) {
+  const hasSelection = selection.count > 0;
+  const isVisible = alwaysVisible || hasSelection;
+  const spacingClass = placement === "top" ? SPACING_MB[spacing] : SPACING_MT[spacing];
+
+  return (
+    <div
+      className={cn(
+        "overflow-hidden transition-all duration-[600ms] ease-out",
+        isVisible ? `${spacingClass} max-h-20 opacity-100` : "mb-0 max-h-0 opacity-0"
+      )}
+    >
+      <div
+        className={cn(
+          "flex items-center gap-4 rounded-lg border px-4 py-3 transition-colors",
+          hasSelection
+            ? "border-primary/20 bg-primary/5"
+            : "border-muted-foreground/20 bg-muted/50"
+        )}
+      >
+        {/* 左側: 共通部分 */}
+        <div className="flex flex-1 items-center gap-2">
+          {hasSelection ? (
+            <>
+              <span className="font-medium text-primary">{selection.count}件選択中</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={selection.clear}
+                className="text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+                選択解除
+              </Button>
+            </>
+          ) : (
+            <span className="text-muted-foreground">{emptyMessage}</span>
+          )}
+        </div>
+
+        {/* 右側: カスタムアクション */}
+        <div className="flex gap-2">{bulkActions(selection)}</div>
+      </div>
+    </div>
+  );
+}

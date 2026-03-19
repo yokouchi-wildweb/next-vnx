@@ -3,18 +3,17 @@
 "use client";
 
 import type { Sample } from "@/features/sample/entities";
-import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
-import EditButton from "@/components/Fanctional/EditButton";
-import DeleteButton from "@/components/Fanctional/DeleteButton";
-import DuplicateButton from "@/components/Fanctional/DuplicateButton";
-import { useDeleteSample } from "@/features/sample/hooks/useDeleteSample";
-import { useDuplicateSample } from "@/features/sample/hooks/useDuplicateSample";
-import config from "@/features/sample/domain.json";
+import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
+import { EditButton, DuplicateButton, DeleteButton } from "@/lib/crud";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawConfig from "@/features/sample/domain.json";
 import presenters from "@/features/sample/presenters";
 import { useState } from "react";
 import SampleDetailModal from "../common/SampleDetailModal";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+
+const config = normalizeDomainJsonConfig(rawConfig);
 
 export type AdminSampleListTableProps = {
   /**
@@ -34,11 +33,9 @@ const columns: DataTableColumn<Sample>[] = buildDomainColumns<Sample>({
     header: "操作",
     render: (d: Sample) => (
       <TableCellAction>
-        <EditButton href={`/admin/samples/${d.id}/edit`} stopPropagation />
-        <DuplicateButton id={d.id} useDuplicate={useDuplicateSample} stopPropagation />
-        <span onClick={(e) => e.stopPropagation()}>
-          <DeleteButton id={d.id} useDelete={useDeleteSample} title="サンプル削除" />
-        </span>
+        <EditButton domain="sample" id={d.id} />
+        <DuplicateButton domain="sample" id={d.id} />
+        <DeleteButton domain="sample" id={d.id} />
       </TableCellAction>
     ),
   },

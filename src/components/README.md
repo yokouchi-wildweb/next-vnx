@@ -34,7 +34,7 @@
   - `MediaHandler/`
     - 画像や動画などのメディア入力に特化したコンポーネント群。Controlled / Manual の両パターンに対応した `MediaInput` と `MediaUploader` を提供します。
   - 上記以外
-    - `AppForm.tsx`、`Field/FieldItem.tsx`、`Label.tsx` など、`field` を直接扱わない補助的なフォーム部品を配置します。
+    - `AppForm.tsx`、`Field/ControlledField.tsx`、`Label.tsx` など、`field` を直接扱わない補助的なフォーム部品を配置します。
 - **Controlled 入力コンポーネントの利用指針**
   - `ControlledInputProps`（または `ControlledTextareaProps`）を受け取り、`Controller` が渡す `value` や `onChange` を内部で扱います。
   - `value` が `undefined` になるケースを考慮し、必要に応じてフォールバックを設けてください。
@@ -79,10 +79,12 @@
 
 ## _shadcn
 
-- **主な役割**：shadcn/ui をベースにしたデザインシステムの薄いラッパー。ボタン、入力欄、ダイアログ、セレクト、テーブルなどのプリミティブを共通スタイルで再エクスポートします。
+- **主な役割**：shadcn/ui からインストールしたオリジナルのコンポーネントをそのまま配置するディレクトリ。ボタン、入力欄、ダイアログ、セレクト、テーブルなどのプリミティブが含まれます。
+- **⚠️ 直接使用禁止**：このディレクトリ内のコンポーネントを直接インポートしないでください。必ず対応するラッパーコンポーネント（`Form/Button`、`Form/Input`、`Skeleton/BaseSkeleton` など）を使用します。
 - **ガイドライン**
-  - shadcn/ui のスタイルに沿ったカスタマイズを行う際に利用し、再エクスポートの整合性を保ちます。
+  - shadcn/ui の更新時はこのディレクトリ内のファイルを更新し、ラッパー側で差分を吸収します。
   - フォルダ名の先頭にアンダースコアを付けることで、他のコンポーネントフォルダと区別しています。
+  - 対応するラッパーが存在しない場合は、適切なディレクトリに新規ラッパーを作成してください。
 
 ## TextBlocks
 

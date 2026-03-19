@@ -13,17 +13,23 @@ import {
   serializeOptionValue,
   toggleOptionValue,
 } from "@/components/Form/utils";
+import { cn } from "@/lib/cn";
 
 export type CheckGroupDisplayType = "standard" | "bookmark" | "rounded" | "classic";
 export type CheckGroupOrientation = "horizontal" | "vertical";
 
 type OptionPrimitive = Options["value"];
 
+/** カラーマップの値型（bg / text / border クラス） */
+export type ColorMapEntry = { bg: string; text: string; border: string };
+
 export type CheckGroupInputProps = {
   /** 現在の値（選択されているオプションの配列） */
   value?: OptionPrimitive[];
   /** 値が変更されたときのコールバック */
   onChange: (value: OptionPrimitive[]) => void;
+  /** フォーカスが外れたときのコールバック（値変更後に発火） */
+  onBlur?: () => void;
   /**
    * Options to choose from. Optional so the component can render
    * even when options haven't loaded yet.
@@ -43,11 +49,16 @@ export type CheckGroupInputProps = {
   selectedButtonVariant?: ButtonStyleProps["variant"];
   /** 非選択時に利用するバリアント（未指定の場合は buttonVariant を利用） */
   unselectedButtonVariant?: ButtonStyleProps["variant"];
-} & HTMLAttributes<HTMLDivElement>;
+  /** オプションの color に対応するスタイルマップ（bookmark 表示時に使用） */
+  colorMap?: Record<string, ColorMapEntry>;
+  /** 無効化 */
+  disabled?: boolean;
+} & Omit<HTMLAttributes<HTMLDivElement>, "disabled">;
 
 export function CheckGroupInput({
   value,
   onChange,
+  onBlur,
   options = [],
   displayType = "standard",
   orientation,
@@ -55,22 +66,35 @@ export function CheckGroupInput({
   buttonSize,
   selectedButtonVariant,
   unselectedButtonVariant,
+  colorMap,
+  disabled,
   ...rest
 }: CheckGroupInputProps) {
   const groupId = useId();
 
   const handleToggle = (optionValue: OptionPrimitive) => {
     onChange(toggleOptionValue(value, optionValue));
+    onBlur?.();
   };
 
   // classicのデフォルトはvertical、それ以外はhorizontal
   const resolvedOrientation = orientation ?? (displayType === "classic" ? "vertical" : "horizontal");
   const isVertical = resolvedOrientation === "vertical";
-  const layoutClass = isVertical ? "flex flex-col gap-2" : "flex flex-wrap gap-2";
+  const classicLayoutClass = isVertical ? "mt-3 flex flex-col gap-4" : "mt-3 flex flex-wrap gap-4";
+  const defaultLayoutClass = isVertical ? "flex flex-col gap-2" : "flex flex-wrap gap-2";
+  const layoutClass = displayType === "classic" ? classicLayoutClass : defaultLayoutClass;
+
+  const { className, ...restDivProps } = rest;
 
   if (displayType === "classic") {
     return (
-      <div className={layoutClass} {...rest}>
+      <div
+        className={cn(layoutClass, className)}
+        role="group"
+        aria-orientation={resolvedOrientation}
+        aria-disabled={disabled}
+        {...restDivProps}
+      >
         {options.map((op) => {
           const serialized = serializeOptionValue(op.value);
           const id = `${groupId}-${serialized}`;
@@ -82,9 +106,17 @@ export function CheckGroupInput({
                 id={id}
                 checked={selected}
                 onCheckedChange={() => handleToggle(op.value)}
+                disabled={disabled}
                 aria-checked={selected}
+                className="border-muted-foreground"
               />
-              <Label htmlFor={id} className="text-sm font-normal cursor-pointer">
+              <Label
+                htmlFor={id}
+                className={cn(
+                  "text-sm font-normal cursor-pointer",
+                  disabled && "cursor-not-allowed opacity-50"
+                )}
+              >
                 {op.label}
               </Label>
             </div>
@@ -95,7 +127,13 @@ export function CheckGroupInput({
   }
 
   return (
-    <div className={layoutClass} {...rest}>
+    <div
+      className={cn(layoutClass, className, disabled && "opacity-70")}
+      role="group"
+      aria-orientation={resolvedOrientation}
+      aria-disabled={disabled}
+      {...restDivProps}
+    >
       {options.map((op) => {
         const selected = includesOptionValue(value, op.value);
         const resolvedSelectedVariant = selectedButtonVariant ?? buttonVariant ?? "default";
@@ -104,14 +142,17 @@ export function CheckGroupInput({
         const handleSelect = () => handleToggle(op.value);
 
         if (displayType === "bookmark") {
+          const tagColor = op.color && colorMap ? colorMap[op.color] : undefined;
           return (
             <BookmarkTag
               key={serialized}
               type="button"
               selected={selected}
+              tagColorClasses={tagColor}
               variant={buttonVariant}
               size={buttonSize}
               onClick={handleSelect}
+              disabled={disabled}
               aria-pressed={selected}
             >
               {op.label}
@@ -132,6 +173,7 @@ export function CheckGroupInput({
               size={buttonSize}
               className={standardButtonBorderClass}
               onClick={handleSelect}
+              disabled={disabled}
               aria-pressed={selected}
             >
               {op.label}
@@ -147,6 +189,7 @@ export function CheckGroupInput({
             variant={buttonVariant}
             size={buttonSize}
             onClick={handleSelect}
+            disabled={disabled}
             aria-pressed={selected}
           >
             {op.label}

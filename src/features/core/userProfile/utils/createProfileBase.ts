@@ -4,17 +4,35 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { createCrudService } from "@/lib/crud/drizzle";
+import type { BelongsToManyRelationConfig, DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import type { BelongsToRelation, BelongsToManyObjectRelation, CountableRelation } from "@/lib/crud/types";
 import type { ProfileBase } from "../types";
+
+/** createProfileBase のオプション */
+type CreateProfileBaseOptions = {
+  /** keyword検索対象のカラム名 */
+  defaultSearchFields?: string[];
+  /** belongsToMany リレーション（ID配列の同期） */
+  belongsToManyRelations?: DrizzleCrudServiceOptions<any>["belongsToManyRelations"];
+  /** belongsTo リレーション（withRelations 用） */
+  belongsToRelations?: BelongsToRelation[];
+  /** belongsToMany オブジェクト展開（withRelations 用） */
+  belongsToManyObjectRelations?: BelongsToManyObjectRelation[];
+  /** カウント取得対象リレーション（withCount 用） */
+  countableRelations?: CountableRelation[];
+};
 
 /**
  * プロフィールベースを生成するファクトリ関数
  *
  * @param table - Drizzle プロフィールテーブル（id, userId, createdAt, updatedAt を持つ）
+ * @param options - オプション設定
  * @returns ProfileBase インターフェースを実装したオブジェクト
  */
 export function createProfileBase(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   table: any,
+  options?: CreateProfileBaseOptions,
 ): ProfileBase {
   // 基本CRUD（createCrudService使用）
   const base = createCrudService(table, {
@@ -22,6 +40,11 @@ export function createProfileBase(
     useCreatedAt: true,
     useUpdatedAt: true,
     defaultUpsertConflictFields: ["userId"],
+    defaultSearchFields: options?.defaultSearchFields,
+    belongsToManyRelations: options?.belongsToManyRelations,
+    belongsToRelations: options?.belongsToRelations,
+    belongsToManyObjectRelations: options?.belongsToManyObjectRelations,
+    countableRelations: options?.countableRelations,
   });
 
   /**

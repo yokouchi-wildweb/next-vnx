@@ -6,11 +6,15 @@ import { uuidv7 } from "uuidv7";
 import { Timestamp } from "firebase-admin/firestore";
 import type {
   SearchParams,
+  CountParams,
+  CountResult,
   CreateCrudServiceOptions,
   PaginatedResult,
   UpsertOptions,
   BulkUpsertOptions,
   BulkUpsertResult,
+  BulkUpdateRecord,
+  BulkUpdateResult,
   WhereExpr,
 } from "../types";
 import { buildSearchQuery, applyWhere } from "./query";
@@ -31,7 +35,7 @@ function convertTimestamps<T>(data: T): T {
   return data;
 }
 
-export type DefaultInsert<T> = Omit<T, "id" | "createdAt" | "updatedAt">;
+export type DefaultInsert<T> = Partial<Omit<T, "id" | "createdAt" | "updatedAt">>;
 
 /**
  * Create a CRUD service for the given Firestore collection.
@@ -80,8 +84,8 @@ export function createCrudService<
 
       const finalInsert = omitUndefined(insertData);
       await docRef.set(finalInsert);
-      const snap = await docRef.get();
-      return convertTimestamps({ id: docRef.id, ...(snap.data() as T) } as Select);
+      // serverTimestamp() 未使用のため読み戻し不要 — 入力値をそのまま返却
+      return convertTimestamps({ id: docRef.id, ...finalInsert } as unknown as Select);
     },
 
     async list(): Promise<Select[]> {
@@ -155,6 +159,21 @@ export function createCrudService<
 
     async hardDelete(id: string): Promise<void> {
       await col.doc(id).delete();
+    },
+
+    async count(params: CountParams = {}): Promise<CountResult> {
+      let q = buildSearchQuery(col, params, options);
+      if (useSoftDelete) {
+        q = q.where("deletedAt", "==", null);
+      }
+      const snap = await q.count().get();
+      return { total: snap.data().count };
+    },
+
+    async countWithDeleted(params: CountParams = {}): Promise<CountResult> {
+      const q = buildSearchQuery(col, params, options);
+      const snap = await q.count().get();
+      return { total: snap.data().count };
     },
 
     /**
@@ -314,14 +333,80 @@ export function createCrudService<
 
         await batch.commit();
 
-        // 結果を取得
-        for (const ref of refs) {
-          const snap = await ref.get();
-          results.push(convertTimestamps({ id: ref.id, ...(snap.data() as T) } as Select));
+        // 結果を一括取得（N回の個別 get → 1回の getAll）
+        const snaps = await firestore.getAll(...refs);
+        for (const snap of snaps) {
+          if (snap.exists) {
+            results.push(convertTimestamps({ id: snap.id, ...(snap.data() as T) } as Select));
+          }
         }
       }
 
       return { results, count: results.length };
+    },
+
+    /**
+     * 複数レコードを一括で更新する。
+     * 存在しないIDはスキップされ、notFoundIdsに含まれる。
+     */
+    async bulkUpdate(
+      records: BulkUpdateRecord<Partial<Insert>>[],
+    ): Promise<BulkUpdateResult<Select>> {
+      if (records.length === 0) {
+        return { results: [], count: 0, notFoundIds: [] };
+      }
+
+      const ids = records.map((r) => r.id);
+
+      // 存在するレコードを一括確認（N回の個別 get → 1回の getAll）
+      const existingDocs = await firestore.getAll(...ids.map((id) => col.doc(id)));
+      const existingIds = new Set(
+        existingDocs.filter((doc) => doc.exists).map((doc) => doc.id)
+      );
+      const notFoundIds = ids.filter((id) => !existingIds.has(id));
+
+      // 存在するレコードのみ更新
+      const validRecords = records.filter((r) => existingIds.has(r.id));
+      if (validRecords.length === 0) {
+        return { results: [], count: 0, notFoundIds };
+      }
+
+      // Firestoreのバッチは500件制限
+      const BATCH_SIZE = 500;
+      const results: Select[] = [];
+
+      for (let i = 0; i < validRecords.length; i += BATCH_SIZE) {
+        const chunk = validRecords.slice(i, i + BATCH_SIZE);
+        const batch = firestore.batch();
+        const refs: FirebaseFirestore.DocumentReference[] = [];
+
+        for (const record of chunk) {
+          const parsedInput = options.parseUpdate
+            ? await options.parseUpdate(record.data)
+            : record.data;
+
+          const updateData = omitUndefined({
+            ...parsedInput,
+            ...(options.useUpdatedAt && { updatedAt: new Date() }),
+          }) as FirebaseFirestore.UpdateData<T>;
+
+          const ref = col.doc(record.id);
+          batch.update(ref, updateData);
+          refs.push(ref);
+        }
+
+        await batch.commit();
+
+        // 結果を一括取得（N回の個別 get → 1回の getAll）
+        const snaps = await firestore.getAll(...refs);
+        for (const snap of snaps) {
+          if (snap.exists) {
+            results.push(convertTimestamps({ id: snap.id, ...(snap.data() as T) } as Select));
+          }
+        }
+      }
+
+      return { results, count: results.length, notFoundIds };
     },
 
     async duplicate(id: string): Promise<Select> {

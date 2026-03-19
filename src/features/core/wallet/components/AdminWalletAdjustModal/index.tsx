@@ -13,7 +13,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { AppForm } from "@/components/Form/AppForm";
-import { FieldItem } from "@/components/Form";
+import { ControlledField } from "@/components/Form";
 import { NumberInput, RadioGroupInput, TextInput } from "@/components/Form/Input/Controlled";
 import { Button } from "@/components/Form/Button/Button";
 import { err } from "@/lib/errors";
@@ -39,6 +39,7 @@ type Props = {
   open: boolean;
   user: User | null;
   onClose: () => void;
+  onSuccess?: () => void;
 };
 
 const adminFallback = "(未設定)";
@@ -53,7 +54,7 @@ const CHANGE_METHOD_OPTIONS = WalletHistoryChangeMethodOptions.map((option) => (
   value: option.value,
 }));
 
-export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
+export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess }: Props) {
   const methods = useForm<WalletAdjustFormValues>({
     resolver: zodResolver(WalletAdjustFormSchema),
     mode: "onSubmit",
@@ -118,6 +119,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
       await trigger({ userId: user.id, payload });
       showToast(`${currencyLabel}を更新しました`, "success");
       handleRequestClose();
+      onSuccess?.();
     } catch (error) {
       showToast(err(error, `${currencyLabel}の操作に失敗しました`), "error");
     }
@@ -145,7 +147,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
               <Para size="xs" tone="muted">
                 対象ユーザー
               </Para>
-              <Para>{user.displayName ?? adminFallback}</Para>
+              <Para>{user.name ?? adminFallback}</Para>
               <Para tone="muted" size="sm">
                 {user.email ?? adminFallback}
               </Para>
@@ -161,8 +163,8 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
           </Flex>
         </Flex>
       </Stack>
-      <AppForm methods={methods} onSubmit={submit} pending={isProcessing} fieldSpace="md">
-        <FieldItem
+      <AppForm methods={methods} onSubmit={submit} pending={isProcessing} fieldSpace={6}>
+        <ControlledField
           control={control}
           name="walletType"
           label="ウォレット種別"
@@ -176,7 +178,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
             />
           )}
         />
-        <FieldItem
+        <ControlledField
           control={control}
           name="changeMethod"
           label="操作方法"
@@ -195,7 +197,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
             />
           )}
         />
-        <FieldItem
+        <ControlledField
           control={control}
           name="amount"
           label="金額"
@@ -208,7 +210,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
             />
           )}
         />
-        <FieldItem
+        <ControlledField
           control={control}
           name="reason"
           label="理由"

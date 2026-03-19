@@ -91,6 +91,21 @@ export function parseBooleanFlag(value: string | null, label: string): boolean |
   throw new BadRequestError(`${label} は true / false もしくは 1 / 0 で指定してください`);
 }
 
+/**
+ * withRelations 用パーサー。boolean | number を返す。
+ * "true"/"1" → true, "false"/"0" → false, 正整数 → number
+ */
+export function parseWithRelations(value: string | null): boolean | number | undefined {
+  if (value == null) return undefined;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "") return undefined;
+  if (normalized === "true") return true;
+  if (normalized === "false") return false;
+  const num = Number(normalized);
+  if (Number.isInteger(num) && num > 0) return num;
+  throw new BadRequestError("withRelations は true / false もしくは正の整数で指定してください");
+}
+
 // where クエリを JSON として読み込むヘルパー
 export function parseWhere(value: string | null): SearchParams["where"] {
   if (!value) return undefined;
@@ -98,6 +113,16 @@ export function parseWhere(value: string | null): SearchParams["where"] {
     return JSON.parse(value) as SearchParams["where"];
   } catch {
     throw new BadRequestError("where は有効な JSON 文字列で指定してください");
+  }
+}
+
+// relationWhere クエリを JSON として読み込むヘルパー
+export function parseRelationWhere(value: string | null): SearchParams["relationWhere"] {
+  if (!value) return undefined;
+  try {
+    return JSON.parse(value) as SearchParams["relationWhere"];
+  } catch {
+    throw new BadRequestError("relationWhere は有効な JSON 文字列で指定してください");
   }
 }
 

@@ -378,6 +378,8 @@ async function askSingleField(fieldIndex) {
   }
 
   // フィールドオブジェクト構築（tagsは後で別途収集）
+  // Boolean型の場合: required=false → nullable: true（NULLを許容）
+  // Boolean型はデフォルトで notNull なので、明示的にNULLを許容する場合のみ nullable を設定
   const field = {
     name: trimmedName,
     label: trimmedLabel,
@@ -385,6 +387,7 @@ async function askSingleField(fieldIndex) {
     formInput: normalizedInput,
     ...(READONLY_SUPPORTED_FORM_INPUTS.has(normalizedInput) ? { readonly } : {}),
     ...(required ? { required: true } : {}),
+    ...(isBooleanField && !required ? { nullable: true } : {}),
     ...(uploadPath ? { uploadPath } : {}),
     ...(slug ? { slug } : {}),
     ...(mediaTypePreset ? { mediaTypePreset } : {}),
@@ -410,9 +413,10 @@ async function askSingleField(fieldIndex) {
 /**
  * タグごとにフィールドを選択
  * @param {Array} fields - 収集済みフィールド
+ * @param {Array} relations - 収集済みリレーション（オプション）
  * @returns {Promise<Object>} タグマッピング
  */
-async function askTagMappings(fields) {
+export async function askTagMappings(fields, relations = []) {
   console.log("\n=== タグマッピングの設定 ===\n");
   console.log("各タグに紐づけるフィールドを選択してください。\n");
 
@@ -435,6 +439,15 @@ async function askTagMappings(fields) {
     value: f.name,
   }));
 
+  // リレーション fieldName も選択肢に追加
+  const relationChoices = (relations || [])
+    .filter((r) => r.formInput !== "hidden")
+    .map((r) => ({
+      name: `${r.label} (${r.fieldName}) [${r.relationType}]`,
+      value: r.fieldName,
+    }));
+  const allChoices = [...fieldChoices, ...relationChoices];
+
   const tags = {};
 
   for (const tagConfig of PROFILE_FIELD_TAGS) {
@@ -445,7 +458,7 @@ async function askTagMappings(fields) {
       type: "checkbox",
       name: "selectedFields",
       message: `${chalk.cyan(tagLabel)} に表示するフィールド:`,
-      choices: fieldChoices,
+      choices: allChoices,
     });
 
     tags[tagValue] = selectedFields;
@@ -486,8 +499,6 @@ export default async function askProfileFields() {
     return { fields, tags: {} };
   }
 
-  // タグマッピングを収集
-  const tags = await askTagMappings(fields);
-
-  return { fields, tags };
+  // タグマッピングはリレーション収集後に行うため、ここでは収集しない
+  return { fields, tags: {} };
 }

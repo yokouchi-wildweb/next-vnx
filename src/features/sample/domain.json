@@ -22,12 +22,14 @@
       "fieldType": "uuid",
       "relationType": "belongsToMany",
       "required": false,
-      "includeRelationTable": true
+      "includeRelationTable": true,
+      "formInput": "asyncMultiSelect"
     }
   ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
   "useSoftDelete": true,
+  "sortOrderField": "sort_order",
   "fields": [
     {
       "name": "name",
@@ -152,6 +154,13 @@
       "readonly": false,
       "formInput": "textarea",
       "required": false
+    },
+    {
+      "name": "sort_order",
+      "label": "並び順",
+      "fieldType": "string",
+      "formInput": "hidden",
+      "required": false
     }
   ],
   "fieldGroups": [
@@ -214,6 +223,7 @@
   "addToAdminDataMenu": true,
   "useDuplicateButton": true,
   "useImportExport": true,
+  "useAutoSave": true,
   "generateFiles": {
     "entities": true,
     "components": true,

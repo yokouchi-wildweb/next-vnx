@@ -16,13 +16,14 @@ export const SampleTable = pgTable("samples", {
   switch: boolean("switch"),
   radio: boolean("radio"),
   select: SampleSelectEnum("select").default("orange"),
-  multi_select: text("multi_select").array().notNull(),
+  multi_select: text("multi_select").array(),
   sale_start_at: timestamp("sale_start_at", { withTimezone: true }),
   date: date("date"),
   time: time("time"),
   main_image: text("main_image"),
   sub_image: text("sub_image"),
   description: text("description"),
+  sort_order: text("sort_order"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -39,6 +40,8 @@ export const SampleToSampleTagTable = pgTable(
       .references(() => SampleTagTable.id, { onDelete: "cascade" }),
   },
   (table) => {
-    return { pk: primaryKey({ columns: [table.sampleId, table.sampleTagId] }) };
+    return {
+    pk: primaryKey({ columns: [table.sampleId, table.sampleTagId] }),
+    };
   },
 );

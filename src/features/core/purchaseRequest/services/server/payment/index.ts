@@ -2,13 +2,15 @@
 
 import type { PaymentProvider } from "@/features/core/purchaseRequest/types/payment";
 import { dummyPaymentProvider } from "./dummyProvider";
+import { fincodePaymentProvider } from "./fincode";
+import { squarePaymentProvider } from "./square";
 
 export type { PaymentProvider, CreatePaymentSessionParams, PaymentSession, PaymentResult } from "@/features/core/purchaseRequest/types/payment";
 
 /**
  * 利用可能な決済プロバイダ名
  */
-export type PaymentProviderName = "dummy" | "komoju";
+export type PaymentProviderName = "dummy" | "komoju" | "fincode" | "square";
 
 /**
  * 決済プロバイダを取得
@@ -20,6 +22,12 @@ export function getPaymentProvider(providerName: PaymentProviderName): PaymentPr
   switch (providerName) {
     case "dummy":
       return dummyPaymentProvider;
+
+    case "fincode":
+      return fincodePaymentProvider;
+
+    case "square":
+      return squarePaymentProvider;
 
     case "komoju":
       // TODO: KOMOJU実装後に有効化
@@ -36,6 +44,12 @@ export function getPaymentProvider(providerName: PaymentProviderName): PaymentPr
  */
 export function getDefaultProviderName(): PaymentProviderName {
   const envProvider = process.env.PAYMENT_PROVIDER;
+  if (envProvider === "fincode") {
+    return "fincode";
+  }
+  if (envProvider === "square") {
+    return "square";
+  }
   if (envProvider === "komoju") {
     return "komoju";
   }

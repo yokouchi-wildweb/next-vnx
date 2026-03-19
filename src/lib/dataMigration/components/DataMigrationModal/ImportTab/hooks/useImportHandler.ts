@@ -6,6 +6,8 @@
 import { useState, useCallback, useEffect } from "react";
 import axios from "axios";
 import JSZip from "jszip";
+import { v7 as uuidv7 } from "uuid";
+import { directStorageClient } from "@/lib/storage/client/directStorageClient";
 import type {
   ChunkResult,
   ImportResultData,
@@ -42,6 +44,59 @@ export type UseImportHandlerReturn = {
   /** エラーをクリア */
   clearError: () => void;
 };
+
+/** デバッグログ出力用のプレフィックス */
+const LOG_PREFIX = "[Import]";
+
+/**
+ * 画像ファイルを直接Firebase Storageにアップロードし、パス→URL のマップを返す
+ */
+async function uploadAssetsDirectly(
+  assets: Map<string, ArrayBuffer>,
+  domain: string,
+  onProgress?: (uploaded: number, total: number) => void
+): Promise<Map<string, string>> {
+  const urlMap = new Map<string, string>();
+  const entries = Array.from(assets.entries());
+  let uploaded = 0;
+
+  for (const [assetPath, buffer] of entries) {
+    try {
+      // パスから拡張子を取得
+      const ext = assetPath.includes(".") ? assetPath.substring(assetPath.lastIndexOf(".")) : "";
+      // フィールド名を取得（例: main_image/xxx.jpg → main_image）
+      const fieldName = assetPath.split("/")[0] || "assets";
+      // ストレージパスを生成
+      const storagePath = `${domain}/${fieldName}/${uuidv7()}${ext}`;
+      // Blobに変換してアップロード
+      const blob = new Blob([buffer]);
+      const url = await directStorageClient.upload(storagePath, blob);
+      // assets/main_image/xxx.jpg 形式でマップに保存
+      urlMap.set(`assets/${assetPath}`, url);
+      uploaded++;
+      onProgress?.(uploaded, entries.length);
+    } catch (err) {
+      console.error(`${LOG_PREFIX} 画像アップロード失敗: ${assetPath}`, err);
+      // 失敗した場合は空文字を設定（後でnullに変換される）
+      urlMap.set(`assets/${assetPath}`, "");
+    }
+  }
+
+  return urlMap;
+}
+
+/**
+ * CSVコンテンツ内の画像パス（assets/...）を実際のURLに置換
+ */
+function replaceAssetPathsInCsv(csvContent: string, urlMap: Map<string, string>): string {
+  let result = csvContent;
+  for (const [assetPath, url] of urlMap.entries()) {
+    // CSVではカンマやダブルクォートでエスケープされている可能性があるため、
+    // 単純な置換で対応
+    result = result.split(assetPath).join(url);
+  }
+  return result;
+}
 
 /**
  * インポート処理のロジックフック
@@ -89,6 +144,13 @@ export function useImportHandler({
       let successful = 0;
       let failed = 0;
 
+      // ドメイン処理開始ログ
+      const domainProgress = totalDomains ? `[${domainIndex}/${totalDomains}]` : "";
+      console.log(
+        `${LOG_PREFIX} 📦 ドメイン処理開始: ${domainName} ${domainProgress}`,
+        { type: domainType, chunkCount, chunkPrefix: chunkPrefix || "(root)" }
+      );
+
       // フィールド型情報を準備（メインドメイン用）
       const fieldTypeInfo = fields.map((f) => ({
         name: f.name,
@@ -108,9 +170,19 @@ export function useImportHandler({
           currentChunkName: chunkName,
         });
 
+        // チャンク処理開始ログ
+        console.log(
+          `${LOG_PREFIX}   📄 チャンク処理: ${chunkName} [${i + 1}/${chunkCount}]`,
+          { domain: domainName, path: chunkPath }
+        );
+
         // CSV ファイルを取得
         const csvFile = zip.file(`${chunkPath}/data.csv`);
         if (!csvFile) {
+          console.error(
+            `${LOG_PREFIX}   ❌ チャンク失敗: ${chunkName}`,
+            { domain: domainName, error: "data.csv が見つかりません", path: `${chunkPath}/data.csv` }
+          );
           results.push({
             chunkName,
             domain: domainName,
@@ -121,39 +193,58 @@ export function useImportHandler({
           failed++;
           continue;
         }
-        const csvContent = await csvFile.async("string");
+        let csvContent = await csvFile.async("string");
 
-        // FormData を作成
+        // メインドメインの場合のみ画像フィールドを処理
+        const domainImageFields = domainName === domain ? imageFields : [];
+
+        // アセットファイルを収集して直接Firebase Storageにアップロード
+        const assetsFolder = zip.folder(`${chunkPath}/assets`);
+        if (assetsFolder && domainImageFields.length > 0) {
+          const assetFiles = assetsFolder.filter(() => true);
+          const actualAssetFiles = assetFiles.filter((f) => !f.dir);
+
+          if (actualAssetFiles.length > 0) {
+            console.log(`${LOG_PREFIX}     🖼️ 画像を直接アップロード: ${actualAssetFiles.length} ファイル`, {
+              path: `${chunkPath}/assets`,
+            });
+
+            // アセットを収集
+            const assets = new Map<string, ArrayBuffer>();
+            for (const assetFile of actualAssetFiles) {
+              const assetBuffer = await assetFile.async("arraybuffer");
+              const assetPath = assetFile.name.replace(`${chunkPath}/assets/`, "");
+              assets.set(assetPath, assetBuffer);
+            }
+
+            // 直接Firebase Storageにアップロード
+            const urlMap = await uploadAssetsDirectly(
+              assets,
+              domainName,
+              (uploaded, total) => {
+                console.log(`${LOG_PREFIX}       📤 アップロード進捗: ${uploaded}/${total}`);
+              }
+            );
+
+            // CSVの画像パスをURLに置換
+            csvContent = replaceAssetPathsInCsv(csvContent, urlMap);
+            console.log(`${LOG_PREFIX}     ✅ 画像アップロード完了、CSVを更新`);
+          }
+        }
+
+        // FormData を作成（画像バイナリは含まない）
         const formData = new FormData();
         formData.append("domain", domainName);
         formData.append("chunkName", chunkName);
         formData.append("csvContent", csvContent);
-        // メインドメイン以外は画像フィールドを空にする
-        const domainImageFields = domainName === domain ? imageFields : [];
         formData.append("imageFields", JSON.stringify(domainImageFields));
-        formData.append("updateImages", "true");
+        // 画像は既にアップロード済みなので、サーバー側での画像処理をスキップ
+        formData.append("updateImages", "false");
         // メインドメインのみフィールド型情報を送る
         formData.append("fields", JSON.stringify(domainName === domain ? fieldTypeInfo : []));
         // ドメインタイプを送る
         if (domainType) {
           formData.append("domainType", domainType);
-        }
-
-        // アセットファイルを追加
-        const assetsFolder = zip.folder(`${chunkPath}/assets`);
-        console.log(`[Import Client] Looking for assets in: ${chunkPath}/assets`);
-        if (assetsFolder) {
-          const assetFiles = assetsFolder.filter(() => true);
-          console.log(`[Import Client] Found ${assetFiles.length} asset files`);
-          for (const assetFile of assetFiles) {
-            if (assetFile.dir) continue;
-            console.log(`[Import Client] Processing asset: ${assetFile.name}`);
-            const assetBuffer = await assetFile.async("arraybuffer");
-            const assetPath = assetFile.name.replace(`${chunkPath}/assets/`, "");
-            console.log(`[Import Client] Asset path after strip: ${assetPath}`);
-            const blob = new Blob([assetBuffer]);
-            formData.append(`asset:${assetPath}`, blob, assetPath.split("/").pop());
-          }
         }
 
         // チャンクを送信
@@ -163,6 +254,10 @@ export function useImportHandler({
           });
 
           const data = response.data as { chunkName: string; recordCount: number };
+          console.log(
+            `${LOG_PREFIX}   ✅ チャンク成功: ${chunkName}`,
+            { domain: domainName, recordCount: data.recordCount }
+          );
           results.push({
             chunkName: data.chunkName,
             domain: domainName,
@@ -172,10 +267,29 @@ export function useImportHandler({
           records += data.recordCount;
           successful++;
         } catch (err) {
+          // エラーメッセージを複数のフィールドから取得を試みる
+          const responseData = axios.isAxiosError(err) ? err.response?.data : null;
           const errorMsg =
-            axios.isAxiosError(err) && err.response?.data?.error
-              ? err.response.data.error
-              : "Unknown error";
+            responseData?.error ||
+            responseData?.message ||
+            (axios.isAxiosError(err) ? err.message : null) ||
+            (err instanceof Error ? err.message : "Unknown error");
+          const errorDetails = axios.isAxiosError(err)
+            ? {
+                status: err.response?.status,
+                statusText: err.response?.statusText,
+                data: err.response?.data,
+                headers: err.response?.headers,
+              }
+            : { raw: err };
+          console.error(
+            `${LOG_PREFIX}   ❌ チャンク失敗: ${chunkName}`,
+            { domain: domainName, error: errorMsg }
+          );
+          console.error(`${LOG_PREFIX}   📋 エラー詳細:`, errorDetails);
+          if (responseData) {
+            console.error(`${LOG_PREFIX}   📋 サーバーレスポンス:`, JSON.stringify(responseData, null, 2));
+          }
           results.push({
             chunkName,
             domain: domainName,
@@ -186,6 +300,12 @@ export function useImportHandler({
           failed++;
         }
       }
+
+      // ドメイン処理完了ログ
+      console.log(
+        `${LOG_PREFIX} 📦 ドメイン処理完了: ${domainName}`,
+        { records, successful, failed }
+      );
 
       return { records, successful, failed, results };
     },
@@ -202,10 +322,22 @@ export function useImportHandler({
       setResult(null);
       setProgress(null);
 
+      // インポート開始ログ
+      console.log(`${LOG_PREFIX} 🚀 インポート開始`, {
+        fileName: file.name,
+        fileSize: `${(file.size / 1024).toFixed(2)} KB`,
+        targetDomain: domain,
+        imageFields,
+        fieldCount: fields.length,
+      });
+
       try {
         // ZIP をブラウザ上で解凍
         const arrayBuffer = await file.arrayBuffer();
         const zip = await JSZip.loadAsync(arrayBuffer);
+        console.log(`${LOG_PREFIX} 📁 ZIP解凍完了`, {
+          fileCount: Object.keys(zip.files).length,
+        });
 
         // manifest.json を読み込み
         const manifestFile = zip.file("manifest.json");
@@ -214,10 +346,16 @@ export function useImportHandler({
         }
         const manifestText = await manifestFile.async("string");
         const rawManifest = JSON.parse(manifestText);
+        console.log(`${LOG_PREFIX} 📋 マニフェスト読み込み完了`, rawManifest);
 
         // v1.1（複数ドメイン）の処理
         if (rawManifest.version === "1.1") {
           const manifest = rawManifest as ManifestV1_1;
+          console.log(`${LOG_PREFIX} 📦 v1.1 複数ドメインモード`, {
+            mainDomain: manifest.mainDomain,
+            domainCount: manifest.domains.length,
+            domains: manifest.domains.map((d) => `${d.name}(${d.type})`),
+          });
 
           // ドメイン検証（メインドメインのみ）
           if (manifest.mainDomain !== domain) {
@@ -229,6 +367,7 @@ export function useImportHandler({
           const sortedDomains = [...manifest.domains].sort(
             (a, b) => (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99)
           );
+          console.log(`${LOG_PREFIX} 📋 処理順序`, sortedDomains.map((d) => `${d.name}(${d.type})`));
 
           const chunkResults: ChunkResult[] = [];
           const domainResults: {
@@ -267,6 +406,20 @@ export function useImportHandler({
             });
           }
 
+          // v1.1 完了ログ
+          console.log(`${LOG_PREFIX} 🎉 インポート完了 (v1.1)`, {
+            totalRecords,
+            successfulChunks,
+            failedChunks,
+            domainResults,
+          });
+          if (failedChunks > 0) {
+            console.warn(
+              `${LOG_PREFIX} ⚠️ 失敗したチャンク一覧:`,
+              chunkResults.filter((r) => !r.success)
+            );
+          }
+
           setResult({
             totalRecords,
             successfulChunks,
@@ -285,6 +438,11 @@ export function useImportHandler({
 
         // v1.0（単一ドメイン）の処理
         const manifest = rawManifest as ManifestV1;
+        console.log(`${LOG_PREFIX} 📦 v1.0 単一ドメインモード`, {
+          domain: manifest.domain,
+          chunkCount: manifest.chunkCount,
+          totalRecords: manifest.totalRecords,
+        });
 
         // ドメイン検証
         if (manifest.domain !== domain) {
@@ -302,6 +460,19 @@ export function useImportHandler({
           "main"
         );
 
+        // v1.0 完了ログ
+        console.log(`${LOG_PREFIX} 🎉 インポート完了 (v1.0)`, {
+          totalRecords: importResult.records,
+          successfulChunks: importResult.successful,
+          failedChunks: importResult.failed,
+        });
+        if (importResult.failed > 0) {
+          console.warn(
+            `${LOG_PREFIX} ⚠️ 失敗したチャンク一覧:`,
+            importResult.results.filter((r) => !r.success)
+          );
+        }
+
         setResult({
           totalRecords: importResult.records,
           successfulChunks: importResult.successful,
@@ -314,7 +485,7 @@ export function useImportHandler({
           onImportSuccess();
         }
       } catch (err) {
-        console.error("Import failed:", err);
+        console.error(`${LOG_PREFIX} ❌ インポート失敗:`, err);
         setError(err instanceof Error ? err.message : "インポートに失敗しました");
       } finally {
         setIsImporting(false);

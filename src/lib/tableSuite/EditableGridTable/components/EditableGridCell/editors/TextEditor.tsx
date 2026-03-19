@@ -23,12 +23,15 @@ export function TextEditor<T>({
 }: TextEditorProps<T>) {
   return (
     <Input
+      data-cell-editor
+      data-editor-type={type === "number" ? "number" : "text"}
       type={type}
       inputMode={inputMode}
       className={className}
       value={value}
       placeholder={placeholder}
       onChange={(event: React.ChangeEvent<HTMLInputElement>) => onDraftChange(event.target.value)}
+      onWheel={type === "number" ? (event: React.WheelEvent<HTMLInputElement>) => event.currentTarget.blur() : undefined}
       onBlur={() => onCommit()}
       onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === "Enter") {

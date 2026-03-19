@@ -2,7 +2,11 @@
 
 // 直接ファイル
 export { AppForm } from "./AppForm";
-export type { AppFormProps, AppFormFieldSpace } from "./AppForm";
+export type { AppFormProps } from "./AppForm";
+
+// 自動保存
+export { useAutoSaveContext, useAutoSaveConfig } from "./AutoSave";
+export type { AutoSaveOptions, AutoSaveContextValue } from "./AutoSave";
 
 export { Label } from "./Label";
 export type { LabelProps } from "./Label";

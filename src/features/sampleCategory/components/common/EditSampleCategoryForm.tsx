@@ -8,12 +8,20 @@ import { SampleCategoryUpdateSchema } from "@/features/sampleCategory/entities/s
 import type { SampleCategoryUpdateFields } from "@/features/sampleCategory/entities/form";
 import type { SampleCategory } from "@/features/sampleCategory/entities";
 import { useUpdateSampleCategory } from "@/features/sampleCategory/hooks/useUpdateSampleCategory";
+import { useSearchSampleCategory } from "@/features/sampleCategory/hooks/useSearchSampleCategory";
 import { SampleCategoryForm } from "./SampleCategoryForm";
 import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
-import domainConfig from "@/features/sampleCategory/domain.json";
+import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
+import { getAdminPaths } from "@/lib/crud/utils/paths";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawDomainConfig from "@/features/sampleCategory/domain.json";
+
+const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
+
+const adminPaths = getAdminPaths(domainConfig.plural);
 
 type Props = {
   sampleCategory: SampleCategory;
@@ -31,7 +39,18 @@ export default function EditSampleCategoryForm({ sampleCategory, redirectPath = 
   const router = useRouter();
   const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateSampleCategory();
-  useLoadingToast(isMutating, "更新中です…");
+  const { data: items } = useSearchSampleCategory({ limit: 10 });
+
+  const { navigator, isSwitching } = useItemNavigator({
+    items,
+    currentItem: sampleCategory,
+    getPath: adminPaths.edit,
+    methods,
+    updateTrigger: trigger,
+    isMutating,
+  });
+
+  useLoadingToast(isMutating, isSwitching ? "アイテムを切り替え中" : "更新中です…");
 
   const submit = async (data: SampleCategoryUpdateFields) => {
     try {
@@ -44,13 +63,15 @@ export default function EditSampleCategoryForm({ sampleCategory, redirectPath = 
   };
 
   return (
-    <SampleCategoryForm
-      methods={methods}
-      onSubmitAction={submit}
-      isMutating={isMutating}
-      submitLabel="更新"
-      processingLabel="処理中..."
-      onCancel={() => router.push(redirectPath)}
-    />
+    <>
+      {navigator}
+      <SampleCategoryForm
+        methods={methods}
+        onSubmitAction={submit}
+        isMutating={isMutating}
+        submitLabel="更新"
+        onCancel={() => router.push(redirectPath)}
+      />
+    </>
   );
 }

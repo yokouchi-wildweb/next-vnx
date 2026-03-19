@@ -3,21 +3,23 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { Control, FieldPath, FieldValues } from "react-hook-form";
+import type { Control, ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
 
-import { FieldItem, type FieldItemDescription } from "../Controlled";
+import { ControlledField } from "../Controlled";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";
-import type { FieldConfig } from "../types";
+import { useAutoSaveContext } from "@/components/Form/AutoSave";
+import type { FieldConfig, FieldCommonProps } from "../types";
 import {
   renderInputByFormType,
   shouldUseFieldItem,
   hasVisibleInput,
+  getBlurMode,
 } from "./inputResolver";
 
 export type ConfiguredFieldProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
-> = {
+> = FieldCommonProps & {
   /** react-hook-form の control */
   control: Control<TFieldValues, any, TFieldValues>;
   /** フィールド設定（FieldConfig） */
@@ -26,16 +28,6 @@ export type ConfiguredFieldProps<
   name?: TName;
   /** ラベル（省略時は fieldConfig.label） */
   label?: ReactNode;
-  /** 必須かどうか（省略時は fieldConfig.required） */
-  required?: boolean;
-  /** 説明テキスト */
-  description?: FieldItemDescription;
-  /** FormItem 全体に適用するクラス名 */
-  className?: string;
-  /** ラベルを視覚的に非表示にする */
-  hideLabel?: boolean;
-  /** エラーメッセージを非表示にする */
-  hideError?: boolean;
 };
 
 /**
@@ -72,14 +64,48 @@ export function ConfiguredField<
   required,
   description,
   className,
+  inputClassName,
   hideLabel = false,
   hideError = false,
+  requiredMark,
+  requiredMarkPosition,
+  layout,
+  labelClass,
 }: ConfiguredFieldProps<TFieldValues, TName>) {
   const resolvedName = (name ?? fieldConfig.name) as TName;
   const resolvedLabel = label ?? fieldConfig.label;
   const resolvedRequired = required ?? fieldConfig.required ?? false;
 
   const { formInput } = fieldConfig;
+
+  // 自動保存コンテキスト（ControlledFieldを使わないコンポーネント用）
+  const autoSaveContext = useAutoSaveContext<TFieldValues>();
+
+  /**
+   * ControlledFieldを使わないコンポーネント用に、fieldをauto-save対応でラップする
+   */
+  const wrapFieldWithAutoSave = (
+    field: ControllerRenderProps<TFieldValues, TName>
+  ): ControllerRenderProps<TFieldValues, TName> => {
+    if (!autoSaveContext?.enabled) {
+      return field;
+    }
+
+    const blurMode = getBlurMode(fieldConfig);
+
+    // blurMode="none"の場合は独自のオートセーブ処理を持つためスキップ
+    if (blurMode === "none") {
+      return field;
+    }
+
+    return {
+      ...field,
+      onBlur: () => {
+        field.onBlur();
+        autoSaveContext.onFieldBlur(resolvedName, { immediate: blurMode === "immediate" });
+      },
+    };
+  };
 
   // 非表示フィールド
   if (!hasVisibleInput(formInput)) {
@@ -102,30 +128,40 @@ export function ConfiguredField<
       <FormField
         control={control}
         name={resolvedName}
-        render={({ field }) => (
-          <FormItem className={className}>
-            <FormControl>
-              {renderInputByFormType(formInput, field, fieldConfig)}
-            </FormControl>
-            {!hideError && <FormMessage />}
-          </FormItem>
-        )}
+        render={({ field }) => {
+          // 自動保存対応でfieldをラップ
+          const wrappedField = wrapFieldWithAutoSave(field);
+          return (
+            <FormItem className={className}>
+              <FormControl>
+                {renderInputByFormType(formInput, wrappedField, fieldConfig, inputClassName)}
+              </FormControl>
+              {!hideError && <FormMessage />}
+            </FormItem>
+          );
+        }}
       />
     );
   }
 
-  // 通常のフィールド（FieldItem を使用）
+  // 通常のフィールド（ControlledField を使用）
   return (
-    <FieldItem
+    <ControlledField
       control={control}
       name={resolvedName}
       label={resolvedLabel}
       required={resolvedRequired}
+      requiredMark={requiredMark}
+      requiredMarkPosition={requiredMarkPosition}
       description={description}
       className={className}
+      inputClassName={inputClassName}
       hideLabel={hideLabel}
       hideError={hideError}
-      renderInput={(field) => renderInputByFormType(formInput, field, fieldConfig)}
+      layout={layout}
+      labelClass={labelClass}
+      blurMode={getBlurMode(fieldConfig)}
+      renderInput={(field, inputClassName) => renderInputByFormType(formInput, field, fieldConfig, inputClassName)}
     />
   );
 }

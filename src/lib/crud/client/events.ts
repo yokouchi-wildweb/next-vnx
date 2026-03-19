@@ -13,9 +13,14 @@ export type CrudAction =
   | "bulkDeleteByQuery"
   | "upsert"
   | "bulkUpsert"
+  | "bulkUpdate"
+  | "bulkUpdateByIds"
   | "duplicate"
   | "restore"
-  | "hardDelete";
+  | "hardDelete"
+  | "reorder"
+  | "searchForSorting"
+  | "count";
 
 export type CrudEvent = {
   action: CrudAction;

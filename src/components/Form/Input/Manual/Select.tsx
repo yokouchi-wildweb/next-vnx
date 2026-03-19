@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from "@/components/_shadcn/select";
 import { type Options } from "@/components/Form/types";
+import { cn } from "@/lib/cn";
 
 type OptionPrimitive = Options["value"];
 
@@ -16,6 +17,8 @@ export type SelectInputProps = {
   value?: OptionPrimitive | "" | null;
   /** 値が変更されたときのコールバック */
   onChange: (value: OptionPrimitive | "" | null) => void;
+  /** フォーカスが外れたときのコールバック（ドロップダウンが閉じた時に発火） */
+  onBlur?: () => void;
   /**
    * Selectable options. If omitted, an empty list is used so the component can
    * safely render before options load.
@@ -32,10 +35,16 @@ export type SelectInputProps = {
    */
   showPlaceholderOption?: boolean;
   /**
+   * SelectTrigger に適用するクラス名。
+   */
+  className?: string;
+  /**
    * SelectContent に適用するクラス名（z-index調整などに使用）。
    * モーダル内で使用する場合は "surface-ui-layer" などを指定。
    */
   contentClassName?: string;
+  /** 無効化 */
+  disabled?: boolean;
 };
 
 const CLEAR_VALUE = "__EMPTY__";
@@ -50,12 +59,15 @@ const serializeValue = (value: OptionPrimitive | "" | null | undefined) => {
 export function SelectInput({
   value,
   onChange,
+  onBlur,
   options = [],
   placeholder,
   includeNullOption = false,
   nullOptionLabel = "未選択（null）",
   showPlaceholderOption = true,
+  className,
   contentClassName,
+  disabled,
   ...rest
 }: SelectInputProps) {
   const handleChange = (selectedValue: string) => {
@@ -75,17 +87,26 @@ export function SelectInput({
       ? CLEAR_VALUE
       : "";
 
+  const handleOpenChange = (open: boolean) => {
+    // ドロップダウンが閉じた時にonBlurを発火
+    if (!open) {
+      onBlur?.();
+    }
+  };
+
   return (
     <ShadcnSelect
       onValueChange={handleChange}
+      onOpenChange={handleOpenChange}
       value={currentValue}
       defaultValue={currentValue}
+      disabled={disabled}
       {...rest}
     >
-      <SelectTrigger className="!h-auto border-muted-foreground/50 py-3">
+      <SelectTrigger className={cn("!h-auto border-muted-foreground/50 py-3", className)}>
         <SelectValue placeholder={placeholder ?? "選択してください"} />
       </SelectTrigger>
-      <SelectContent className={contentClassName}>
+      <SelectContent className={cn("surface-ui-layer", contentClassName)}>
         {includeNullOption ? (
           <SelectItem value={CLEAR_VALUE}>{nullOptionLabel}</SelectItem>
         ) : showPlaceholderOption ? (

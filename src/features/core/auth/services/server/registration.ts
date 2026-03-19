@@ -21,6 +21,8 @@ import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
+import { APP_FEATURES } from "@/config/app/app-features.config";
+import { couponService } from "@/features/core/coupon/services/server/couponService";
 
 export type RegistrationInput = z.infer<typeof RegistrationSchema>;
 
@@ -34,7 +36,7 @@ export type RegistrationResult = {
   };
 };
 
-export async function register(input: unknown): Promise<RegistrationResult> {
+export async function register(input: unknown, ip?: string): Promise<RegistrationResult> {
   const parsedResult = RegistrationSchema.safeParse(input);
 
   if (!parsedResult.success) {
@@ -46,10 +48,11 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     providerUid,
     idToken,
     email,
-    displayName,
+    name,
     password,
     role: requestedRole,
     profileData,
+    inviteCode,
   } = parsedResult.data;
 
   // ロールの決定（指定がない場合はデフォルトを使用）
@@ -102,14 +105,24 @@ export async function register(input: unknown): Promise<RegistrationResult> {
   // ユーザー登録処理を user ドメインに委譲
   const { user } = await registerFromAuth({
     email,
-    displayName,
+    name,
     existingUser,
     role,
+    ip,
   });
 
   // プロフィールを持つロールの場合、プロフィールデータを保存
   if (hasRoleProfile(role as UserRoleType) && profileData) {
     await userProfileService.upsertProfile(user.id, role as UserRoleType, profileData);
+  }
+
+  // 招待コード処理（失敗しても登録はブロックしない）
+  if (APP_FEATURES.marketing.referral.enabled && inviteCode) {
+    try {
+      await couponService.redeemWithEffect(inviteCode, user.id);
+    } catch (error) {
+      console.warn("[registration] 招待コード処理に失敗しましたが登録は続行します:", error);
+    }
   }
 
   const sessionUser = SessionUserSchema.parse({
@@ -119,7 +132,7 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     isDemo: user.isDemo,
     providerType: user.providerType,
     providerUid: user.providerUid,
-    displayName: user.displayName,
+    name: user.name,
   });
 
   const maxAge = SESSION_DEFAULT_MAX_AGE_SECONDS;
@@ -131,7 +144,7 @@ export async function register(input: unknown): Promise<RegistrationResult> {
       isDemo: sessionUser.isDemo,
       providerType: sessionUser.providerType,
       providerUid: sessionUser.providerUid,
-      displayName: sessionUser.displayName,
+      name: sessionUser.name,
     },
     options: { maxAge },
   });

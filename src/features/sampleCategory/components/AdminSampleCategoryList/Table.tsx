@@ -3,14 +3,15 @@
 "use client";
 
 import type { SampleCategory } from "@/features/sampleCategory/entities";
-import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
-import EditButton from "@/components/Fanctional/EditButton";
-import DeleteButton from "@/components/Fanctional/DeleteButton";
-import { useDeleteSampleCategory } from "@/features/sampleCategory/hooks/useDeleteSampleCategory";
-import config from "@/features/sampleCategory/domain.json";
+import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
+import { EditButton, DeleteButton } from "@/lib/crud";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawConfig from "@/features/sampleCategory/domain.json";
 import presenters from "@/features/sampleCategory/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+
+const config = normalizeDomainJsonConfig(rawConfig);
 
 export type AdminSampleCategoryListTableProps = {
   /**
@@ -30,8 +31,8 @@ const columns: DataTableColumn<SampleCategory>[] = buildDomainColumns<SampleCate
     header: "操作",
     render: (d: SampleCategory) => (
       <TableCellAction>
-        <EditButton href={`/admin/sample-categories/${d.id}/edit`} />
-        <DeleteButton id={d.id} useDelete={useDeleteSampleCategory} title="サンプルカテゴリ削除" />
+        <EditButton domain="sampleCategory" id={d.id} />
+        <DeleteButton domain="sampleCategory" id={d.id} />
       </TableCellAction>
     ),
   },

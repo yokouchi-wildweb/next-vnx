@@ -3,6 +3,7 @@
 import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { nullableDatetime } from "@/lib/crud/utils";
 
 // CURRENCY_CONFIG から動的に walletType の値を取得
 const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
@@ -20,36 +21,23 @@ export const PurchaseRequestBaseSchema = z.object({
   payment_provider: z.string().trim().min(1, { message: "決済プロバイダは必須です。" }),
   payment_session_id: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
+  transaction_id: z.string().trim().nullish()
+    .transform((value) => emptyToNull(value)),
   redirect_url: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   error_code: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   error_message: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
-  completed_at: z.preprocess(
-  (value) => {
-    if (value == null) return undefined;
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      if (!trimmed) return undefined;
-      return trimmed;
-    }
-    return value;
-  },
-  z.coerce.date()
-).or(z.literal("").transform(() => undefined)).nullish(),
-  expires_at: z.preprocess(
-  (value) => {
-    if (value == null) return undefined;
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      if (!trimmed) return undefined;
-      return trimmed;
-    }
-    return value;
-  },
-  z.coerce.date()
-).or(z.literal("").transform(() => undefined)).nullish(),
+  webhook_signature: z.string().trim().nullish()
+    .transform((value) => emptyToNull(value)),
+  coupon_code: z.string().trim().nullish()
+    .transform((value) => emptyToNull(value)),
+  discount_amount: z.coerce.number().int().nullish(),
+  original_payment_amount: z.coerce.number().int().nullish(),
+  completed_at: nullableDatetime.nullish(),
+  paid_at: nullableDatetime.nullish(),
+  expires_at: nullableDatetime.nullish(),
 });
 
 export const PurchaseRequestCreateSchema = PurchaseRequestBaseSchema;

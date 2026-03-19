@@ -1,7 +1,14 @@
 import type React from "react";
 
 import type { Options } from "@/components/Form/types";
-import type { TableColumnAlignment, TableStylingProps } from "../types";
+import type {
+  TableColumnAlignment,
+  TableStylingProps,
+  TableCellStyleProps,
+  ColumnSortProps,
+  PaddingSize,
+} from "../types";
+import type { CellAction } from "../DataTable";
 
 export type EditableGridEditorType =
   | "text"
@@ -17,7 +24,7 @@ export type EditableGridEditorType =
 
 export type EditableGridColumn<T> = {
   field: string;
-  header: string;
+  header: React.ReactNode;
   editorType: EditableGridEditorType;
   placeholder?: string;
   width?: string;
@@ -33,6 +40,24 @@ export type EditableGridColumn<T> = {
   renderAction?: (row: T) => React.ReactNode;
   onToggleRequest?: (event: EditableGridSwitchToggleEvent<T>) => boolean | Promise<boolean>;
   align?: TableColumnAlignment;
+  /**
+   * ソート可能にするかどうか。true の場合、field をソートキーとしてヘッダーがクリック可能になる。
+   */
+  sortable?: boolean;
+  /**
+   * このカラムの水平パディングを上書き
+   */
+  paddingX?: PaddingSize;
+  /**
+   * このカラムの垂直パディングを上書き
+   */
+  paddingY?: PaddingSize;
+  /**
+   * readonly セルにクリック可能なオーバーレイを追加する。
+   * ホバー時にクリック領域とインジケーターが表示される。
+   * editorType: "readonly" の場合のみ有効。
+   */
+  cellAction?: CellAction<T>;
 };
 
 export type EditableGridHeaderIconMode = "readonly" | "editable" | "both" | "none";
@@ -52,39 +77,34 @@ export type EditableGridSwitchToggleEvent<T> = {
   previousValue: boolean;
 };
 
-export type EditableGridOrderRule<T> = {
-  field: EditableGridColumn<T>["field"];
-  direction?: "asc" | "desc";
-};
-
-export type EditableGridTableProps<T> = TableStylingProps<T> & {
-  /**
-   * DataTable/RecordSelectionTable と同じ API を採用。未指定時は空配列扱い。
-   */
-  items?: T[];
-  columns: EditableGridColumn<T>[];
-  getKey?: (row: T, index: number) => React.Key;
-  onCellChange?: (event: EditableGridCellChangeEvent<T>) => void;
-  emptyValueFallback?: string;
-  tableLayout?: "auto" | "fixed";
-  /**
-   * true の場合、order で指定された条件に基づいて rows を並び替えて表示する。
-   */
-  autoSort?: boolean;
-  /**
-   * autoSort 時に適用する並び替え条件。配列の先頭ほど優先順位が高い。
-   */
-  order?: EditableGridOrderRule<T>[];
-  /**
-   * 行の高さ（セル上下の余白）
-   */
-  rowHeight?: "xs" | "sm" | "md" | "lg" | "xl";
-  /**
-   * ヘッダーへ表示するアイコンのモード。
-   * - readonly: Readonly列のみ表示（デフォルト）
-   * - editable: 編集可能列のみ表示
-   * - both: 両方の列に表示
-   * - none: アイコンを表示しない
-   */
-  headerIconMode?: EditableGridHeaderIconMode;
-};
+export type EditableGridTableProps<T> = TableStylingProps<T> &
+  TableCellStyleProps &
+  ColumnSortProps & {
+    /**
+     * DataTable/RecordSelectionTable と同じ API を採用。未指定時は空配列扱い。
+     */
+    items?: T[];
+    columns: EditableGridColumn<T>[];
+    getKey?: (row: T, index: number) => React.Key;
+    onCellChange?: (event: EditableGridCellChangeEvent<T>) => void;
+    emptyValueFallback?: string;
+    tableLayout?: "auto" | "fixed";
+    /**
+     * ヘッダーへ表示するアイコンのモード。
+     * - readonly: Readonly列のみ表示（デフォルト）
+     * - editable: 編集可能列のみ表示
+     * - both: 両方の列に表示
+     * - none: アイコンを表示しない
+     */
+    headerIconMode?: EditableGridHeaderIconMode;
+    /**
+     * readonly セルに背景色を適用するかどうか。
+     * @default true
+     */
+    highlightReadonlyCells?: boolean;
+    /**
+     * 行ホバー時の背景色変更を無効にするかどうか。
+     * @default false
+     */
+    disableRowHover?: boolean;
+  };

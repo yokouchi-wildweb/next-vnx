@@ -1,0 +1,34 @@
+// src/config/app/types.ts
+
+/**
+ * サインアップモード
+ * - normal: 通常登録
+ * - earlyRegistration: 事前登録
+ */
+export type SignupMode = "normal" | "earlyRegistration";
+
+/**
+ * メールチェックモード
+ * - disabled: チェックなし
+ * - full: 4段階フルチェック（信頼ドメイン→TLD→OSS→DeBounce）
+ * - strict: 信頼ドメイン（TRUSTED_DOMAINS）のみ許可
+ */
+export type EmailCheckMode = "disabled" | "full" | "strict";
+
+/**
+ * ウォレット購入制限モード
+ * - none: 制限なし
+ * - phoneVerified: SMS認証済みユーザーのみ購入可能
+ */
+export type WalletPurchaseRestriction = "none" | "phoneVerified";
+
+/**
+ * Hide My Email（Apple「メールを非公開」）検知時のアクション
+ * - disabled: チェックなし
+ * - block: 検知時にサイレントブロック（メール送信しない）
+ * - challenge: 検知時にreCAPTCHA v2チャレンジを要求
+ */
+export type HideMyEmailAction = "disabled" | "block" | "challenge";
+
+/** セレクションテーブルの選択方式 */
+export type SelectionBehavior = "row" | "checkbox";

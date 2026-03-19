@@ -2,13 +2,19 @@
 
 import { getDomainConfig, type DomainConfig } from "@/lib/domain";
 import { __DrizzleEntityImports__ } from "@/features/__domain__/entities/drizzle";
-import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/features/__domain__/entities/schema";
+__RelationTableImports__import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/features/__domain__/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { IdType, OrderBySpec } from "@/lib/crud/types";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
-const conf = getDomainConfig("__domain__") as DomainConfig & { useSoftDelete?: boolean };
+const conf = getDomainConfig("__domain__");
+
+// sortOrderField が設定されている場合、対応するカラムを取得
+const sortOrderColumn = conf.sortOrderField
+  ? ((__Domain__Table as unknown as Record<string, unknown>)[conf.sortOrderField] as AnyPgColumn)
+  : undefined;
 
 export const baseOptions = {
   idType: conf.idType as IdType,
@@ -31,6 +37,7 @@ export const __domain__ServiceOptions = baseOptions;
 
 export const base = createCrudService(__Domain__Table, {
   ...baseOptions,
+  sortOrderColumn,
   parseCreate: (data) => __Domain__CreateSchema.parse(data),
   parseUpdate: (data) => __Domain__UpdateSchema.parse(data),
   parseUpsert: (data) => __Domain__CreateSchema.parse(data),

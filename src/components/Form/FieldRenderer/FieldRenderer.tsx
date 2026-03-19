@@ -7,22 +7,15 @@ import {
   ConfiguredField,
   ConfiguredFieldGroup,
   ConfiguredMediaField,
+  ConfiguredAsyncRelationField,
   type FieldConfig,
 } from "@/components/Form/Field";
+import { useAppFormMedia } from "@/components/Form/AppForm";
 import { FieldGroupSection } from "./FieldGroupSection";
-import type { FieldGroup, InlineFieldGroup } from "./types";
+import type { FieldGroup, InlineFieldGroup, MediaState, MediaHandleEntry, InsertFieldsMap } from "./types";
 
-export type MediaState = {
-  isUploading: boolean;
-  commitAll: () => Promise<void>;
-  resetAll: () => Promise<void>;
-};
-
-export type MediaHandleEntry = {
-  isUploading: boolean;
-  commit: (finalUrl?: string | null) => Promise<void>;
-  reset: () => Promise<void>;
-};
+// 型を re-export（後方互換性のため）
+export type { MediaState, MediaHandleEntry } from "./types";
 
 export type FieldRendererProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues, any, TFieldValues>;
@@ -32,11 +25,25 @@ export type FieldRendererProps<TFieldValues extends FieldValues> = {
   baseFields?: FieldConfig[];
 
   /**
-   * フィールドのパッチ（上書き・追加）
-   * - 同名フィールド: 位置を維持して上書き
+   * フィールドのパッチ（部分的に上書き・追加）
+   * - 同名フィールド: 位置を維持してベースフィールドにマージ
    * - 新規フィールド: 末尾に追加
    */
-  fieldPatches?: FieldConfig[];
+  fieldPatches?: Partial<FieldConfig>[];
+
+  /**
+   * フィールド挿入（指定フィールドの前に追加）
+   * - キー: 挿入先フィールド名 または "__first__"（先頭に挿入）
+   * - 値: 挿入するフィールド設定の配列
+   */
+  insertBefore?: InsertFieldsMap;
+
+  /**
+   * フィールド挿入（指定フィールドの後に追加）
+   * - キー: 挿入先フィールド名 または "__last__"（末尾に挿入）
+   * - 値: 挿入するフィールド設定の配列
+   */
+  insertAfter?: InsertFieldsMap;
 
   /** フィールドグループ定義（セクション分け） */
   fieldGroups?: FieldGroup[];
@@ -65,6 +72,8 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
   methods,
   baseFields = [],
   fieldPatches = [],
+  insertBefore = {},
+  insertAfter = {},
   fieldGroups,
   inlineGroups,
   onMediaStateChange,
@@ -73,6 +82,9 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
   beforeField,
   afterField,
 }: FieldRendererProps<TFieldValues>) {
+  // AppFormのContextを取得（存在する場合）
+  const appFormMedia = useAppFormMedia();
+
   // メディアアップロード状態管理
   const mediaEntriesRef = useRef<Map<string, MediaHandleEntry>>(new Map());
   const [mediaVersion, setMediaVersion] = useState(0);
@@ -90,27 +102,86 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
     [],
   );
 
-  // baseFields と fieldPatches を統合
-  // - 同名フィールド: 位置を維持して上書き
-  // - 新規フィールド: 末尾に追加
+  // baseFields, fieldPatches, insertBefore, insertAfter を統合
+  // 処理順序:
+  // 1. insertBefore["__first__"] を先頭に配置
+  // 2. baseFields を処理（fieldPatches で部分的に上書き・マージ）
+  // 3. 各フィールドの前後に insertBefore/insertAfter で指定されたフィールドを挿入
+  //    （挿入されたフィールドに対しても再帰的に insertBefore/insertAfter を適用）
+  // 4. fieldPatches の新規フィールドを末尾に追加
+  // 5. insertAfter["__last__"] を最後に配置
   const combinedFields = useMemo(() => {
-    const patchMap = new Map(fieldPatches.map((f) => [f.name, f]));
+    const patchMap = new Map(
+      fieldPatches.filter((f) => f.name).map((f) => [f.name, f])
+    );
 
-    // baseFields を走査し、同名があれば置き換え（位置維持）
-    const mergedFields = baseFields.map((field) => {
+    // フィールドにパッチを適用するヘルパー関数
+    const applyPatch = (field: FieldConfig): FieldConfig => {
       const patch = patchMap.get(field.name);
       if (patch) {
         patchMap.delete(field.name); // 使用済み
-        return patch; // 上書き（位置維持）
+        return { ...field, ...patch } as FieldConfig;
       }
       return field;
-    });
+    };
 
-    // 残り（新規追加分）を末尾に追加
-    const remainingPatches = Array.from(patchMap.values());
+    // 使用済みの insertBefore/insertAfter キーを追跡（無限ループ防止）
+    const usedInsertKeys = new Set<string>();
 
-    return [...mergedFields, ...remainingPatches];
-  }, [baseFields, fieldPatches]);
+    /**
+     * フィールドとその前後挿入を再帰的に処理するヘルパー関数
+     * これにより、insertBefore.__first__ で挿入されたリレーションフィールドなどに対しても
+     * insertBefore/insertAfter でフィールドを挟み込める
+     * @param field パッチ適用済みのフィールド
+     * @param output 結果を格納する配列
+     */
+    const processFieldWithInserts = (field: FieldConfig, output: FieldConfig[]) => {
+      const fieldName = field.name;
+
+      // このフィールドの前に挿入（未処理の場合のみ）
+      const beforeKey = `before:${fieldName}`;
+      if (!usedInsertKeys.has(beforeKey)) {
+        usedInsertKeys.add(beforeKey);
+        const beforeFields = insertBefore[fieldName];
+        if (beforeFields) {
+          beforeFields.forEach((bf) => processFieldWithInserts(applyPatch(bf), output));
+        }
+      }
+
+      // フィールド本体
+      output.push(field);
+
+      // このフィールドの後に挿入（未処理の場合のみ）
+      const afterKey = `after:${fieldName}`;
+      if (!usedInsertKeys.has(afterKey)) {
+        usedInsertKeys.add(afterKey);
+        const afterFields = insertAfter[fieldName];
+        if (afterFields) {
+          afterFields.forEach((af) => processFieldWithInserts(applyPatch(af), output));
+        }
+      }
+    };
+
+    const result: FieldConfig[] = [];
+
+    // 1. 先頭に挿入（insertBefore["__first__"]）
+    const firstFields = insertBefore["__first__"] ?? [];
+    firstFields.forEach((f) => processFieldWithInserts(applyPatch(f), result));
+
+    // 2. baseFields を処理
+    baseFields.forEach((f) => processFieldWithInserts(applyPatch(f), result));
+
+    // 3. 残り（新規追加分）を末尾に追加
+    // 注: 新規フィールドの場合は完全なFieldConfig定義が必要
+    const remainingPatches = Array.from(patchMap.values()) as FieldConfig[];
+    result.push(...remainingPatches);
+
+    // 4. 末尾に挿入（insertAfter["__last__"]）
+    const lastFields = insertAfter["__last__"] ?? [];
+    lastFields.forEach((f) => processFieldWithInserts(applyPatch(f), result));
+
+    return result;
+  }, [baseFields, fieldPatches, insertBefore, insertAfter]);
 
   // フィールド名からconfigを取得するマップ
   const fieldConfigMap = useMemo(() => {
@@ -149,16 +220,29 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
         return null;
       }
 
-      let fieldElement: ReactNode;
+      let fieldElement: ReactNode = null;
 
-      if (fieldConfig.formInput === "mediaUploader") {
+      if (fieldConfig.formInput === "custom") {
+        // custom はUIを自分で実装するため何も描画しない
+        // beforeField/afterField で独自コンポーネントを挿入する
+        fieldElement = null;
+      } else if (fieldConfig.formInput === "asyncCombobox" || fieldConfig.formInput === "asyncMultiSelect") {
+        // 非同期リレーション検索は専用コンポーネント
+        fieldElement = (
+          <ConfiguredAsyncRelationField
+            key={fieldConfig.name}
+            control={control}
+            fieldConfig={fieldConfig}
+          />
+        );
+      } else if (fieldConfig.formInput === "mediaUploader") {
         // メディアアップローダーは専用コンポーネント
         fieldElement = (
           <ConfiguredMediaField
             key={fieldConfig.name}
             control={control}
             methods={methods}
-            config={fieldConfig}
+            fieldConfig={fieldConfig}
             onHandleChange={handleMediaHandleChange}
           />
         );
@@ -319,15 +403,18 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
   }, [fieldGroups, combinedFields, renderSingleField, inlineGroupFieldsSet, inlineGroupByFirstField, renderInlineGroup]);
 
   // メディア状態の通知
+  // AppFormのContextが存在する場合は、それを優先して使用
+  const effectiveOnMediaStateChange = onMediaStateChange ?? appFormMedia?.setMediaState;
+
   useEffect(() => {
-    if (!onMediaStateChange) return;
+    if (!effectiveOnMediaStateChange) return;
     const entries = Array.from(mediaEntriesRef.current.values());
     if (entries.length === 0) {
-      onMediaStateChange(null);
+      effectiveOnMediaStateChange(null);
       return;
     }
     const isUploading = entries.some((entry) => entry.isUploading);
-    onMediaStateChange({
+    effectiveOnMediaStateChange({
       isUploading,
       commitAll: async () => {
         await Promise.all(entries.map((entry) => entry.commit()));
@@ -336,7 +423,7 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
         await Promise.all(entries.map((entry) => entry.reset()));
       },
     });
-  }, [onMediaStateChange, mediaVersion]);
+  }, [effectiveOnMediaStateChange, mediaVersion]);
 
   return (
     <>

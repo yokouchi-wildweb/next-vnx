@@ -6,28 +6,14 @@ import {
   getProfilesByCategory,
 } from "@/features/core/userProfile/utils";
 
-const displayNameSchema = z.string();
-
-const emailSchema = z
-  .string({ required_error: "メールアドレスを入力してください" })
-  .trim()
-  .min(1, { message: "メールアドレスを入力してください" })
-  .email({ message: "メールアドレスの形式が不正です" });
-
-const newPasswordSchema = z
-  .string()
-  .refine((value) => value.length === 0 || value.length >= 8, {
-    message: "パスワードは8文字以上で入力してください",
-  });
+const nameSchema = z.string();
 
 // profileData バリデーション関数（adminEdit タグでフィルタリング）
 const validateProfileData = createProfileDataValidator(getProfilesByCategory("admin"), "adminEdit");
 
 export const FormSchema = z
   .object({
-    displayName: displayNameSchema,
-    email: emailSchema,
-    newPassword: newPasswordSchema,
+    name: nameSchema,
     role: z.string(),
     profileData: z.record(z.unknown()).optional(),
   })
@@ -36,9 +22,7 @@ export const FormSchema = z
   });
 
 export type FormValues = {
-  displayName: string;
-  email: string;
-  newPassword: string;
+  name: string;
   role: string;
   profileData?: Record<string, unknown>;
 };
@@ -48,10 +32,8 @@ export const createDefaultValues = (
   profileData?: Record<string, unknown>,
 ): FormValues => {
   return {
-    displayName: user.displayName ?? "",
-    email: user.email ?? "",
+    name: user.name ?? "",
     role: user.role ?? "admin",
-    newPassword: "",
     profileData: profileData ?? {},
   };
 };

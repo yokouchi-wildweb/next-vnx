@@ -14,6 +14,7 @@ export type CreatePendingInput = {
   providerUid: string;
   email: string | null;
   lastAuthenticatedAt: Date;
+  signupIp?: string;
 };
 
 /**
@@ -45,14 +46,18 @@ export async function setPending(
     throw new DomainError(message, { status: 400 });
   }
 
+  const upsertData = {
+    ...result.data,
+    localPassword: null,
+    name: null,
+    deletedAt: null,
+    // 新規登録の場合はsignupIpを記録
+    ...(input.signupIp ? { signupIp: input.signupIp } : {}),
+  } as unknown as Parameters<typeof base.upsert>[0];
+
   const user = await base.upsert(
-    {
-      ...result.data,
-      localPassword: null,
-      displayName: null,
-      deletedAt: null,
-    } as Parameters<typeof base.upsert>[0],
-    { conflictFields: ["providerType", "providerUid"] },
+    upsertData,
+    { conflictFields: ["providerType", "providerUid"] as any },
   );
 
   return user;

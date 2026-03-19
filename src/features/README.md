@@ -28,8 +28,11 @@
 | addToAdminDataMenu | boolean | ⚪ No | adminDataMenu への自動追加 |
 | useDuplicateButton | boolean | ⚪ No | 複製ボタンの有無 |
 | useImportExport | boolean | ⚪ No | データ入出力機能の有無（CSV/ZIP形式） |
+| useAutoSave | boolean | ⚪ No | 編集フォームでオートセーブを使用するか |
 | compositeUniques | string[][] | ⚪ No | 複合ユニーク制約（Neon のみ） |
 | generateFiles | GenerateFiles | 🟢 Yes | 生成対象ファイルの設定 |
+
+> ⚠️ **オプショナルフィールドを追加する場合**: `src/registry/domainConfigRegistry.ts` の `DomainConfigOptionals` にも同じフィールドを追加すること。省略すると、そのフィールドを持たないドメインが存在するだけで DomainConfig の union 型が壊れてビルドエラーになる。
 
 ---
 
@@ -46,6 +49,7 @@
 | onDelete | `"RESTRICT"` \| `"CASCADE"` \| `"SET_NULL"` | ⚪ No | 削除時の挙動（belongsTo のみ） |
 | includeRelationTable | boolean | ⚪ No | 中間テーブル定義を含めるか（belongsToMany のみ） |
 | labelField | string | ⚪ No | セレクトボックスのラベルに使うフィールド（デフォルト: `name`） |
+| formInput | RelationFormInput | ⚪ No | フォーム入力種別（省略時はデフォルト値） |
 
 #### RelationType
 
@@ -55,6 +59,65 @@
 | hasMany | 1:N 子リスト | ○ | ○ |
 | hasOne | 1:1 | ○ | ○ |
 | belongsToMany | M:N 多対多 | ○ | × |
+
+#### RelationFormInput
+
+リレーションフィールドのフォーム入力種別。省略時は relationType に応じたデフォルト値が使われる。
+
+| relationType | デフォルト | 指定可能な値 |
+|---|---|---|
+| belongsTo | `select` | `select`, `combobox`, `asyncCombobox`, `custom` |
+| belongsToMany | `checkbox` | `checkbox`, `multiSelect`, `asyncMultiSelect`, `custom` |
+
+- `select` / `checkbox`: 初回に全件取得して選択肢を表示（少量データ向け）
+- `combobox` / `multiSelect`: 全件取得 + 検索フィルタ付き（中量データ向け）
+- `asyncCombobox` / `asyncMultiSelect`: ユーザー入力時に非同期検索（大量データ向け）
+- `custom`: UI は自分で実装。スキーマには含まれるが、自動 UI 描画なし
+
+`asyncCombobox` / `asyncMultiSelect` を指定した場合、リレーション先の `searchFields`（domain.json）が自動的に検索対象として使用される。
+
+`custom` を指定した場合、データ取得は行われず FieldConfig のみ生成される。
+`beforeField` / `afterField` で独自コンポーネントを注入する（通常フィールドの `custom` と同じ仕組み）。
+
+```json
+{
+  "relations": [
+    {
+      "domain": "user",
+      "label": "担当者",
+      "fieldName": "user_id",
+      "fieldType": "uuid",
+      "relationType": "belongsTo",
+      "formInput": "asyncCombobox"
+    },
+    {
+      "domain": "project",
+      "label": "プロジェクト",
+      "fieldName": "project_id",
+      "fieldType": "uuid",
+      "relationType": "belongsTo",
+      "formInput": "custom"
+    }
+  ]
+}
+```
+
+custom リレーションの UI 実装例:
+```tsx
+<SampleFields
+  methods={methods}
+  beforeField={{
+    project_id: (
+      <ControlledField
+        control={control}
+        name="project_id"
+        label="プロジェクト"
+        renderInput={(field) => <MyProjectSelector {...field} />}
+      />
+    )
+  }}
+/>
+```
 
 ---
 
@@ -71,6 +134,7 @@
 | defaultValue | any | ⚪ No | デフォルト値 |
 | options | Option[] | ⚪ No | 選択肢（select, radio, checkbox, multiSelect で使用） |
 | displayType | `"standard"` \| `"bookmark"` | ⚪ No | radio/checkbox の表示スタイル |
+| placeholder | string | ⚪ No | プレースホルダー（textInput, numberInput, textarea, select, multiSelect, emailInput, passwordInput で使用） |
 
 #### FieldType（Neon）
 
@@ -129,9 +193,72 @@
 | datetimeInput | 日時入力 |
 | emailInput | メール入力 |
 | passwordInput | パスワード入力 |
+| colorInput | カラーピッカー + hexコード入力 |
 | mediaUploader | メディアアップロード |
 | hidden | 非表示入力 |
-| none | 入力なし（フォームに出さない） |
+| none | 入力なし（フォームに出さない、スキーマからも除外） |
+| custom | カスタムUI（スキーマには含める、UIは自分で実装） |
+
+#### hidden vs custom vs none の違い
+
+| 項目 | hidden | custom | none |
+|------|--------|--------|------|
+| Zodスキーマ | 含める | 含める | **除外** |
+| フォームデータ | 含む | 含む | **含まない** |
+| UI描画 | なし | なし（自分で実装） | なし |
+| 用途 | プログラマティックに値を設定するフィールド | 独自UIで入力するフィールド | DBのみで使うフィールド（API経由で設定） |
+
+⚠️ **よくある間違い**: プログラマティックに値を設定したい場合は `hidden`（または独自UIがあれば `custom`）を使う。`none` はスキーマから除外されるため、フォームから値を送信できない。
+
+#### custom の使い方
+
+`formInput: "custom"` を指定したフィールドは、FieldRenderer では何も描画されない。
+代わりに `beforeField` / `afterField` props で独自コンポーネントを挿入する。
+
+**推奨: `ControlledField` を使う**
+
+統一感を保つため、`src/components/Form/Field/Controlled/ControlledField` を使用する。
+以下が自動で統一される:
+- ラベル・必須マーク
+- エラーメッセージ表示
+- 説明テキスト
+- レイアウト（vertical/horizontal）
+- オートセーブ対応
+
+```tsx
+// domain.json
+{ "name": "custom_field", "fieldType": "string", "formInput": "custom" }
+
+// フォームコンポーネント
+import { ControlledField } from "@/components/Form/Field";
+
+<FieldRenderer
+  control={control}
+  methods={methods}
+  baseFields={fields}
+  beforeField={{
+    custom_field: (
+      <ControlledField
+        control={control}
+        name="custom_field"
+        label="カスタムフィールド"
+        required
+        renderInput={(field, inputClassName) => (
+          <MyCustomInput {...field} className={inputClassName} />
+        )}
+      />
+    )
+  }}
+/>
+```
+
+**Field層の構成**
+
+| 層 | パス | 用途 |
+|----|------|------|
+| Configured | `Form/Field/Configured/` | FieldConfigベース（生成コード向け） |
+| Controlled | `Form/Field/Controlled/` | control + renderInput（**custom で推奨**） |
+| Manual | `Form/Field/Manual/` | controlなし（完全手動） |
 
 #### Option
 
@@ -154,6 +281,7 @@
 | accept | string | 🟢 Yes | accept 属性値（例: `image/*,video/*`） |
 | validationRule | object | ⚪ No | バリデーション設定 |
 | validationRule.maxSizeBytes | number | ⚪ No | 最大ファイルサイズ（バイト） |
+| helperText | string | ⚪ No | ヘルパーテキスト（アップロード欄に表示される説明文） |
 | metadataBinding | object | ⚪ No | メタデータを別フィールドに保存 |
 
 #### metadataBinding キー

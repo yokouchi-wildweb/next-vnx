@@ -5,6 +5,7 @@ import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import type { WalletHistory } from "@/features/core/walletHistory/entities";
 import type { WalletHistoryChangeMethodValue, WalletHistorySourceTypeValue } from "@/features/core/walletHistory/types/field";
 import type { WalletHistoryMetaInput } from "@/features/core/walletHistory/types/meta";
+import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";
 
 export type WalletAdjustmentResult = {
   wallet: Wallet;
@@ -20,6 +21,7 @@ export type AdjustWalletParams = {
   sourceType: WalletHistorySourceTypeValue;
   requestBatchId?: string | null;
   reason?: string | null;
+  reasonCategory?: ReasonCategory;
   meta?: WalletHistoryMetaInput;
 };
 
@@ -38,6 +40,7 @@ export type ConsumeReservationParams = {
   sourceType: WalletHistorySourceTypeValue;
   requestBatchId?: string | null;
   reason?: string | null;
+  reasonCategory?: ReasonCategory;
   meta?: WalletHistoryMetaInput;
 };
 
@@ -47,6 +50,7 @@ export type WalletAdjustRequestPayload = {
   amount: number;
   requestBatchId?: string | null;
   reason?: string | null;
+  reasonCategory?: ReasonCategory;
   meta?: WalletHistoryMetaInput;
 };
 
@@ -58,6 +62,8 @@ export type WalletOperationOptions = {
 
 /** adjustBalance用のオプション */
 export type AdjustBalanceOptions = WalletOperationOptions & {
+  /** 事前に取得済みのウォレットを渡す（省略時は内部で取得/作成） */
+  wallet?: Wallet;
   /** trueの場合、履歴記録をスキップ */
   skipHistory?: boolean;
 };
@@ -66,4 +72,41 @@ export type AdjustBalanceOptions = WalletOperationOptions & {
 export type GetWalletOptions = WalletOperationOptions & {
   /** falseの場合、存在しなければnullを返す（デフォルト: true） */
   createIfNotExists?: boolean;
+};
+
+/** 通貨種別ごとの全ユーザー合計残高 */
+export type TotalBalanceByType = {
+  type: WalletTypeValue;
+  totalBalance: number;
+  totalLockedBalance: number;
+};
+
+/** getTotalBalancesByType のフィルタオプション */
+export type TotalBalancesByTypeOptions = {
+  /** 指定したロールのユーザーのみ集計 */
+  role?: string;
+};
+
+/** bulkAdjustByType のパラメータ */
+export type BulkAdjustByTypeParams = {
+  walletType: WalletTypeValue;
+  changeMethod: WalletHistoryChangeMethodValue;
+  amount: number;
+  sourceType: WalletHistorySourceTypeValue;
+  requestBatchId?: string | null;
+  reason?: string | null;
+  reasonCategory?: ReasonCategory;
+  meta?: WalletHistoryMetaInput;
+  /** 指定したロールのユーザーのみ対象 */
+  role?: string;
+};
+
+/** bulkAdjustByType の結果 */
+export type BulkAdjustByTypeResult = {
+  /** 変更されたウォレット数 */
+  affectedCount: number;
+  /** スキップされたウォレット数（DECREMENT時の残高不足等） */
+  skippedCount: number;
+  /** 履歴追跡用バッチID */
+  requestBatchId: string;
 };

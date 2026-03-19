@@ -20,6 +20,8 @@ export type RadioGroupInputProps = {
   value?: OptionPrimitive | null;
   /** 値が変更されたときのコールバック */
   onChange: (value: OptionPrimitive) => void;
+  /** フォーカスが外れたときのコールバック（値変更後に発火） */
+  onBlur?: () => void;
   /**
    * Options to choose from. Optional so the component can render
    * even when options haven't loaded yet.
@@ -27,7 +29,7 @@ export type RadioGroupInputProps = {
   options?: Options[];
   /** 表示タイプ（クラシック / 標準ボタン / ブックマークタグ / 丸形） */
   displayType?: RadioGroupDisplayType;
-  /** 選択肢の並び方向（デフォルト: horizontal） */
+  /** 選択肢の並び方向（デフォルト: classicはvertical、それ以外はhorizontal） */
   orientation?: RadioGroupOrientation;
   /** ボタン表示時に利用するバリアント */
   buttonVariant?: ButtonStyleProps["variant"];
@@ -37,20 +39,29 @@ export type RadioGroupInputProps = {
   selectedButtonVariant?: ButtonStyleProps["variant"];
   /** 非選択時に利用するバリアント（未指定の場合は buttonVariant を利用） */
   unselectedButtonVariant?: ButtonStyleProps["variant"];
-} & Omit<ComponentProps<typeof RadioGroup>, "value" | "defaultValue" | "onValueChange" | "orientation">;
+  /** 無効化 */
+  disabled?: boolean;
+} & Omit<ComponentProps<typeof RadioGroup>, "value" | "defaultValue" | "onValueChange" | "orientation" | "disabled">;
 
 export function RadioGroupInput({
   value,
   onChange,
+  onBlur,
   options = [],
   displayType = "standard",
-  orientation = "horizontal",
+  orientation,
   buttonVariant,
   buttonSize,
   selectedButtonVariant,
   unselectedButtonVariant,
+  disabled,
   ...rest
 }: RadioGroupInputProps) {
+  // 値変更後にonBlurを発火するラップ関数
+  const handleChange = (newValue: OptionPrimitive) => {
+    onChange(newValue);
+    onBlur?.();
+  };
   const serializedValue =
     value === null || typeof value === "undefined" ? undefined : String(value);
 
@@ -61,17 +72,22 @@ export function RadioGroupInput({
     return (matched?.value ?? value) as OptionPrimitive;
   };
 
-  const isVertical = orientation === "vertical";
-  const layoutClass = isVertical ? "flex flex-col gap-2" : "flex flex-wrap gap-2";
+  // classicのデフォルトはvertical、それ以外はhorizontal
+  const resolvedOrientation = orientation ?? (displayType === "classic" ? "vertical" : "horizontal");
+  const isVertical = resolvedOrientation === "vertical";
+  const classicLayoutClass = isVertical ? "mt-3 flex flex-col gap-4" : "mt-3 flex flex-wrap gap-4";
+  const defaultLayoutClass = isVertical ? "flex flex-col gap-2" : "flex flex-wrap gap-2";
+  const layoutClass = displayType === "classic" ? classicLayoutClass : defaultLayoutClass;
 
   if (displayType === "classic") {
     return (
       <RadioGroup
-        onValueChange={(value) => onChange(resolveOriginalValue(value) as OptionPrimitive)}
+        onValueChange={(value) => handleChange(resolveOriginalValue(value) as OptionPrimitive)}
         value={serializedValue}
         defaultValue={serializedValue}
+        disabled={disabled}
         className={cn(layoutClass, rest.className)}
-        aria-orientation={orientation}
+        aria-orientation={resolvedOrientation}
       >
         {options.map((op, index) => {
           const serialized = mapOptionValue(op.value);
@@ -79,8 +95,14 @@ export function RadioGroupInput({
 
           return (
             <div key={optionId} className="flex items-center gap-2">
-              <RadioGroupItem id={optionId} value={serialized} />
-              <Label htmlFor={optionId} className="cursor-pointer">
+              <RadioGroupItem id={optionId} value={serialized} className="border-muted-foreground" />
+              <Label
+                htmlFor={optionId}
+                className={cn(
+                  "text-sm font-normal cursor-pointer",
+                  disabled && "cursor-not-allowed opacity-50"
+                )}
+              >
                 {op.label}
               </Label>
             </div>
@@ -94,9 +116,10 @@ export function RadioGroupInput({
 
   return (
     <div
-      className={cn(layoutClass, className)}
+      className={cn(layoutClass, className, disabled && "opacity-70")}
       role="radiogroup"
-      aria-orientation={orientation}
+      aria-orientation={resolvedOrientation}
+      aria-disabled={disabled}
       {...(restDivProps as ComponentProps<"div">)}
     >
       {options.map((op) => {
@@ -105,7 +128,7 @@ export function RadioGroupInput({
         const resolvedSelectedVariant = selectedButtonVariant ?? buttonVariant ?? "default";
         const resolvedUnselectedVariant = unselectedButtonVariant ?? buttonVariant ?? "outline";
 
-        const handleSelect = () => onChange(op.value);
+        const handleSelect = () => handleChange(op.value);
 
         const key = optionSerialized || String(op.label ?? op.value);
 
@@ -118,6 +141,7 @@ export function RadioGroupInput({
               variant={buttonVariant}
               size={buttonSize}
               onClick={handleSelect}
+              disabled={disabled}
               role="radio"
               aria-checked={selected}
             >
@@ -135,6 +159,7 @@ export function RadioGroupInput({
               variant={buttonVariant}
               size={buttonSize}
               onClick={handleSelect}
+              disabled={disabled}
               role="radio"
               aria-checked={selected}
             >
@@ -154,6 +179,7 @@ export function RadioGroupInput({
               size={buttonSize}
               className={standardButtonBorderClass}
               onClick={handleSelect}
+              disabled={disabled}
               role="radio"
               aria-checked={selected}
             >
@@ -169,6 +195,7 @@ export function RadioGroupInput({
             variant={selected ? resolvedSelectedVariant : resolvedUnselectedVariant}
             size={buttonSize}
             onClick={handleSelect}
+            disabled={disabled}
             role="radio"
             aria-checked={selected}
           >

@@ -15,8 +15,10 @@ import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { db } from "@/lib/drizzle";
 import { assertEmailAvailability } from "@/features/core/user/services/server/helpers/assertEmailAvailability";
+import { findSoftDeletedUser } from "@/features/core/user/services/server/finders/findSoftDeletedUser";
 import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
 import type { CreateDemoUserInput } from "../../../types";
+import { restoreSoftDeletedUser } from "./restore";
 
 /**
  * デモユーザーを登録する。
@@ -50,6 +52,23 @@ async function createDemoAdmin(data: CreateDemoUserInput): Promise<User> {
     throw new DomainError("パスワードは8文字以上で入力してください");
   }
 
+  // ソフトデリート済みユーザーを検索
+  const softDeletedUser = await findSoftDeletedUser({
+    providerType: "local",
+    email: data.email,
+  });
+
+  // ソフトデリート済みユーザーが存在する場合は再登録処理
+  if (softDeletedUser) {
+    return restoreSoftDeletedUser({
+      existingUser: softDeletedUser,
+      name: data.name,
+      localPassword: data.localPassword,
+      role: data.role,
+      isDemo: true,
+    });
+  }
+
   const normalizedEmail = await assertEmailAvailability({
     providerType: "local",
     email: data.email,
@@ -63,7 +82,7 @@ async function createDemoAdmin(data: CreateDemoUserInput): Promise<User> {
     providerUid: randomUUID(),
     localPassword: data.localPassword,
     email: normalizedEmail,
-    displayName: data.displayName,
+    name: data.name,
     isDemo: true,
   });
 
@@ -77,6 +96,23 @@ async function createDemoGeneralUser(data: CreateDemoUserInput): Promise<User> {
     throw new DomainError("パスワードは8文字以上で入力してください");
   }
 
+  // ソフトデリート済みユーザーを検索（Firebase Authチェック前に実行）
+  const softDeletedUser = await findSoftDeletedUser({
+    providerType: "email",
+    email: data.email,
+  });
+
+  // ソフトデリート済みユーザーが存在する場合は再登録処理
+  if (softDeletedUser) {
+    return restoreSoftDeletedUser({
+      existingUser: softDeletedUser,
+      name: data.name,
+      localPassword: data.localPassword,
+      role: data.role,
+      isDemo: true,
+    });
+  }
+
   const auth = getServerAuth();
 
   const firebaseUser = await (async () => {
@@ -84,7 +120,7 @@ async function createDemoGeneralUser(data: CreateDemoUserInput): Promise<User> {
       return await auth.createUser({
         email: data.email,
         password: data.localPassword,
-        displayName: data.displayName || undefined,
+        displayName: data.name || undefined,
       });
     } catch (error) {
       if (hasFirebaseErrorCode(error, "auth/email-already-exists")) {
@@ -101,7 +137,7 @@ async function createDemoGeneralUser(data: CreateDemoUserInput): Promise<User> {
     providerUid: firebaseUser.uid,
     localPassword: null,
     email: data.email,
-    displayName: data.displayName,
+    name: data.name,
     isDemo: true,
   });
 

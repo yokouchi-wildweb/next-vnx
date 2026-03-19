@@ -8,37 +8,83 @@ import {
   TableHeader,
   TableBody,
   TableRow,
-  TableHead,
+  SortableTableHead,
   TableCell,
-} from "./components";
+  CellClickOverlay,
+  getCellClickOverlayClassName,
+} from "../shared";
 import { cn } from "@/lib/cn";
-import type { TableColumnAlignment, TableStylingProps } from "../types";
-import { resolveColumnTextAlignClass, resolveRowClassName } from "../types";
+import type {
+  TableColumnAlignment,
+  TableStylingProps,
+  TableCellStyleProps,
+  ColumnSortProps,
+  PaddingSize,
+  CellAction,
+} from "../types";
+import {
+  resolveColumnTextAlignClass,
+  resolveRowClassName,
+  ROW_HEIGHT_CLASS,
+  resolvePaddingClass,
+} from "../types";
+
+// 後方互換性のため再エクスポート
+export type { CellAction } from "../types";
 
 export type DataTableColumn<T> = {
-  header: string;
+  header: React.ReactNode;
   render: (item: T) => React.ReactNode;
   align?: TableColumnAlignment;
+  /**
+   * ソート可能にする場合のキー。指定するとヘッダーがクリック可能になる。
+   */
+  sortKey?: string;
+  /**
+   * このカラムの水平パディングを上書き
+   */
+  paddingX?: PaddingSize;
+  /**
+   * このカラムの垂直パディングを上書き
+   */
+  paddingY?: PaddingSize;
+  /**
+   * カラムの幅。CSS の width 値で指定する（例: "200px", "30%", "auto"）。
+   * ヘッダー（th）に適用され、テーブルの列幅として反映される。
+   */
+  width?: string;
+  /**
+   * セルにクリック可能なオーバーレイを追加する。
+   * ホバー時にクリック領域とインジケーターが表示される。
+   */
+  cellAction?: CellAction<T>;
 };
 
 export type RowCursor = "pointer" | "default" | "zoom-in" | "grab";
 
-export type DataTableProps<T> = TableStylingProps<T> & {
-  /**
-   * Data rows to render. Optional to allow callers to omit until data is loaded
-   * without causing runtime errors.
-   */
-  items?: T[];
-  columns: DataTableColumn<T>[];
-  getKey?: (item: T, index: number) => React.Key;
-  onRowClick?: (item: T) => void;
-  /**
-   * onRowClick が設定されている場合のホバー時カーソル
-   * @default "pointer"
-   */
-  rowCursor?: RowCursor;
-  emptyValueFallback?: string;
-};
+export type DataTableProps<T> = TableStylingProps<T> &
+  TableCellStyleProps &
+  ColumnSortProps & {
+    /**
+     * Data rows to render. Optional to allow callers to omit until data is loaded
+     * without causing runtime errors.
+     */
+    items?: T[];
+    columns: DataTableColumn<T>[];
+    getKey?: (item: T, index: number) => React.Key;
+    onRowClick?: (item: T) => void;
+    /**
+     * onRowClick が設定されている場合のホバー時カーソル
+     * @default "pointer"
+     */
+    rowCursor?: RowCursor;
+    emptyValueFallback?: string;
+    /**
+     * 行ホバー時の背景色変更を無効にする
+     * @default false
+     */
+    disableRowHover?: boolean;
+  };
 
 const ROW_CURSOR_CLASS: Record<RowCursor, string> = {
   pointer: "cursor-pointer",
@@ -59,6 +105,12 @@ export default function DataTable<T>({
   emptyValueFallback,
   scrollContainerRef,
   bottomSentinelRef,
+  rowHeight = "md",
+  cellPaddingX = "sm",
+  cellPaddingY = "none",
+  disableRowHover = false,
+  sort,
+  onSortChange,
 }: DataTableProps<T>) {
   const resolvedFallback = emptyValueFallback ?? "(未設定)";
   const renderCellContent = (content: React.ReactNode) => {
@@ -71,10 +123,11 @@ export default function DataTable<T>({
   };
 
   const resolvedMaxHeight = maxHeight ?? "70vh";
+  const rowHeightClass = ROW_HEIGHT_CLASS[rowHeight];
 
   return (
     <div
-      className={cn("overflow-x-auto overflow-y-auto", className)}
+      className={cn("w-full max-w-full overflow-x-auto overflow-y-auto", className)}
       style={{ maxHeight: resolvedMaxHeight }}
       ref={scrollContainerRef}
     >
@@ -82,9 +135,16 @@ export default function DataTable<T>({
         <TableHeader>
           <TableRow disableHover>
             {columns.map((col, idx) => (
-              <TableHead key={idx} className={resolveColumnTextAlignClass(col.align)}>
+              <SortableTableHead
+                key={idx}
+                sortKey={col.sortKey}
+                sort={sort}
+                onSortChange={onSortChange}
+                style={col.width ? { width: col.width } : undefined}
+                className={resolveColumnTextAlignClass(col.align)}
+              >
                 {col.header}
-              </TableHead>
+              </SortableTableHead>
             ))}
           </TableRow>
         </TableHeader>
@@ -94,14 +154,59 @@ export default function DataTable<T>({
               key={getKey(item, index)}
               className={cn(
                 "group",
+                rowHeightClass,
                 onRowClick && ROW_CURSOR_CLASS[rowCursor],
                 resolveRowClassName(rowClassName, item, { index }),
               )}
               onClick={onRowClick ? () => onRowClick(item) : undefined}
+              disableHover={disableRowHover}
             >
               {columns.map((col, idx) => (
-                <TableCell key={idx} className={resolveColumnTextAlignClass(col.align)}>
+                <TableCell
+                  key={idx}
+                  className={cn(
+                    resolveColumnTextAlignClass(col.align),
+                    resolvePaddingClass(col.paddingX ?? cellPaddingX, col.paddingY ?? cellPaddingY),
+                    col.cellAction && "relative group",
+                  )}
+                >
                   {renderCellContent(col.render(item))}
+                  {col.cellAction &&
+                    (() => {
+                      const indicator =
+                        typeof col.cellAction!.indicator === "function"
+                          ? col.cellAction!.indicator(item)
+                          : col.cellAction!.indicator;
+
+                      // ポップオーバーモード: 共通スタイルを使用
+                      if (col.cellAction!.popover) {
+                        const fullWidth = col.cellAction!.fullWidth ?? false;
+                        const triggerButton = (
+                          <button
+                            type="button"
+                            data-slot="cell-click-overlay"
+                            onClick={(e) => e.stopPropagation()}
+                            className={getCellClickOverlayClassName(fullWidth)}
+                            aria-label="詳細を表示"
+                          >
+                            <span data-slot="cell-click-indicator" className="pointer-events-none">
+                              {indicator}
+                            </span>
+                          </button>
+                        );
+
+                        return col.cellAction!.popover(item, triggerButton);
+                      }
+
+                      // コールバックモード（従来）
+                      return (
+                        <CellClickOverlay
+                          onClick={() => col.cellAction!.onClick?.(item)}
+                          indicator={indicator}
+                          fullWidth={col.cellAction!.fullWidth}
+                        />
+                      );
+                    })()}
                 </TableCell>
               ))}
             </TableRow>

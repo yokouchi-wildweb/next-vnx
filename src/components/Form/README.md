@@ -38,8 +38,8 @@ Controlled Input は Manual Input を内部でラップして、`field` を `val
 
 | 種別 | 説明 | Controlled | Manual | 典型例 |
 |---|---|---|---|---|
-| 単一フィールド | 1入力を1ラベルで扱う | `FieldItem` | `ManualFieldItem` | メール、名前 |
-| インライングループ | 複数入力を1ラベルで横並び表示 | `FieldItemGroup` | `ManualFieldItemGroup` | 生年月日、郵便番号+住所 |
+| 単一フィールド | 1入力を1ラベルで扱う | `ControlledField` | `ManualField` | メール、名前 |
+| インライングループ | 複数入力を1ラベルで横並び表示 | `ControlledFieldGroup` | `ManualFieldGroup` | 生年月日、郵便番号+住所 |
 
 インライングループは **1つのフィールドとして扱う** ため、  
 ラベル・説明・エラー表示はグループ単位でまとめて扱う。
@@ -52,10 +52,10 @@ Controlled Input は Manual Input を内部でラップして、`field` を `val
 
 | レベル | 目的 | 代表コンポーネント | 向いている場面 | 備考 |
 |---|---|---|---|---|
-| **Manual** | 自前状態で制御 | `ManualFieldItem` / `ManualFieldItemGroup` | useState 前提、簡易フォーム | エラーは手動で渡す |
-| **Controlled** | RHF 連携の標準形 | `FieldItem` / `FieldItemGroup` / `FieldController` | 一般的なフォーム | エラー自動取得 |
+| **Manual** | 低レベル / 自由レイアウト | `ManualField` / `ManualFieldGroup` / `ManualFieldController` | useState 前提、または RHF で自由配置したい場合 | ManualFieldController は RHF 専用 |
+| **Controlled** | RHF 連携の標準形 | `ControlledField` / `ControlledFieldGroup` | 一般的なフォーム | エラー自動取得 |
 | **Configured** | 設定駆動で描画 | `ConfiguredField` / `ConfiguredFieldGroup` / `ConfiguredFields` | domain.json を使う運用 | `FieldConfig` を渡す |
-| **Media** | メディアアップロード | `MediaFieldItem` / `ConfiguredMediaField` | 画像/動画のアップロード | `useMediaUploaderField` を利用 |
+| **Media** | メディアアップロード | `ControlledMediaField` / `ConfiguredMediaField` | 画像/動画のアップロード | `useMediaUploaderField` を利用 |
 | **Renderer** | まとめて自動生成 | `FieldRenderer` | 管理画面CRUD | `mediaUploader` も扱える |
 
 ---
@@ -64,22 +64,24 @@ Controlled Input は Manual Input を内部でラップして、`field` を `val
 
 ### Controlled
 
+ManualFieldController は Manual 配下の自由レイアウト用コンテナとして整理しています。
+
 ```tsx
 import { AppForm } from "@/components/Form";
-import { FieldController } from "@/components/Form/Field";
+import { ManualFieldController } from "@/components/Form/Field";
 import { SwitchInput } from "@/components/Form/Input/Controlled";
 import { Stack } from "@/components/Layout";
 import { Para } from "@/components/TextBlocks/Para";
 
 <AppForm methods={form} onSubmit={handleSubmit}>
-  <FieldController control={control} name="notify">
+  <ManualFieldController control={control} name="notify">
     {(field) => (
       <Stack space={2}>
         <SwitchInput field={field} label="通知設定" />
         <Para tone="muted" size="xs">補足テキスト</Para>
       </Stack>
     )}
-  </FieldController>
+  </ManualFieldController>
 </AppForm>
 ```
 
@@ -108,11 +110,11 @@ const [notify, setNotify] = useState(false);
 
 ```tsx
 import { AppForm } from "@/components/Form";
-import { FieldItem } from "@/components/Form/Field";
+import { ControlledField } from "@/components/Form/Field";
 import { EmailInput } from "@/components/Form/Input/Controlled";
 
 <AppForm methods={form} onSubmit={handleSubmit}>
-  <FieldItem
+  <ControlledField
     control={control}
     name="email"
     label="メールアドレス"
@@ -126,10 +128,10 @@ import { EmailInput } from "@/components/Form/Input/Controlled";
 ### インライングループ（Controlled）
 
 ```tsx
-import { FieldItemGroup } from "@/components/Form/Field";
+import { ControlledFieldGroup } from "@/components/Form/Field";
 import { SelectInput } from "@/components/Form/Input/Controlled";
 
-<FieldItemGroup
+<ControlledFieldGroup
   control={control}
   names={["birth_year", "birth_month", "birth_day"] as const}
   label="生年月日"
@@ -145,27 +147,27 @@ import { SelectInput } from "@/components/Form/Input/Controlled";
 ### 単一フィールド（Manual）
 
 ```tsx
-import { ManualFieldItem } from "@/components/Form/Field";
+import { ManualField } from "@/components/Form/Field";
 import { Input } from "@/components/Form/Input/Manual";
 
 const [email, setEmail] = useState("");
 const [error, setError] = useState<string>();
 
 <form onSubmit={handleSubmit}>
-  <ManualFieldItem label="メールアドレス" error={error} required>
+  <ManualField label="メールアドレス" error={error} required>
     <Input
       type="email"
       value={email}
       onChange={(e) => setEmail(e.target.value)}
     />
-  </ManualFieldItem>
+  </ManualField>
 </form>
 ```
 
 ### インライングループ（Manual）
 
 ```tsx
-import { ManualFieldItemGroup } from "@/components/Form/Field";
+import { ManualFieldGroup } from "@/components/Form/Field";
 import { SelectInput } from "@/components/Form/Input/Manual";
 
 const [year, setYear] = useState("");
@@ -175,7 +177,7 @@ const [yearError, setYearError] = useState<string>();
 const [monthError, setMonthError] = useState<string>();
 const [dayError, setDayError] = useState<string>();
 
-<ManualFieldItemGroup
+<ManualFieldGroup
   label="生年月日"
   required
   errors={[yearError, monthError, dayError].filter(Boolean)}
@@ -185,8 +187,36 @@ const [dayError, setDayError] = useState<string>();
     <SelectInput key="month" value={month} onChange={setMonth} options={monthOptions} />,
     <SelectInput key="day" value={day} onChange={setDay} options={dayOptions} />,
   ]}
-</ManualFieldItemGroup>
+</ManualFieldGroup>
 ```
+
+---
+
+## レイアウトプロパティ（layout / inputLayout）
+
+ControlledField / ManualField / ControlledFieldGroup / ManualFieldGroup / ConfiguredFieldGroup で使用可能。
+
+### layout（ラベルと入力の配置）
+
+- `"vertical"`: 縦並び（デフォルト）
+- `"horizontal"`: 横並び
+- `"responsive"`: モバイルは縦、`md` 以上で横並び
+
+### inputLayout（グループ内の入力配置）
+
+ControlledFieldGroup / ManualFieldGroup / ConfiguredFieldGroup のみ。
+
+- `"vertical"`: 入力を縦並び
+- `"horizontal"`: 入力を横並び
+- `"responsive"`: モバイルは縦、`md` 以上で横並び
+
+inputLayout 未指定時のデフォルトは `layout` に連動します。
+
+- `layout="vertical"` → `inputLayout="horizontal"`
+- `layout="horizontal"` → `inputLayout="vertical"`
+- `layout="responsive"` → `inputLayout="responsive"`
+
+`inputLayout="responsive"` かつ `fieldWidths` 未指定の場合、モバイルは `w-full`、`md` 以上は `flex-1` を採用します。
 
 ---
 
@@ -207,8 +237,60 @@ const [dayError, setDayError] = useState<string>();
 
 | 目的 | コンポーネント | 入力 | 使いどころ | 注意点 |
 |---|---|---|---|---|
-| 単独配置 | `MediaFieldItem` | `uploadPath` など | 単体フォームに手動で配置 | RHF の `methods` が必要 |
-| 設定駆動 | `ConfiguredMediaField` | `MediaUploaderFieldConfig` | `FieldRenderer` 内部 | 直接使うより Renderer 推奨 |
+| 単独配置 | `ControlledMediaField` | `uploadPath` など | 単体フォームに手動で配置 | RHF の `methods` が必要 |
+| 設定駆動 | `ConfiguredMediaField` | `MediaUploaderFieldConfig` | 設定ベースで配置 | `fieldConfig` を渡す |
+
+---
+
+## メディアの自動コミット / クリーンアップ
+
+`AppForm` 内でメディアフィールドを使用すると、**自動的にコミットとクリーンアップが行われる**。
+
+### 自動化される動作
+
+| イベント | 動作 | 仕組み |
+|---------|------|--------|
+| フォーム送信成功 | 全メディアを自動コミット | `AppForm` が `commitAll()` を呼び出し |
+| ページ離脱 / アンマウント | 未コミットのメディアを自動削除 | `cleanupOnUnmount` による |
+| アップロード中 | 送信ボタン自動無効化 | `AppForm` の `fieldset disabled` |
+
+### 対応コンポーネント
+
+| コンポーネント | AppForm 内での自動コミット |
+|---------------|--------------------------|
+| `FieldRenderer`（メディアフィールド含む） | ✓ 自動 |
+| `ConfiguredMediaField` | ✓ 自動 |
+| `ControlledMediaField` | ✓ 自動 |
+| `AppForm` 外で使用 | 手動で `commit()` を呼ぶ必要あり |
+
+### 使用例
+
+```tsx
+// 複数のメディアフィールドがあっても、commit を意識する必要なし
+<AppForm methods={methods} onSubmit={handleSubmit}>
+  <ControlledMediaField
+    control={control}
+    methods={methods}
+    name="mainImage"
+    label="メイン画像"
+    uploadPath="images/main"
+  />
+  <ControlledMediaField
+    control={control}
+    methods={methods}
+    name="subImage"
+    label="サブ画像"
+    uploadPath="images/sub"
+  />
+  <Button type="submit">送信</Button>
+</AppForm>
+```
+
+### 注意事項
+
+- `AppForm` 外でメディアフィールドを使う場合は、手動で `commit()` を呼ぶ必要がある
+- キャンセルボタンで `resetAll()` を呼ぶ必要はない（ページ離脱時に自動クリーンアップ）
+- `disableAutoCommitMedia` prop で自動コミットを無効化可能
 
 ---
 
@@ -247,7 +329,7 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 | 使う | `AppForm` |
 | 使わない | `<form>` |
 
-`AppForm` は `fieldSpace` で縦方向の間隔を統一できる。
+`AppForm` は `fieldSpace` で縦方向の間隔を統一できる。`fieldSpace` は `StackSpace` 型（Tailwind spacing scale: 0, 0.5, 1, 1.5, 2, ... 96）を受け取り、デフォルトは `6`。
 
 ---
 
@@ -255,13 +337,13 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 
 | 目的 | 推奨 |
 |---|---|
-| 一般的なフォーム | `FieldItem` / `FieldItemGroup` |
-| 独自レイアウト | `FieldController` + Controlled Input |
+| 一般的なフォーム | `ControlledField` / `ControlledFieldGroup` |
+| 独自レイアウト | `ManualFieldController` + Controlled Input |
 | 管理画面CRUD | `FieldRenderer` |
 | 設定駆動フォーム | `ConfiguredField` / `ConfiguredFieldGroup` / `ConfiguredFields` |
-| メディアアップロード | `MediaFieldItem` / `ConfiguredMediaField` |
-| 単一入力 | `FieldItem` / `ManualFieldItem` |
-| 横並び入力 | `FieldItemGroup` / `ManualFieldItemGroup` |
+| メディアアップロード | `ControlledMediaField` / `ConfiguredMediaField` |
+| 単一入力 | `ControlledField` / `ManualField` |
+| 横並び入力 | `ControlledFieldGroup` / `ManualFieldGroup` |
 
 ---
 
@@ -273,6 +355,8 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 | `NumberInput` | 数値入力 |
 | `Textarea` | 複数行テキスト |
 | `SelectInput` | 単一選択 |
+| `ComboboxInput` | 単一選択（検索付き） |
+| `AsyncComboboxInput` | 単一選択（非同期検索） |
 | `MultiSelectInput` | 複数選択 |
 | `RadioGroupInput` | ラジオボタン |
 | `CheckGroupInput` | チェックボックスグループ |
@@ -290,21 +374,28 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 
 ---
 
+## AutoSave（自動保存）
+
+編集フォームで自動保存を有効にする方法については、[AutoSave/README.md](./AutoSave/README.md) を参照。
+
+---
+
 ## ディレクトリ構造
 
 ```
 src/components/Form/
 ├── AppForm.tsx
+├── AutoSave/                        # 自動保存機能（→ AutoSave/README.md）
 ├── Field/
 │   ├── types.ts                    # 共通型定義（FieldConfig, FormInputType 等）
-│   ├── Manual/                     # 低レベル（手動でエラーを渡す）
-│   │   ├── ManualFieldItem.tsx
-│   │   └── ManualFieldItemGroup.tsx
+│   ├── Manual/                     # 低レベル（手動でエラーを渡す/自由レイアウト）
+│   │   ├── ManualField.tsx
+│   │   ├── ManualFieldGroup.tsx
+│   │   └── ManualFieldController.tsx
 │   ├── Controlled/                 # React Hook Form 統合
-│   │   ├── FieldItem.tsx
-│   │   ├── FieldController.tsx
-│   │   ├── FieldItemGroup.tsx
-│   │   └── MediaFieldItem.tsx
+│   │   ├── ControlledField.tsx
+│   │   ├── ControlledFieldGroup.tsx
+│   │   └── ControlledMediaField.tsx
 │   └── Configured/                 # 設定ベース（FieldConfig から自動生成）
 │       ├── ConfiguredField.tsx
 │       ├── ConfiguredFieldGroup.tsx

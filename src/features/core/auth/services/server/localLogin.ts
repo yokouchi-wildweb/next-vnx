@@ -7,10 +7,14 @@ import type { SessionUser } from "@/features/core/auth/entities/session";
 import { verifyPassword } from "@/features/core/auth/utils/password";
 import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors";
+import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 import type { UserRoleType, UserStatus } from "@/features/core/user/types";
+import { getRoleCategory } from "@/features/core/user/constants";
 
-export type LocalLoginInput = z.infer<typeof LocalLoginSchema>;
+export type LocalLoginInput = z.infer<typeof LocalLoginSchema> & {
+  ip?: string;
+};
 
 // 入力値の形式を検証するためのスキーマ。未入力やフォーマット不正を網羅的に検知する。
 const LocalLoginSchema = z.object({
@@ -32,11 +36,12 @@ export type LocalLoginResult = {
     maxAge: number;
   };
   requiresReactivation: boolean;
+  firebaseCustomToken: string;
 };
 
-// 管理者アカウントであることを確認し、一般ユーザーのログインを遮断する。
+// 管理者カテゴリのアカウントであることを確認し、一般ユーザーのログインを遮断する。
 function assertAdminRole(role: UserRoleType): void {
-  if (role !== "admin") {
+  if (getRoleCategory(role) !== "admin") {
     throw new DomainError("このアカウントではログインできません", { status: 403 });
   }
 }
@@ -68,6 +73,8 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
 
   // 正常にパースしたメールアドレスとパスワードを取り出す。
   const { email, password } = parsed.data;
+  // IPアドレスはスキーマ外で渡される
+  const ip = (input as { ip?: string })?.ip;
 
   // ローカル認証ユーザーをメールアドレスで検索する。
   const user = await userService.findByLocalEmail(email);
@@ -89,7 +96,7 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
   }
 
   // 最終認証日時を更新する。
-  await userService.updateLastAuthenticated(user.id);
+  await userService.updateLastAuthenticated(user.id, { ip });
 
   // セッションに格納する情報をスキーマで整形し、不正値混入を防ぐ。
   const sessionUser = SessionUserSchema.parse({
@@ -99,7 +106,7 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
     isDemo: user.isDemo,
     providerType: user.providerType,
     providerUid: user.providerUid,
-    displayName: user.displayName,
+    name: user.name,
   });
 
   // inactive の場合は復帰フラグを立てる
@@ -115,10 +122,16 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
       isDemo: sessionUser.isDemo,
       providerType: sessionUser.providerType,
       providerUid: sessionUser.providerUid,
-      displayName: sessionUser.displayName,
+      name: sessionUser.name,
     },
     options: { maxAge },
   });
+
+  // Firebase Storage のセキュリティルールで認証を通すためのカスタムトークンを生成する。
+  const firebaseCustomToken = await getServerAuth().createCustomToken(
+    sessionUser.userId,
+    { admin: true },
+  );
 
   // 呼び出し元へセッション情報とユーザー情報をまとめて返す。
   return {
@@ -129,5 +142,6 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
       maxAge,
     },
     requiresReactivation,
+    firebaseCustomToken,
   };
 }

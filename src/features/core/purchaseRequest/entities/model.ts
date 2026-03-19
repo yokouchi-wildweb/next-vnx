@@ -14,10 +14,17 @@ export type PurchaseRequest = {
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'expired';
   payment_provider: string;
   payment_session_id: string | null;
+  transaction_id: string | null;
   redirect_url: string | null;
   error_code: string | null;
   error_message: string | null;
+  webhook_signature: string | null;
+  coupon_code: string | null;
+  discount_amount: number | null;
+  original_payment_amount: number | null;
+  milestone_results: unknown | null;
   completed_at: Date | null;
+  paid_at: Date | null;
   expires_at: Date | null;
   createdAt: Date | null;
   updatedAt: Date | null;

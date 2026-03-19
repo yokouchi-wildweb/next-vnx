@@ -2,6 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import { toCamelCase, toPascalCase, toSnakeCase } from '../../../../src/utils/stringCase.mjs';
+import { resolveFieldName } from '../utils/fieldName.mjs';
 
 //
 // Schema generator
@@ -36,21 +37,12 @@ if (!fs.existsSync(configPath)) {
 
 
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+const dbEngine = config.dbEngine || '';
 
-const DATETIME_TYPE = `z.preprocess(
-  (value) => {
-    if (value == null) return undefined;
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      if (!trimmed) return undefined;
-      return trimmed;
-    }
-    return value;
-  },
-  z.coerce.date()
-)`;
+const DATETIME_TYPE = 'nullableDatetime';
+const REQUIRED_DATETIME_TYPE = 'requiredDatetime';
 
-function mapZodType(type) {
+function mapZodType(type, required = false) {
   switch (type) {
     case 'string':
     case 'email':
@@ -66,13 +58,14 @@ function mapZodType(type) {
     case 'boolean':
       return 'z.coerce.boolean()';
     case 'array':
+    case 'stringArray':
       return 'z.array(z.string())';
     case 'date':
     case 'time':
       return 'z.string()';
     case 'timestamp':
     case 'timestamp With Time Zone':
-      return DATETIME_TYPE;
+      return required ? REQUIRED_DATETIME_TYPE : DATETIME_TYPE;
     case 'jsonb':
       return 'z.unknown()';
     default:
@@ -82,6 +75,8 @@ function mapZodType(type) {
 
 let usesEmptyToNull = false;
 let usesCreateHashPreservingNullish = false;
+let usesNullableDatetime = false;
+let usesRequiredDatetime = false;
 
 function isTimestampField(fieldType) {
   return fieldType === 'timestamp' || fieldType === 'timestamp With Time Zone';
@@ -89,6 +84,10 @@ function isTimestampField(fieldType) {
 
 function isStringField(fieldType) {
   return ['string', 'email', 'password', 'mediaUploader', 'date', 'time', 'uuid'].includes(fieldType);
+}
+
+function formatSchemaDefault(value) {
+  return typeof value === 'string' ? `"${value}"` : value;
 }
 
 function shouldTrimField(fieldType) {
@@ -103,9 +102,20 @@ function isPasswordField(fieldType) {
   return fieldType === 'password';
 }
 
-function fieldLine({ name, label, type, required, fieldType }) {
-  if (fieldType === 'array') {
-    return `  ${name}: ${type}.default([]),`;
+function fieldLine({ name, label, type, required, fieldType, defaultValue }) {
+  if (fieldType === 'array' || fieldType === 'stringArray') {
+    if (required) {
+      return `  ${name}: ${type}.default([]),`;
+    }
+    return `  ${name}: ${type}.nullish(),`;
+  }
+
+  if (isTimestampField(fieldType)) {
+    if (required) {
+      usesRequiredDatetime = true;
+    } else {
+      usesNullableDatetime = true;
+    }
   }
 
   const resolvedLabel = label || name;
@@ -135,9 +145,6 @@ function fieldLine({ name, label, type, required, fieldType }) {
   }
 
   if (!required) {
-    if (isTimestampField(fieldType)) {
-      segments.push(`.or(z.literal("").transform(() => undefined))`);
-    }
     segments.push('.nullish()');
     if (isStringField(fieldType)) {
       usesEmptyToNull = true;
@@ -152,6 +159,11 @@ function fieldLine({ name, label, type, required, fieldType }) {
     );
   }
 
+  // defaultValue が指定されていれば .default() を付与
+  if (defaultValue !== undefined) {
+    segments.push(`.default(${formatSchemaDefault(defaultValue)})`);
+  }
+
   segments.push(',');
   return segments.join('');
 }
@@ -164,7 +176,7 @@ const lines = [];
   const type = mapZodType(rel.fieldType || config.idType);
   lines.push(
     fieldLine({
-      name: rel.fieldName,
+      name: resolveFieldName(rel.fieldName, dbEngine),
       label: rel.label || rel.fieldName,
       type,
       required: rel.required,
@@ -177,26 +189,30 @@ const lines = [];
 (config.relations || []).forEach((rel) => {
   if (rel.relationType !== 'belongsToMany' || rel.includeRelationTable === false) return;
   const elem = mapZodType(rel.fieldType || config.idType);
-  lines.push(`  ${rel.fieldName}: z.array(${elem}).default([]),`);
+  lines.push(`  ${resolveFieldName(rel.fieldName, dbEngine)}: z.array(${elem}).default([]),`);
 });
 
 // normal fields
 (config.fields || []).forEach((f) => {
   // formInput: "none" のフィールドはZodスキーマから除外
+  // formInput: "custom" はUIのみカスタムでスキーマには含める
   if (f.formInput === 'none') return;
 
+  const fieldName = resolveFieldName(f.name, dbEngine);
   if (f.fieldType === 'enum') {
     const values = (f.options || []).map((o) => `"${o.value}"`).join(', ');
-    lines.push(`  ${f.name}: z.enum([${values}])${f.required ? '' : '.nullish()'},`);
+    const defaultSuffix = f.defaultValue !== undefined ? `.default(${formatSchemaDefault(f.defaultValue)})` : '';
+    lines.push(`  ${fieldName}: z.enum([${values}])${f.required ? '' : '.nullish()'}${defaultSuffix},`);
   } else {
-    const t = mapZodType(f.fieldType);
+    const t = mapZodType(f.fieldType, f.required);
     lines.push(
       fieldLine({
-        name: f.name,
+        name: fieldName,
         label: f.label || f.name,
         type: t,
         required: f.required,
         fieldType: f.fieldType,
+        defaultValue: f.defaultValue,
       }),
     );
   }
@@ -217,6 +233,13 @@ if (usesCreateHashPreservingNullish) {
   importStatements.push(
     'import { createHashPreservingNullish } from "@/utils/hash";',
   );
+}
+
+if (usesNullableDatetime || usesRequiredDatetime) {
+  const datetimeImports = [];
+  if (usesNullableDatetime) datetimeImports.push('nullableDatetime');
+  if (usesRequiredDatetime) datetimeImports.push('requiredDatetime');
+  importStatements.push(`import { ${datetimeImports.join(', ')} } from "@/lib/crud/utils";`);
 }
 
 importStatements.push('import { z } from "zod";');

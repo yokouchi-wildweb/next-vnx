@@ -28,6 +28,8 @@ export type MultiSelectInputProps = {
   name?: string;
   /** 値が変更されたときのコールバック */
   onChange: (value: OptionPrimitive[]) => void;
+  /** フォーカスが外れたときのコールバック（ポップオーバーが閉じた時に発火） */
+  onBlur?: () => void;
   options?: Options[];
   placeholder?: string;
   emptyMessage?: string;
@@ -37,12 +39,15 @@ export type MultiSelectInputProps = {
   popoverContentProps?: ComponentProps<typeof PopoverContent>;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** トリガーボタンに適用するクラス名 */
+  triggerClassName?: string;
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange">;
 
 export function MultiSelectInput({
   value,
   name,
   onChange,
+  onBlur,
   options = [],
   placeholder = "選択してください",
   emptyMessage = "該当する項目がありません",
@@ -53,6 +58,7 @@ export function MultiSelectInput({
   popoverContentProps,
   open,
   onOpenChange,
+  triggerClassName,
   ...rest
 }: MultiSelectInputProps) {
   const [internalOpen, setInternalOpen] = useState(false);
@@ -70,6 +76,10 @@ export function MultiSelectInput({
       setInternalOpen(nextOpen);
     }
     onOpenChange?.(nextOpen);
+    // ポップオーバーが閉じた時にonBlurを発火
+    if (!nextOpen) {
+      onBlur?.();
+    }
   };
 
   const handleToggle = (optionValue: OptionPrimitive) => {
@@ -89,12 +99,16 @@ export function MultiSelectInput({
             selectedCount={selectedCount}
             open={resolvedOpen}
             disabled={disabled}
+            className={triggerClassName}
           />
         </PopoverTrigger>
         <PopoverContent
           align="start"
           {...popoverContentProps}
-          className={cn("w-[min(320px,90vw)] p-0", popoverContentProps?.className)}
+          className={cn(
+            "surface-ui-layer w-[min(320px,90vw)] p-0",
+            popoverContentProps?.className
+          )}
         >
           <Stack space={0} padding="none">
             <Command>

@@ -1,13 +1,14 @@
 # userProfile ドメイン
 
 ロール別プロフィールを管理するコアドメイン。
-ロールに応じたプロフィールテーブルの CRUD 操作を統一的なインターフェースで提供する。
+ロールに応じたプロフィールテーブルの CRUD・検索操作を統一的なインターフェースで提供する。
 
 ## 概要
 
 - **役割**: ロール別プロフィールの統一管理
 - **パターン**: Registry + Factory パターン
 - **設定ファイル**: JSON 形式（1ロール1ファイル）
+- **アクセス**: サーバー直接呼び出し + API ルート + クライアント hooks
 
 ## ディレクトリ構造
 
@@ -28,6 +29,16 @@ src/features/core/userProfile/
 │   │   ├── presenters.ts       # プレゼンター
 │   │   └── index.ts
 │   └── index.ts                # 全ロール再エクスポート
+├── hooks/                      # クライアント hooks
+│   ├── index.ts                # 再エクスポート
+│   ├── useProfile.ts           # プロフィールID で取得
+│   ├── useProfileByUserId.ts   # userId で取得
+│   ├── useProfileSearch.ts     # 検索
+│   ├── useProfileUpdate.ts     # 更新（mutation）
+│   ├── useProfileUpsert.ts     # upsert（mutation）
+│   ├── useProfileDelete.ts     # 削除（mutation）
+│   └── wrappers/               # ダウンストリーム用の型付きラッパー配置場所
+│       └── README.md
 ├── profiles/                   # プロフィールフィールド設定 JSON
 │   ├── index.ts                # 型定義エクスポート
 │   └── {role}.profile.json     # hasProfile: true のロールのみ
@@ -43,21 +54,23 @@ src/features/core/userProfile/
 │   ├── configHelpers.ts        # プロフィール設定取得 [共通]
 │   ├── createProfileBase.ts    # ProfileBase ファクトリ [サーバー専用]
 │   └── profileBaseHelpers.ts   # レジストリヘルパー [サーバー専用]
-├── services/server/            # サーバーサービス
-│   ├── operations/             # 各操作の実装
-│   │   ├── index.ts
-│   │   ├── getProfile.ts
-│   │   ├── upsertProfile.ts
-│   │   ├── updateProfile.ts
-│   │   ├── deleteProfile.ts
-│   │   └── hasProfile.ts
-│   └── userProfileService.ts   # 公開インターフェース
+├── services/
+│   ├── client/                 # クライアントサービス
+│   │   └── profileClient.ts    # プロフィール API クライアント
+│   └── server/                 # サーバーサービス
+│       ├── operations/         # 各操作の実装
+│       │   ├── index.ts
+│       │   ├── getProfile.ts
+│       │   ├── upsertProfile.ts
+│       │   ├── deleteProfile.ts
+│       │   └── hasProfile.ts
+│       └── userProfileService.ts   # 公開インターフェース
 └── index.ts                    # ドメイン公開 API
 ```
 
 ## レジストリ（src/registry/）
 
-プロフィール関連のレジストリは `src/registry/` に配置され、自動生成される。
+プロフィール関連のレジストリは `src/registry/` に配置され、すべて全件再生成方式で自動生成される。
 
 | ファイル | 用途 | 環境 |
 |---------|------|------|
@@ -100,6 +113,7 @@ roles/
 ```json
 {
   "roleId": "contributor",
+  "searchFields": ["bio", "organization_name"],
   "fields": [
     {
       "name": "organization_name",
@@ -129,6 +143,58 @@ roles/
 - キー: タグ名（`registration`, `selfEdit`, `adminEdit`, `notification`）
 - 値: そのタグに属するフィールド名の配列
 
+**searchFields（オプション）:**
+- keyword 検索対象のカラム名を配列で指定（camelCase）
+- `ProfileBase.search()` の `searchQuery` パラメータで使用される
+- `userService.searchWithProfile()` でのプロフィール横断検索にも使用される
+- 未指定の場合、keyword 検索は無効
+
+### リレーション設定
+
+`profile.json` に `relations` を追加することで、プロフィールテーブルにリレーションを設定できる。
+フォーマットは `domain.json` の `relations` と同じ。
+
+```json
+{
+  "roleId": "contributor",
+  "fields": [...],
+  "relations": [
+    {
+      "domain": "contributor_category",
+      "label": "カテゴリ",
+      "fieldName": "contributor_category_id",
+      "fieldType": "uuid",
+      "relationType": "belongsTo",
+      "required": false,
+      "onDelete": "RESTRICT",
+      "formInput": "asyncCombobox"
+    },
+    {
+      "domain": "contributor_tag",
+      "label": "タグ",
+      "fieldName": "contributor_tag_ids",
+      "fieldType": "uuid",
+      "relationType": "belongsToMany",
+      "includeRelationTable": true,
+      "formInput": "asyncMultiSelect"
+    }
+  ]
+}
+```
+
+**対応するリレーションタイプ:**
+- `belongsTo`: 外部キーカラムを生成。`onDelete` で削除時の挙動を指定
+- `belongsToMany`: 中間テーブルを自動生成（`{RoleId}ProfileTo{Relation}Table`）
+
+**自動生成される内容:**
+- `drizzle.ts`: FK カラム（belongsTo）、中間テーブル（belongsToMany）
+- `schema.ts`: FK フィールドの Zod バリデーション
+- `model.ts`: FK フィールドの型定義
+- `profileBaseRegistry.ts`: `createProfileBase` に `belongsToManyRelations`, `belongsToRelations`, `belongsToManyObjectRelations`, `countableRelations` を渡す
+
+**対話型スクリプトでの設定:**
+`role:init` または `role:add-profile` 実行時に、フィールド設定後にリレーション質問が表示される。
+
 ## 自動生成ファイル
 
 設定 JSON から以下が自動生成される（`role:generate` スクリプト）。
@@ -157,6 +223,203 @@ export const ContributorProfileSchema = z.object({
   organizationName: z.string().trim().min(1, {...}),
   bio: z.string().trim().nullish(),
 });
+```
+
+## ProfileBase インターフェース
+
+全ロールのプロフィールに対して統一的な CRUD・検索操作を提供。
+
+```typescript
+type ProfileBase = {
+  // 基本 CRUD（createCrudService から継承）
+  get: (id: string) => Promise<Record<string, unknown> | null>;
+  create: (data: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  update: (id: string, data: Record<string, unknown>) => Promise<Record<string, unknown> | null>;
+  remove: (id: string) => Promise<void>;
+  upsert: (data: Record<string, unknown>) => Promise<Record<string, unknown>>;
+
+  // 検索・一覧（createCrudService から継承）
+  search: (params?: SearchParams & WithOptions & ExtraWhereOption) => Promise<PaginatedResult<Record<string, unknown>>>;
+  list: (options?: WithOptions) => Promise<Record<string, unknown>[]>;
+  query: <T>(baseQuery, options?, countQuery?) => Promise<PaginatedResult<T>>;
+
+  // userId ベースの操作
+  getByUserId: (userId: string) => Promise<Record<string, unknown> | null>;
+  existsByUserId: (userId: string) => Promise<boolean>;
+  updateByUserId: (userId: string, data: Record<string, unknown>) => Promise<Record<string, unknown> | null>;
+  removeByUserId: (userId: string) => Promise<boolean>;
+};
+```
+
+### createProfileBase オプション
+
+```typescript
+// 基本（searchFields のみ）
+createProfileBase(table, {
+  defaultSearchFields: ["bio", "organizationName"],
+});
+
+// リレーション付き
+createProfileBase(ContributorProfileTable, {
+  defaultSearchFields: ["bio"],
+  belongsToRelations: [
+    { field: "contributorCategory", foreignKey: "contributorCategoryId", table: ContributorCategoryTable },
+  ],
+  belongsToManyRelations: [
+    {
+      fieldName: "contributorTagIds",
+      throughTable: ContributorProfileToContributorTagTable,
+      sourceColumn: ContributorProfileToContributorTagTable.contributorProfileId,
+      targetColumn: ContributorProfileToContributorTagTable.contributorTagId,
+      sourceProperty: "contributorProfileId",
+      targetProperty: "contributorTagId",
+    },
+  ],
+  belongsToManyObjectRelations: [
+    {
+      field: "contributor_tags",
+      targetTable: ContributorTagTable,
+      throughTable: ContributorProfileToContributorTagTable,
+      sourceColumn: ContributorProfileToContributorTagTable.contributorProfileId,
+      targetColumn: ContributorProfileToContributorTagTable.contributorTagId,
+    },
+  ],
+  countableRelations: [
+    { field: "contributor_tags", throughTable: ContributorProfileToContributorTagTable, foreignKey: "contributorProfileId" },
+  ],
+});
+```
+
+`profile.json` に `searchFields` や `relations` を記述すると、自動生成時に `profileBaseRegistry.ts` へ反映される。
+リレーションを設定すると `search()` / `list()` で `withRelations` / `withCount` オプションが使用可能になる。
+
+### query() による自由な JOIN
+
+`query()` を使うと、users テーブルとの JOIN など自由なクエリが組める。
+
+```typescript
+const profileBase = getProfileBase("contributor");
+const baseQuery = db
+  .select({
+    profile: ContributorProfileTable,
+    userName: UserTable.name,
+  })
+  .from(ContributorProfileTable)
+  .leftJoin(UserTable, eq(ContributorProfileTable.userId, UserTable.id));
+
+const result = await profileBase.query(baseQuery, { page: 1, limit: 20 });
+```
+
+## API ルート
+
+プロフィール操作用の API ルートが `src/app/api/profile/[role]/` に配置されている。
+
+| パス | メソッド | 機能 |
+|------|---------|------|
+| `/api/profile/[role]` | GET | 一覧取得 |
+| `/api/profile/[role]/search` | GET | 検索 |
+| `/api/profile/[role]/[id]` | GET | プロフィール ID で取得 |
+| `/api/profile/[role]/[id]` | PATCH | プロフィール ID で更新 |
+| `/api/profile/[role]/[id]` | DELETE | プロフィール ID で削除 |
+| `/api/profile/[role]/upsert` | PUT | upsert |
+| `/api/profile/[role]/by-user/[userId]` | GET | userId で取得 |
+| `/api/profile/[role]/by-user/[userId]` | PATCH | userId で更新 |
+| `/api/profile/[role]/by-user/[userId]` | DELETE | userId で削除 |
+
+すべてのルートは `createApiRoute` で作成され、内部で `getProfileBase(role)` からサービスを取得する。
+存在しないロールに対しては 404 を返す。
+
+## クライアントサービス
+
+`services/client/profileClient.ts` はロールをパラメータに取る汎用クライアント。
+
+```typescript
+import { profileClient } from "@/features/core/userProfile/services/client/profileClient";
+
+// 検索
+const result = await profileClient.search("contributor", {
+  searchQuery: "田中",
+  page: 1,
+  limit: 20,
+});
+
+// userId で取得
+const profile = await profileClient.getByUserId("contributor", userId);
+
+// userId で更新
+await profileClient.updateByUserId("contributor", userId, { bio: "新しい自己紹介" });
+
+// upsert
+await profileClient.upsert("contributor", { userId, bio: "自己紹介" });
+
+// 削除（プロフィールIDで）
+await profileClient.remove("contributor", profileId);
+
+// 削除（userIdで）
+await profileClient.removeByUserId("contributor", userId);
+```
+
+## hooks
+
+クライアントコンポーネントから利用する汎用 hooks。ロールを第1引数に取る。
+
+```typescript
+import {
+  useProfile,
+  useProfileByUserId,
+  useProfileSearch,
+  useProfileUpdate,
+  useProfileUpsert,
+  useProfileDelete,
+} from "@/features/core/userProfile/hooks";
+```
+
+| hook | 用途 | 引数 |
+|------|------|------|
+| `useProfile(role, id)` | プロフィール ID で取得 | role, id? |
+| `useProfileByUserId(role, userId)` | userId で取得 | role, userId? |
+| `useProfileSearch(role, params)` | 検索 | role, SearchParams |
+| `useProfileUpdate(role)` | 更新 mutation | role |
+| `useProfileUpsert(role)` | upsert mutation | role |
+| `useProfileDelete(role)` | 削除 mutation | role |
+
+### 使用例
+
+```tsx
+"use client";
+
+import { useProfileSearch } from "@/features/core/userProfile/hooks";
+
+function ContributorList() {
+  const { data, total, isLoading } = useProfileSearch("contributor", {
+    searchQuery: "田中",
+    page: 1,
+    limit: 20,
+  });
+
+  if (isLoading) return <div>読み込み中...</div>;
+  return <div>{total}件のプロフィール</div>;
+}
+```
+
+### 型付きラッパー（ダウンストリーム向け）
+
+ベースの hooks・clientService・ProfileBase は すべて `Record<string, unknown>` 型で動作する。
+これはロールが動的パラメータ（`role: string`）であり、汎用レイヤーでは具体型を静的に解決できないため。
+ロール固有の型安全性が必要な場合は `hooks/wrappers/` に薄いラッパーを作成する。
+
+```typescript
+// hooks/wrappers/useContributorProfile.ts
+import { useProfileByUserId } from "../useProfileByUserId";
+import type { ContributorProfile } from "../../generated/contributor";
+
+export const useContributorProfile = (userId?: string | null) => {
+  const result = useProfileByUserId("contributor", userId);
+  return {
+    ...result,
+    data: result.data as ContributorProfile | undefined,
+  };
+};
 ```
 
 ## ユーティリティ
@@ -202,12 +465,10 @@ createProfileDataValidator(profiles: Record<string, ProfileConfig>, tag: string)
 pickFieldsByTag(fields: ProfileFieldConfig[], tagFields: string[], excludeHidden?: boolean): ProfileFieldConfig[]
 
 // プロフィールフィールドをフォーム用 FieldConfig に変換（Map形式）
-// - プレフィックス追加: prefecture → profileData.prefecture
-// - snake_case → camelCase 変換
-getFieldConfigsForForm(profiles: Record<string, ProfileConfig>, role: string, options?: GetFieldConfigsForFormOptions): Map<string, FieldConfig>
+getFieldConfigsForForm(profiles: Record<string, ProfileConfig>, role: string, options?): Map<string, FieldConfig>
 
 // getFieldConfigsForForm の結果を配列で取得
-getFieldConfigsForFormAsArray(profiles: Record<string, ProfileConfig>, role: string, options?: GetFieldConfigsForFormOptions): FieldConfig[]
+getFieldConfigsForFormAsArray(profiles: Record<string, ProfileConfig>, role: string, options?): FieldConfig[]
 ```
 
 ### configHelpers.ts（プロフィール設定取得）
@@ -233,6 +494,133 @@ hasProfileBase(role: string): boolean
 getProfileBase(role: string): ProfileBase | null
 ```
 
+## サービス操作（サーバー専用）
+
+プロフィールのサーバー操作は **2 つのエントリポイント** を用途に応じて使い分ける。
+
+| 用途 | エントリポイント | 操作対象 |
+|------|-----------------|----------|
+| ユーザー単位の操作 | `userProfileService` | userId を指定した CRUD |
+| テーブル全体の操作 | `getProfileBase(role)` | 検索・一覧・自由クエリ |
+
+### userProfileService — userId 単位の操作
+
+ユーザー作成/更新/削除と連動する文脈で使用する。
+
+```typescript
+import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
+
+// プロフィール取得
+userProfileService.getProfile(userId, role)
+
+// プロフィール作成/更新（upsert）
+userProfileService.upsertProfile(userId, role, data)
+
+// プロフィール削除
+userProfileService.deleteProfile(userId, role)
+
+// プロフィール存在確認
+userProfileService.hasProfile(userId, role)
+```
+
+### getProfileBase — テーブル全体の検索・一覧
+
+SSR ページや管理画面でプロフィールを検索・一覧取得する場合はこちらを使用する。
+`ProfileBase` は `createCrudService` から派生しており、search/list/query 等の汎用操作を提供する。
+
+```typescript
+import { getProfileBase } from "@/features/core/userProfile/utils/profileBaseHelpers";
+
+const base = getProfileBase("contributor");
+
+// 検索（ページネーション付き）
+const result = await base.search({ searchQuery: "田中", page: 1, limit: 20 });
+
+// 一覧取得
+const all = await base.list();
+
+// 自由クエリ（JOIN 等）
+const joined = await base.query(baseQuery, { page: 1, limit: 20 });
+
+// extraWhere: JSONB 検索や複雑な SQL 条件を追加（SSR 専用）
+import { sql } from "drizzle-orm";
+const result = await base.search({
+  searchQuery: "田中",
+  extraWhere: sql`${table.qualifications} @> '["TOEIC"]'::jsonb`,
+});
+```
+
+> `getProfileBase` はサーバー専用。クライアントからは hooks（`useProfileSearch` 等）または API ルート経由でアクセスする。
+
+> **extraWhere について**: `extraWhere` は Drizzle の `SQL` 型を直接受け取るため、API ルート（HTTP 経由）では使用できない。JSONB 検索や複雑な SQL 条件が必要な場合は、SSR ページから `getProfileBase` を直接呼び出すこと。
+
+### ユーザー + プロフィール横断検索（userService.searchWithProfile）
+
+ユーザーを検索する際に、プロフィールのフィールドも含めて横断検索したい場合は、ユーザードメイン側の `searchWithProfile` を使用する。
+
+```typescript
+import { userService } from "@/features/core/user/services/server/userService";
+
+// テキスト横断検索
+const result = await userService.searchWithProfile("contributor", {
+  searchQuery: "田中",
+  page: 1,
+  limit: 20,
+});
+
+// プロフィールフィールドで構造化フィルタ（WhereExpr DSL）
+const result = await userService.searchWithProfile("contributor", {
+  profileWhere: { field: "prefecture", op: "eq", value: "東京都" },
+  page: 1,
+  limit: 20,
+});
+
+// テキスト検索 + 構造化フィルタの組み合わせ
+const result = await userService.searchWithProfile("contributor", {
+  searchQuery: "田中",
+  profileWhere: {
+    and: [
+      { field: "prefecture", op: "eq", value: "東京都" },
+      { field: "age", op: "gte", value: 20 },
+    ],
+  },
+  page: 1,
+  limit: 20,
+});
+```
+
+**動作:**
+- `searchQuery`: ユーザーテーブルの `searchFields`（`domain.json`）+ プロフィールの `searchFields`（`profile.json`）で ILIKE 横断検索（OR 結合）
+- `profileWhere`: プロフィールフィールドの構造化フィルタ（`WhereExpr` DSL）。EXISTS サブクエリとして AND 結合
+- `searchQuery` と `profileWhere` は独立して機能し、両方指定すれば AND 結合
+- いずれも未指定の場合は通常の `userService.search()` にフォールバック
+
+**クライアントからの利用:**
+
+```typescript
+// クライアントサービス
+import { userClient } from "@/features/core/user/services/client/userClient";
+const result = await userClient.searchWithProfile("contributor", {
+  searchQuery: "田中",
+  profileWhere: { field: "prefecture", op: "eq", value: "東京都" },
+  page: 1,
+  limit: 20,
+});
+
+// Hook
+import { useSearchUserWithProfile } from "@/features/core/user/hooks/useSearchUserWithProfile";
+const { data, total, isLoading } = useSearchUserWithProfile("contributor", {
+  searchQuery: "田中",
+  profileWhere: { field: "prefecture", op: "eq", value: "東京都" },
+  page: 1,
+  limit: 20,
+});
+```
+
+> API エンドポイント: `GET /api/admin/user/search-with-profile?role=contributor&searchQuery=田中&profileWhere={"field":"prefecture","op":"eq","value":"東京都"}`
+> `profileWhere` は JSON 文字列として渡す。`WhereExpr` DSL の演算子: `eq`, `ne`, `lt`, `lte`, `gt`, `gte`, `like`, `in`, `notIn`。`and` / `or` で複合条件を組める。
+> プロフィール管理の CRUD 検索には引き続き `getProfileBase(role).search()` を使用する。
+
 ## フォームでの使用パターン
 
 ### 動的バリデーション（superRefine）
@@ -241,74 +629,17 @@ getProfileBase(role: string): ProfileBase | null
 // formEntities.ts
 import { createProfileDataValidator, getProfilesByCategory } from "@/features/core/userProfile/utils";
 
-// カテゴリからプロフィール設定を動的取得
 const profiles = getProfilesByCategory("user");
-
-// バリデーション関数生成
 const validateProfileData = createProfileDataValidator(profiles, "adminEdit");
 
 export const FormSchema = z
   .object({
     role: z.string(),
     profileData: z.record(z.unknown()).optional(),
-    // ...
   })
   .superRefine((value, ctx) => {
     validateProfileData(value, ctx);
   });
-```
-
-### プロフィール設定ファイル
-
-各フォームは `getProfilesByCategory()` を使用して動的にプロフィール設定を取得。
-
-```typescript
-// src/features/core/user/components/admin/form/generalUserProfiles.ts
-import { getProfilesByCategory } from "@/features/core/userProfile/utils";
-
-export const GENERAL_USER_PROFILES = getProfilesByCategory("user");
-```
-
-## ProfileBase インターフェース
-
-全ロールのプロフィールに対して統一的な CRUD 操作を提供。
-
-```typescript
-type ProfileBase = {
-  // 基本 CRUD（createCrudService から継承）
-  get: (id: string) => Promise<Record<string, unknown> | null>;
-  create: (data: Record<string, unknown>) => Promise<Record<string, unknown>>;
-  update: (id: string, data: Record<string, unknown>) => Promise<Record<string, unknown> | null>;
-  remove: (id: string) => Promise<void>;
-  upsert: (data: Record<string, unknown>) => Promise<Record<string, unknown>>;
-
-  // userId ベースの操作
-  getByUserId: (userId: string) => Promise<Record<string, unknown> | null>;
-  existsByUserId: (userId: string) => Promise<boolean>;
-  updateByUserId: (userId: string, data: Record<string, unknown>) => Promise<Record<string, unknown> | null>;
-  removeByUserId: (userId: string) => Promise<boolean>;
-};
-```
-
-## サービス操作
-
-### userProfileService
-
-```typescript
-// プロフィール取得
-getProfile(userId: string, role: UserRoleType): Promise<Record<string, unknown> | null>
-
-// プロフィール作成/更新（upsert）
-upsertProfile(userId: string, role: UserRoleType, data: ProfileUpsertData): Promise<Record<string, unknown> | null>
-
-// プロフィール更新
-updateProfile(userId: string, role: UserRoleType, data: ProfileUpdateData): Promise<Record<string, unknown> | null>
-
-// プロフィール削除
-deleteProfile(userId: string, role: UserRoleType): Promise<boolean>
-
-// プロフィール存在確認
-hasProfile(userId: string, role: UserRoleType): Promise<boolean>
 ```
 
 ## コンポーネント
@@ -321,11 +652,11 @@ hasProfile(userId: string, role: UserRoleType): Promise<boolean>
 <RoleSelector
   control={control}
   name="role"
-  categories={["user"]}           // ロールカテゴリ
-  selectableRoles={roles}         // 選択可能なロールを制限（オプション）
-  inputType="radio"               // "select" | "radio"
-  radioDisplayType="standard"     // ラジオの表示タイプ
-  showDescription                 // 説明文表示
+  categories={["user"]}
+  selectableRoles={roles}
+  inputType="radio"
+  radioDisplayType="standard"
+  showDescription
 />
 ```
 
@@ -337,9 +668,9 @@ hasProfile(userId: string, role: UserRoleType): Promise<boolean>
 <RoleProfileFields
   methods={methods}
   role={selectedRole}
-  profiles={profiles}             // ProfileConfig のマッピング
-  tag="adminEdit"                  // 表示するタグ
-  fieldPrefix="profileData"       // フィールド名プレフィックス
+  profiles={profiles}
+  tag="adminEdit"
+  fieldPrefix="profileData"
 />
 ```
 
@@ -353,6 +684,7 @@ hasProfile(userId: string, role: UserRoleType): Promise<boolean>
 | `src/registry/profileSchemaRegistry.ts` | Zod スキーマレジストリ |
 | `src/registry/profileBaseRegistry.ts` | ProfileBase レジストリ |
 | `src/registry/profileTableRegistry.ts` | Drizzle テーブルレジストリ |
+| `src/app/api/profile/[role]/` | プロフィール API ルート |
 
 ## スクリプト
 
@@ -366,8 +698,17 @@ pnpm role:generate -- <roleId>
 
 実行内容:
 1. roleRegistry.ts 更新
-2. generated/{roleId}/ 配下のファイル生成
-3. profileSchemaRegistry.ts 更新
-4. profileConfigRegistry.ts 更新
-5. profileBaseRegistry.ts 更新
-6. profileTableRegistry.ts 更新
+2. generated/{roleId}/ 配下のファイル生成（relations があれば FK カラム・中間テーブルも生成）
+3. profileSchemaRegistry.ts 全件再生成
+4. profileConfigRegistry.ts 全件再生成
+5. profileBaseRegistry.ts 全件再生成（searchFields・リレーション設定を反映）
+6. profileTableRegistry.ts 全件再生成
+
+### role:init / role:add-profile
+
+対話型でプロフィール設定を作成。フィールド収集後にリレーション質問が表示される。
+
+```bash
+pnpm role:init           # 新規ロール + プロフィール作成
+pnpm role:add-profile    # 既存ロールにプロフィール追加
+```

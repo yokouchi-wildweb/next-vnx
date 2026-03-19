@@ -12,13 +12,12 @@ import {
   Table,
   TableBody,
   TableHeader,
-  TableHead,
+  SortableTableHead,
   TableRow,
-} from "../DataTable/components";
-import { resolveColumnTextAlignClass, resolveRowClassName } from "../types";
+} from "../shared";
+import { resolveColumnTextAlignClass, resolveRowClassName, ROW_HEIGHT_CLASS } from "../types";
 import type { EditableGridColumn, EditableGridTableProps } from "./types";
 import { EditableGridCell } from "./components/EditableGridCell";
-import { normalizeOrderRules, compareRows } from "./utils/sort";
 
 type KeyedRow<T> = {
   row: T;
@@ -36,19 +35,17 @@ export default function EditableGridTable<T>({
   onCellChange,
   emptyValueFallback = "(未設定)",
   tableLayout = "auto",
-  autoSort = false,
-  order,
   rowHeight = "md",
+  cellPaddingX = "sm",
+  cellPaddingY = "none",
   headerIconMode = "readonly",
+  highlightReadonlyCells = true,
   scrollContainerRef,
   bottomSentinelRef,
+  disableRowHover = false,
+  sort,
+  onSortChange,
 }: EditableGridTableProps<T>) {
-  React.useEffect(() => {
-    if (process.env.NODE_ENV !== "production" && autoSort && (!order || order.length === 0)) {
-      console.warn("EditableGridTable: autoSort を有効にする場合は order を指定してください。");
-    }
-  }, [autoSort, order]);
-
   const keyedRows = React.useMemo<KeyedRow<T>[]>(
     () =>
       items.map((row, rowIndex) => ({
@@ -58,22 +55,6 @@ export default function EditableGridTable<T>({
       })),
     [getKey, items],
   );
-
-  const sortedRows = React.useMemo(() => {
-    if (!autoSort) {
-      return keyedRows;
-    }
-
-    const normalizedOrder = normalizeOrderRules(order);
-    if (!normalizedOrder.length) {
-      return keyedRows;
-    }
-
-    const columnMap = new Map(columns.map((column) => [column.field, column]));
-    const nextRows = [...keyedRows];
-    nextRows.sort((a, b) => compareRows(a.row, b.row, normalizedOrder, columnMap, a.rowIndex, b.rowIndex));
-    return nextRows;
-  }, [autoSort, columns, keyedRows, order]);
 
   const renderHeaderIcon = React.useCallback(
     (column: EditableGridColumn<T>) => {
@@ -118,10 +99,11 @@ export default function EditableGridTable<T>({
   );
 
   const resolvedMaxHeight = maxHeight ?? "70vh";
+  const rowHeightClass = ROW_HEIGHT_CLASS[rowHeight];
 
   return (
     <div
-      className={cn("overflow-x-auto overflow-y-auto", className)}
+      className={cn("w-full max-w-full overflow-x-auto overflow-y-auto", className)}
       style={{ maxHeight: resolvedMaxHeight }}
       ref={scrollContainerRef}
     >
@@ -129,27 +111,30 @@ export default function EditableGridTable<T>({
         <TableHeader>
           <TableRow disableHover>
             {columns.map((column) => (
-              <TableHead
+              <SortableTableHead
                 key={column.field}
+                sortKey={column.sortable ? column.field : undefined}
+                sort={sort}
+                onSortChange={onSortChange}
                 style={column.width ? { width: column.width } : undefined}
                 className={resolveColumnTextAlignClass(column.align)}
               >
-                <div className="flex items-center gap-1">
-                  <span>{column.header}</span>
-                  {renderHeaderIcon(column)}
-                </div>
-              </TableHead>
+                <span>{column.header}</span>
+                {renderHeaderIcon(column)}
+              </SortableTableHead>
             ))}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedRows.map(({ row, rowKey }, displayIndex) => (
+          {keyedRows.map(({ row, rowKey }, displayIndex) => (
             <TableRow
               key={rowKey}
               className={cn(
                 "group",
+                rowHeightClass,
                 resolveRowClassName(rowClassName, row, { index: displayIndex }),
               )}
+              disableHover={disableRowHover}
             >
               {columns.map((column) => (
                 <EditableGridCell
@@ -158,7 +143,9 @@ export default function EditableGridTable<T>({
                   row={row}
                   column={column}
                   fallbackPlaceholder={column.placeholder ?? emptyValueFallback}
-                  rowHeight={rowHeight}
+                  cellPaddingX={column.paddingX ?? cellPaddingX}
+                  cellPaddingY={column.paddingY ?? cellPaddingY}
+                  highlightReadonly={highlightReadonlyCells}
                   onValidChange={(value) =>
                     onCellChange?.({
                       rowKey,

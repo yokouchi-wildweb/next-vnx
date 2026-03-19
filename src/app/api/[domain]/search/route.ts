@@ -3,16 +3,18 @@
 import { NextResponse } from "next/server";
 
 import { createDomainRoute } from "src/lib/routeFactory";
-import type { SearchParams } from "@/lib/crud";
+import type { SearchParams, WithOptions } from "@/lib/crud";
 
 import {
   BadRequestError,
   parseOrderBy,
   parsePositiveInteger,
   parseBooleanFlag,
+  parseWithRelations,
   parseSearchFields,
   parseSearchPriorityFields,
   parseWhere,
+  parseRelationWhere,
 } from "./utils";
 
 type DomainParams = { domain: string };
@@ -40,20 +42,28 @@ export const GET = createDomainRoute<any, DomainParams>(
         "prioritizeSearchHits",
       );
       const where = parseWhere(query.get("where"));
+      const relationWhere = parseRelationWhere(query.get("relationWhere"));
 
       const searchQuery = query.get("searchQuery") ?? undefined;
 
+      // WithOptions のパース
+      const withRelations = parseWithRelations(query.get("withRelations"));
+      const withCount = parseBooleanFlag(query.get("withCount"), "withCount");
+
       // サービスへ渡す SearchParams を組み立て
-      const searchParams: SearchParams = {};
+      const searchParams: SearchParams & WithOptions = {};
       if (typeof page === "number") searchParams.page = page;
       if (typeof limit === "number") searchParams.limit = limit;
       if (orderBy) searchParams.orderBy = orderBy;
       if (searchQuery) searchParams.searchQuery = searchQuery;
       if (searchFields) searchParams.searchFields = searchFields;
       if (where) searchParams.where = where;
+      if (relationWhere) searchParams.relationWhere = relationWhere;
       if (searchPriorityFields) searchParams.searchPriorityFields = searchPriorityFields;
       if (typeof prioritizeSearchHits === "boolean")
         searchParams.prioritizeSearchHits = prioritizeSearchHits;
+      if (withRelations) searchParams.withRelations = withRelations;
+      if (withCount) searchParams.withCount = withCount;
 
       // ドメインサービスの search を実行し結果を JSON で返却
       return service.search(searchParams);

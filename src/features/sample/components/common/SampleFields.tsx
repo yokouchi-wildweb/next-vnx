@@ -1,51 +1,87 @@
 // src/features/sample/components/common/SampleFields.tsx
 
-import { useMemo } from "react";
+"use client";
+
+import type { ReactNode } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { FieldRenderer, type MediaState } from "@/components/Form/FieldRenderer";
 import type { FieldConfig } from "@/components/Form/Field";
-import type { Options } from "@/components/Form/types";
-import domainConfig from "@/features/sample/domain.json";
+import type {
+  FieldGroup,
+  InlineFieldGroup,
+  InsertFieldsMap,
+} from "@/components/Form/FieldRenderer/types";
+import { useRelationOptions } from "@/lib/domain/hooks";
+import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawDomainConfig from "@/features/sample/domain.json";
+
+const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
 
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
   onMediaStateChange?: (state: MediaState | null) => void;
-  sampleCategoryOptions?: Options[];
-  sampleTagOptions?: Options[];
+  /** フィールドのパッチ（上書き・追加） */
+  fieldPatches?: (Partial<FieldConfig> & { name: string })[];
+  /** フィールド挿入（指定フィールドの前に追加） */
+  insertBefore?: InsertFieldsMap;
+  /** フィールド挿入（指定フィールドの後に追加） */
+  insertAfter?: InsertFieldsMap;
+  /** フィールドグループ定義（上書き用） */
+  fieldGroups?: FieldGroup[];
+  /** インラインフィールドグループ定義 */
+  inlineGroups?: InlineFieldGroup[];
+  /** 全フィールドの前に挿入するUI */
+  beforeAll?: ReactNode;
+  /** 全フィールドの後に挿入するUI */
+  afterAll?: ReactNode;
+  /** 特定フィールドの前に挿入するUI */
+  beforeField?: Partial<Record<string, ReactNode>>;
+  /** 特定フィールドの後に挿入するUI */
+  afterField?: Partial<Record<string, ReactNode>>;
 };
 
 export function SampleFields<TFieldValues extends FieldValues>({
   methods,
   onMediaStateChange,
-  sampleCategoryOptions,
-  sampleTagOptions,
+  fieldPatches,
+  insertBefore: insertBeforeProp,
+  insertAfter,
+  fieldGroups,
+  inlineGroups,
+  beforeAll,
+  afterAll,
+  beforeField,
+  afterField,
 }: SampleFieldsProps<TFieldValues>) {
-  const fieldPatches = useMemo<FieldConfig[]>(
-    () => [
-      {
-        name: "sample_category_id",
-        label: "サンプルカテゴリ",
-        formInput: "select",
-        options: sampleCategoryOptions as FieldConfig["options"],
-      },
-      {
-        name: "sample_tag_ids",
-        label: "サンプルタグ",
-        formInput: "checkbox",
-        fieldType: "array",
-        options: sampleTagOptions as FieldConfig["options"],
-      }
-    ],
-    [sampleCategoryOptions, sampleTagOptions],
-  );
+  // リレーション先のデータを自動取得し、insertBefore 形式で返す
+  const { insertBefore: relationInsertBefore, isLoading } = useRelationOptions(domainConfig);
+
+  if (isLoading) {
+    return <FormSkeleton />;
+  }
+
+  // insertBeforeをマージ（リレーション + props）
+  const mergedInsertBefore: InsertFieldsMap = {
+    ...relationInsertBefore,
+    ...insertBeforeProp,
+  };
 
   return (
     <FieldRenderer
       control={methods.control}
       methods={methods}
-      fieldPatches={fieldPatches}
       baseFields={(domainConfig.fields ?? []) as FieldConfig[]}
+      fieldPatches={fieldPatches}
+      insertBefore={mergedInsertBefore}
+      insertAfter={insertAfter}
+      fieldGroups={fieldGroups ?? ((domainConfig as any).fieldGroups as FieldGroup[] | undefined)}
+      inlineGroups={inlineGroups}
       onMediaStateChange={onMediaStateChange}
+      beforeAll={beforeAll}
+      afterAll={afterAll}
+      beforeField={beforeField}
+      afterField={afterField}
     />
   );
 }

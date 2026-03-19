@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "@/styles/global.css";
-import { Toaster } from "sonner";
 import { Suspense } from "react";
 
 import { GlobalScreenLoader } from "@/components/Overlays/Loading/GlobalScreenLoader";
@@ -12,6 +11,7 @@ import { FirebaseAnalytics } from "@/components/Fanctional/FirebaseAnalytics";
 import { MicrosoftClarity } from "@/lib/clarity/MicrosoftClarity";
 import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";
 import { AdminCommandProvider } from "src/features/core/adminCommand";
+import { RecaptchaProvider } from "@/components/Providers/RecaptchaProvider";
 import { seoConfig } from "@/config/seo.config";
 
 export const metadata: Metadata = {
@@ -24,6 +24,19 @@ export const metadata: Metadata = {
   openGraph: {
     siteName: seoConfig.siteName,
     locale: seoConfig.locale,
+    images: [
+      {
+        url: seoConfig.defaultOgImage,
+        width: seoConfig.ogImageSize.width,
+        height: seoConfig.ogImageSize.height,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: [seoConfig.defaultOgImage],
+    site: seoConfig.twitterHandle ? `@${seoConfig.twitterHandle}` : undefined,
+    creator: seoConfig.twitterHandle ? `@${seoConfig.twitterHandle}` : undefined,
   },
 };
 
@@ -46,16 +59,19 @@ export default function RootLayout({
         <ViewportHeightWatcher />
         <GlobalScreenLoader />
         <GlobalToast />
-        <AuthSessionProvider>
-          <AdminCommandProvider>
-            <ImageViewerProvider>
-              <RouteTransitionOverlay />
-              {children}
-            </ImageViewerProvider>
-          </AdminCommandProvider>
-        </AuthSessionProvider>
-        <Toaster position="bottom-center" richColors />
+        <RecaptchaProvider>
+          <AuthSessionProvider>
+            <AdminCommandProvider>
+              <ImageViewerProvider>
+                <RouteTransitionOverlay />
+                {children}
+              </ImageViewerProvider>
+            </AdminCommandProvider>
+          </AuthSessionProvider>
+        </RecaptchaProvider>
         <RedirectToastProvider />
+        {/* Firebase Phone Auth用reCAPTCHAコンテナ（モーダル外に配置が必要） */}
+        <div id="phone-verification-recaptcha" />
       </body>
     </html>
   );
