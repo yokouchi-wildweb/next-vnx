@@ -10,6 +10,7 @@ type DomainParams = { domain: string };
 export const GET = createDomainRoute<any, DomainParams>(
   {
     operation: "GET /api/[domain]",
+    crudOp: "list",
     operationType: "read",
   },
   async (req, { service }) => {
@@ -18,9 +19,11 @@ export const GET = createDomainRoute<any, DomainParams>(
     const withRelations = parseWithRelations(query.get("withRelations"));
     const withCount = parseBooleanFlag(query.get("withCount"), "withCount");
     const limit = parsePositiveInteger(query.get("limit"), "limit");
+    const hasManyLimit = parsePositiveInteger(query.get("hasManyLimit"), "hasManyLimit");
     if (withRelations) options.withRelations = withRelations;
     if (withCount) options.withCount = withCount;
     if (typeof limit === "number") options.limit = limit;
+    if (typeof hasManyLimit === "number") options.hasManyLimit = hasManyLimit;
     return service.list(options);
   },
 );
@@ -29,6 +32,7 @@ export const GET = createDomainRoute<any, DomainParams>(
 export const POST = createDomainRoute<any, DomainParams>(
   {
     operation: "POST /api/[domain]",
+    crudOp: "create",
     operationType: "write",
   },
   async (req, { service }) => {

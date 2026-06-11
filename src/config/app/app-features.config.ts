@@ -91,6 +91,13 @@ export const APP_FEATURES = {
     enableUserManagement: true,
     /** デモユーザー機能を有効にする（false の場合はメニュー非表示・ページ 404） */
     enableDemoUser: true,
+    /**
+     * 管理者メモ機能を有効にする
+     * - true: 管理画面のユーザー一覧（General/Managerial/Demo）にメモ列が表示され、
+     *         セル内のポップオーバーから自由記述メモを編集できる
+     * - false: メモ列は表示されない（DB の users.admin_memo 列は残存）
+     */
+    enableUserMemo: false,
     /** ユーザー一覧ページの挙動設定 */
     userListPage: {
       /** セレクションテーブルの選択方式 */
@@ -122,6 +129,20 @@ export const APP_FEATURES = {
      * - phoneVerified: SMS認証済みユーザーのみ購入可能
      */
     purchaseRestriction: "phoneVerified" as WalletPurchaseRestriction,
+    /**
+     * 通貨購入の一時停止設定
+     * enabled: true かつスケジュール期間内の場合、全通貨の購入を停止する
+     * start/end が null の場合は制限なし（enabled: true + 両方 null = 無期限停止）
+     */
+    purchaseSuspension: {
+      enabled: false,
+      schedule: {
+        start: null as string | null, // 開始時刻（ISO8601形式）例: '2025-06-01T00:00:00+09:00'
+        end: null as string | null,   // 終了時刻（ISO8601形式）例: '2025-06-02T00:00:00+09:00'
+      },
+      /** 停止中に表示するメッセージ（nullでデフォルトメッセージを使用） */
+      message: null as string | null,
+    },
     /** 管理者による残高変更時にユーザーへ通知を送信する（操作タイプ別） */
     notifyOnAdjust: {
       increment: false,

@@ -1,12 +1,18 @@
 // src/features/core/notification/services/server/notification/getMyNotifications.ts
 // ユーザー向けお知らせ一覧取得
 
-import { sql, and, isNull } from "drizzle-orm";
+import { sql, and } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { NotificationTable } from "@/features/core/notification/entities/drizzle";
 import { NotificationReadTable } from "@/features/core/notification/entities/notificationRead";
 
-import { buildMyNotificationsWhere } from "./queryHelpers";
+import { buildVisibilityWhere } from "./queryHelpers";
+import {
+  readStateJoinOn,
+  effectiveReadAtExpr,
+  unreadConditions,
+} from "./readState";
+import type { NotificationViewer } from "./viewer";
 
 export type MyNotification = {
   id: string;
@@ -27,18 +33,14 @@ type GetMyNotificationsOptions = {
 };
 
 export async function getMyNotifications(
-  userId: string,
-  userRole: string,
+  viewer: NotificationViewer,
   options: GetMyNotificationsOptions = {}
 ): Promise<MyNotification[]> {
   const { limit = 50, offset = 0, unreadOnly = false } = options;
 
-  const whereCondition = buildMyNotificationsWhere(userId, userRole);
-
-  const conditions = [whereCondition];
+  const conditions = [buildVisibilityWhere(viewer)];
   if (unreadOnly) {
-    conditions.push(isNull(NotificationReadTable.readAt));
-    conditions.push(sql`${NotificationTable.is_silent} = false`);
+    conditions.push(...unreadConditions(viewer));
   }
 
   const rows = await db
@@ -51,16 +53,10 @@ export async function getMyNotifications(
       metadata: NotificationTable.metadata,
       isSilent: NotificationTable.is_silent,
       publishedAt: NotificationTable.published_at,
-      readAt: sql<Date | null>`COALESCE(${NotificationReadTable.readAt}, CASE WHEN ${NotificationTable.is_silent} THEN ${NotificationTable.published_at} ELSE NULL END)`,
+      readAt: effectiveReadAtExpr(viewer),
     })
     .from(NotificationTable)
-    .leftJoin(
-      NotificationReadTable,
-      and(
-        sql`${NotificationReadTable.notificationId} = ${NotificationTable.id}`,
-        sql`${NotificationReadTable.userId} = ${userId}`
-      )
-    )
+    .leftJoin(NotificationReadTable, readStateJoinOn(viewer))
     .where(and(...conditions))
     .orderBy(sql`${NotificationTable.published_at} DESC`)
     .limit(limit)

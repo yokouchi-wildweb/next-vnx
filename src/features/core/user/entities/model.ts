@@ -32,6 +32,16 @@ export type User = BaseEntity & {
   isDemo: boolean;
   avatarUrl: string | null;
   signupIp: string | null;
+  /** 管理者がユーザー単位で残す自由記述メモ (機能フラグ enableUserMemo で UI 切り替え) */
+  adminMemo: string | null;
+  /** 連続ログイン失敗の累積回数 (ロック判定用、詳細: src/config/app/auth-lockout.config.ts) */
+  failedLoginCount: number;
+  /** 短期ロックの解除予定時刻。null なら短期ロック中ではない */
+  lockedUntil: Date | null;
+  /** 直近のログイン失敗時刻 (時間窓ベースのカウントリセットに使用) */
+  lastFailedLoginAt: Date | null;
+  /** 全セッション失効の境界時刻。JWT.iat がこれより前なら認可拒否 */
+  sessionsInvalidatedAt: Date | null;
   lastAuthenticatedAt: Date | null;
   phoneNumber: string | null;
   phoneVerifiedAt: Date | null;

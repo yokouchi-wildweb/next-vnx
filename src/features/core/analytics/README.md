@@ -24,13 +24,18 @@ analytics/
 │   ├── utils/
 │   │   ├── dateRange.ts          # 日付範囲パラメータの解決（TZ対応）
 │   │   ├── aggregation.ts        # changeRate等の算術ヘルパー（※JS集計関数は@deprecated）
+│   │   ├── distribution.ts       # 分布共通: parseBoundaries / buildBucketExpr
 │   │   └── userFilter.ts         # ユーザー属性フィルター（roles, excludeDemo）
 │   ├── walletHistoryAnalytics.ts # [組み込み] walletHistory 集計 + 日次残高
+│   ├── walletStateAnalytics.ts   # [組み込み] wallets テーブルのスナップショット集計
 │   ├── purchaseAnalytics.ts      # [組み込み] purchase 集計
 │   ├── purchaseDistributionAnalytics.ts # [組み込み] 購入額グループ分布
 │   ├── purchaseRankingAnalytics.ts      # [組み込み] 購入ランキング（purchase_requests）
 │   ├── userAnalytics.ts                 # [組み込み] ユーザー登録集計
-│   └── walletRankingAnalytics.ts        # [組み込み] ウォレットランキング（wallet_histories）
+│   ├── walletRankingAnalytics.ts        # [組み込み] ウォレットランキング（wallet_histories）
+│   ├── referralAnalytics.ts             # [組み込み] 紹介経由ユーザー数 + 紹介リワード金額のサマリー
+│   ├── dauAnalytics.ts                  # [組み込み] DAU (Daily Active Users) 集計
+│   └── dauService.ts                    # [組み込み] DAU 記録の書き込み API
 └── presenters.ts                 # （任意）集計結果のフォーマット
 ```
 
@@ -49,16 +54,36 @@ analytics/
 | GET /api/admin/analytics/user/registration/daily | userAnalytics | 日別ユーザー登録数 |
 | GET /api/admin/analytics/user/registration/summary | userAnalytics | ユーザー登録期間サマリー |
 | GET /api/admin/analytics/user/status-overview | userAnalytics | ユーザーステータス概況 |
-| GET /api/admin/analytics/wallet/ranking | walletRankingAnalytics | ウォレットランキング |
+| GET /api/admin/analytics/wallet/ranking | walletRankingAnalytics | ウォレット履歴ベースのランキング（増減量） |
+| GET /api/admin/analytics/wallet/state/summary | walletStateAnalytics | ウォレット現在保有のサマリー（流通量・保有者数・平均/中央値/最大） |
+| GET /api/admin/analytics/wallet/state/ranking | walletStateAnalytics | ウォレット現在保有量のランキング |
+| GET /api/admin/analytics/wallet/state/distribution | walletStateAnalytics | ウォレット現在保有量のレンジ別分布 |
+| GET /api/admin/analytics/referral/summary | referralAnalytics | 紹介経由ユーザー数 + 紹介リワード金額（前期比含む） |
+| GET /api/admin/analytics/dau/daily | dauAnalytics | 日別 DAU（granularity は day のみ） |
+| GET /api/admin/analytics/dau/summary | dauAnalytics | DAU 期間サマリー（granularity は day のみ） |
+| GET /api/admin/analytics/coin-issuance/summary | coinIssuance | コイン創出サマリー（収入・発行・finalProfit を統合、前期比含む。下流で source 追加可） |
+
+### referral summary 固有のパラメータ
+- `referralStatuses`: 集計対象とする `referrals.status` を CSV で指定（例: `active,cancelled`）。省略時は全状態をカウント
+- リワード金額の抽出 SQL 式は `getReferralSummary()` の `rewardAmountExpr` 引数で差し替え可能。デフォルトは `(referral_rewards.metadata ->> 'amount')::numeric`（rewardHandler が metadata に `amount: number` を入れる規約に従う場合）。下流が異なる metadata 構造を持つ場合は独自の API ルートからカスタム SQL を渡す
 
 ## 共通クエリパラメータ
 
 日付範囲（status-overview以外の全APIで共通）:
-- `days`: 日数指定（デフォルト 30、最大 365）
+- `days`: 日数指定（デフォルト 30）
 - `dateFrom`: 開始日（YYYY-MM-DD）
 - `dateTo`: 終了日（YYYY-MM-DD）
 - `timezone`: タイムゾーン（IANA TZ名、デフォルト: `Asia/Tokyo`）
+- `granularity`: 集計粒度。`hour` / `day` / `week` / `month`（デフォルト: `day`）
 - dateFrom + dateTo 指定時は days より優先
+
+集計粒度（granularity）の挙動:
+- 時系列集計 API (`*/daily`, `wallet-history/balance` 等) のバケット単位を切り替える
+- `history[].date` の書式は粒度で変わる: hour=`YYYY-MM-DDTHH:00`, day=`YYYY-MM-DD`, week=月曜開始日 `YYYY-MM-DD`, month=`YYYY-MM`
+- レスポンスには解決済み `granularity` フィールドが含まれる
+- 期間上限は粒度ごと: hour=31日, day=365日, week=2年, month=10年（バケット数の爆発を防ぐ）
+- DAU は `day` のみサポート。他粒度を指定すると `DomainError`（400）を返す（`UserDailyActivityTable` が date 型のため）
+- 期間サマリー API (`*/summary`) では集計に影響しない（期間全体を1つの集計値にする）
 
 ユーザーフィルタ:
 - `userId`: 特定ユーザーに絞り込み（ranking以外）
@@ -67,6 +92,25 @@ analytics/
 
 フィルタ:
 - `walletType`: ウォレット種別でフィルタ（指定なし = 全種別）
+
+### サービスでの granularity 取り扱い
+
+新しい時系列集計サービスを実装する場合:
+- `resolveDateRange(params)` の戻り値から `range.granularity` を読み取る
+- グルーピング SQL は `granularityDateExpr(column, granularity, tz)` ヘルパーで生成する
+- `generateDateKeys(range)` がそのまま粒度対応のキー配列を返す
+- `formatDateRangeForResponse(range)` がレスポンスの `granularity` フィールドを含む
+
+特定粒度のみサポートするサービス（例: DAU）:
+- `export const FOO_SUPPORTED_GRANULARITIES = ["day"] as const satisfies readonly Granularity[];`
+- 関数冒頭で `assertGranularitySupported(range.granularity, FOO_SUPPORTED_GRANULARITIES, "Foo 集計")` を呼ぶ
+- 未サポート粒度では `GranularityNotSupportedError`（DomainError 派生、400）が投げられる
+
+新しい粒度（例: minute）を追加する場合:
+- `types/common.ts` の `Granularity` / `GRANULARITIES` に追加
+- `constants/index.ts` の `MAX_GRANULARITY_PERIOD_DAYS` に上限を追加
+- `utils/dateRange.ts` の `GRANULARITY_SPECS` テーブルに `truncUnit` / `sqlFormatPattern` / `formatKey` / `truncate` / `advance` を追加
+- 既存サービスは変更不要（拡張ポイントが 1 箇所に集約されている）
 
 ## 集計設計原則: DB側集計
 
@@ -207,6 +251,189 @@ export const GET = createApiRoute(
 );
 ```
 
+## コイン創出サマリーへの参加方法
+
+`GET /api/admin/analytics/coin-issuance/summary` は **拡張可能な集計レジストリ** を採用しており、各ドメインが「コイン創出ソース (`CoinIssuanceSource`)」を登録するだけでサービス全体の `finalProfit` 計算に組み込まれる。
+upstream / downstream の双方がソースを登録できるため、サービス間で「最終収支」の定義がブレることを防ぐ。
+
+### 概念
+
+各ソースは 1 種類のコイン収支寄与を表す。
+
+- `kind: "revenue"` … 収入源 (例: ガチャ売上)。`finalProfit` に加算される
+- `kind: "issuance"` … 発行源 = サービスが負担する費用 (例: クーポンボーナス、紹介リワード、当選報告特典)。`finalProfit` から減算される
+
+`finalProfit = Σ revenue.current − Σ issuance.current`
+
+### upstream 組み込みソース
+
+| key | kind | 概要 |
+|---|---|---|
+| `purchase_bonus_gap` | issuance | `purchase_requests` の `SUM(amount - payment_amount) WHERE status='completed'`（コイン購入時にサービスが負担した上乗せボーナス全般＝クーポン割引・ユーザーランクボーナス・決済方法ボーナス・購入パッケージのボーナスを含む）|
+| `referral_reward` | issuance | `referral_rewards` の `status='fulfilled'` 金額合計 (`getReferralSummary().rewardTotal` と同 SQL) |
+
+### ソース追加の手順 (downstream)
+
+1. `CoinIssuanceSource` を満たす値を作成する
+2. `src/registry/coinIssuanceRegistry.ts` の配列に追加する
+3. (任意) `services/server/coinIssuance/labels.ts` の `registerCoinIssuanceLabels` で表示名を登録する
+
+### 実装テンプレート
+
+```typescript
+// 例: src/features/gacha/analytics/coinIssuance/gachaProfitSource.ts
+import { db } from "@/lib/drizzle";
+import { GachaPlayTable } from "@/features/gacha/entities/drizzle";
+import { and, between, sql } from "drizzle-orm";
+import { buildUserFilterConditions } from "@/features/core/analytics/services/server/utils/userFilter";
+import type { CoinIssuanceSource } from "@/features/core/analytics/services/server/coinIssuance";
+
+const t = GachaPlayTable;
+
+export const gachaProfitSource: CoinIssuanceSource = {
+  key: "gacha_profit",
+  kind: "revenue",
+
+  async aggregate({ range, prevRange, userFilter }) {
+    const isCurrent = sql`(${t.createdAt} >= ${range.dateFrom.toISOString()} AND ${t.createdAt} <= ${range.dateTo.toISOString()})`;
+    const isPrev = sql`(${t.createdAt} >= ${prevRange.dateFrom.toISOString()} AND ${t.createdAt} <= ${prevRange.dateTo.toISOString()})`;
+
+    // 当期+前期を CASE WHEN で 1 クエリ集計
+    const rows = await db
+      .select({
+        current: sql<number>`COALESCE(SUM(CASE WHEN ${isCurrent} THEN ${t.profit} ELSE 0 END), 0)`.as("current_profit"),
+        previous: sql<number>`COALESCE(SUM(CASE WHEN ${isPrev} THEN ${t.profit} ELSE 0 END), 0)`.as("prev_profit"),
+      })
+      .from(t)
+      .where(and(
+        between(t.createdAt, prevRange.dateFrom, range.dateTo),
+        ...buildUserFilterConditions(t.user_id, userFilter),
+      ));
+
+    return {
+      current: Number(rows[0]?.current ?? 0),
+      previous: Number(rows[0]?.previous ?? 0),
+    };
+  },
+};
+```
+
+```typescript
+// src/registry/coinIssuanceRegistry.ts に追加
+import { gachaProfitSource } from "@/features/gacha/analytics/coinIssuance/gachaProfitSource";
+
+export const coinIssuanceSources: CoinIssuanceSource[] = [
+  // --- CORE (upstream-provided) ---
+  purchaseBonusGapSource,
+  referralRewardSource,
+
+  // --- DOWNSTREAM ---
+  gachaProfitSource,
+  // winningReportRewardSource, winningCommentRewardSource, ...
+];
+```
+
+```typescript
+// (任意) ラベル登録 (downstream の任意の初期化箇所)
+import { registerCoinIssuanceLabels } from "@/features/core/analytics/services/server/coinIssuance/labels";
+
+registerCoinIssuanceLabels({
+  gacha_profit: "ガチャ収支",
+  winning_report_reward: "当選報告特典",
+});
+```
+
+### 実装上のベストプラクティス
+
+#### 1. 付与額のスナップショットカラムを推奨
+
+報酬・特典系の付与額は **ドメインテーブルに専用カラム** として持つことを強く推奨する。
+
+- **推奨**: 付与時に `promotion_reward_coin_amount: integer` 等のカラムへスナップショット書き込み → 集計は `SUM(promotion_reward_coin_amount)` で済む
+- **非推奨**: `wallet_history.reason LIKE '当選報告特典%'` のような文字列マッチ集計
+
+専用カラム方式のメリット:
+- reason 文字列の変更や handler 追加に強い (`promotion_reward_coin_amount` の意味は固定)
+- 集計 SQL が単純化される (LIKE / 正規表現を避けられる)
+- 監査ログとの整合が取りやすい
+
+専用カラムが追加できない事情がある場合のみ wallet_history からの集計を選ぶ。
+
+#### 2. 当期+前期を 1 クエリで集計
+
+各ソースは `Promise.all` で並列実行されるため個別ソース内のクエリ数は少ない方が良い。
+**当期と前期を別クエリにせず、`CASE WHEN` で 1 クエリにまとめる** (上記テンプレート参照)。
+これは既存 summary 系 (`purchaseAnalytics`, `referralAnalytics`) と同じパターン。
+
+#### 3. UserFilter は意味のある場合のみ適用
+
+`userFilter (roles / excludeDemo)` は対象テーブルの `user_id` カラムに対して
+`buildUserFilterConditions(column, userFilter)` で適用できる。
+ただし「発行先 user を絞り込むことが意味を持たないソース」(e.g. `referral_reward` の rewardTotal) は適用しない。
+
+#### 4. 戻り値は常に絶対値
+
+`CoinIssuanceSource.aggregate()` の戻り値 `{current, previous}` は **絶対値 (正の数)** とする。
+符号反転 (issuance を finalProfit から減算する処理) は aggregator の責務なので、
+ソース側で `-` を返さないこと。
+
+#### 5. key 命名
+
+`CoinIssuanceSource.key` は API レスポンスの `sources` Record のキーとしてそのまま使われる。
+upstream の key と衝突しない snake_case を選ぶ。
+`gacha_profit`, `winning_report_reward`, `winning_comment_reward` 等、ソースの意味が読み取れる命名にする。
+
+### `referralReward` の金額抽出 SQL を差し替える
+
+`referralReward` ソースは `metadata ->> 'amount'` で金額を抽出する規約に従う。
+規約が異なる downstream は、`aggregateReferralRewardCurrentVsPrev` を直接呼ぶカスタム source を実装するか、
+`referralRewardSource` を置き換える形で独自 source を登録する。
+
+```typescript
+import { sql } from "drizzle-orm";
+import { ReferralRewardTable } from "@/features/core/referralReward/entities/drizzle";
+import { aggregateReferralRewardCurrentVsPrev } from "@/features/core/analytics/services/server/referralAnalytics";
+import type { CoinIssuanceSource } from "@/features/core/analytics/services/server/coinIssuance";
+
+// 独自 metadata 構造 ({ rewardCoins: number } 等) を持つ downstream 用
+export const customReferralRewardSource: CoinIssuanceSource = {
+  key: "referral_reward",
+  kind: "issuance",
+  async aggregate({ range, prevRange }) {
+    return aggregateReferralRewardCurrentVsPrev({
+      range,
+      prevRange,
+      rewardAmountExpr: sql<number>`(${ReferralRewardTable.metadata} ->> 'rewardCoins')::numeric`,
+    });
+  },
+};
+```
+
+### Breaking Changes: コイン創出ソース key 変更履歴
+
+upstream で組み込みソースの `key` をリネームした際の移行履歴。ダウンストリームは pull 時に該当項目があれば対応すること。
+
+#### `coupon_bonus_gap` → `purchase_bonus_gap`
+
+| 項目 | 旧 | 新 |
+|---|---|---|
+| ソース key (API レスポンス `sources` のキー) | `coupon_bonus_gap` | `purchase_bonus_gap` |
+| TS シンボル | `couponBonusGapSource` | `purchaseBonusGapSource` |
+| ファイル名 | `sources/couponBonusGap.ts` | `sources/purchaseBonusGap.ts` |
+| 表示ラベル (labels.ts) | 「クーポン・ボーナス発行」 | 「購入時ボーナス発行」 |
+
+**変更理由**: 集計式は `purchase_requests.SUM(amount - payment_amount) WHERE status='completed'` のままで、クーポン割引だけでなくユーザーランクボーナス・決済方法ボーナス・購入パッケージのボーナス等「コイン購入時にサービス側が負担した上乗せ全般」を集計している。旧名称は実態より狭く誤解を招くため、購入と無関係なコインボーナス (紹介リワード・当選報告特典等) との区別を明確にするためリネームした。
+
+**ダウンストリーム移行手順**:
+
+1. `coinIssuanceRegistry.ts` の import 文を `purchaseBonusGap` 系シンボルに置換 (上記表参照)。
+2. 管理画面ダッシュボード等で `sources["coupon_bonus_gap"]` をハードコード参照している箇所を `sources["purchase_bonus_gap"]` に置換。
+   - grep 推奨: `grep -rn "coupon_bonus_gap\|couponBonusGap" src/`
+3. ダウンストリーム独自に `registerCoinIssuanceLabels({ coupon_bonus_gap: "..." })` でラベルを上書きしていた場合は新 key に変更。
+4. 「コインボーナス」というラベル文字列を独自に表示していた場合は `getCoinIssuanceLabel("purchase_bonus_gap")` で取得する形に統一を推奨 (upstream で「購入時ボーナス発行」が登録済み)。
+
+**互換 alias 出力なし**: API レスポンスは新 key (`purchase_bonus_gap`) のみを返す。旧 key (`coupon_bonus_gap`) は出力されないため、本変更を pull したリリースで即時にダウンストリームを更新する必要がある。
+
 ## エンティティの追加
 
 アップストリームではエンティティを持たない。
@@ -269,3 +496,23 @@ export const AnalyticsCacheTable = pgTable(
 
 - **サービス内通貨あり**: どちらも利用可能。コイン/ポイント増減の分析には wallet/ranking、決済金額の分析には purchase/ranking
 - **直接決済のみ（ECサイト等）**: wallet_histories に購入レコードが存在しないため purchase/ranking のみ使用可能
+
+## ウォレット系API: history 軸 vs state 軸
+
+ウォレット分析は2つの軸で構成される。データソースが別なので両方共存する。
+
+| 観点 | history 軸（wallet_histories） | state 軸（wallets） |
+|---|---|---|
+| データソース | 増減台帳の累積 | 現時点の保有スナップショット |
+| 期間概念 | 日付範囲必須（dateFrom/dateTo/days） | スナップショットなので期間なし |
+| walletType | optional（クロス集計可、単位は意味依存） | **必須**（型ごとに残高単位が異なる） |
+| 提供 API | `/wallet-history/{daily,summary,balance}`, `/wallet/ranking` | `/wallet/state/{summary,ranking,distribution}` |
+| 主なユースケース | 期間内の流入・流出、KPI推移 | 現在の流通量・保有者分布、リワード設計 |
+
+### state 軸の追加要件・補足
+
+- **walletType は必須クエリパラメータ**: 残高（balance）の単位は通貨によって意味が変わる（例: コイン枚数とポイント数は加算しても意味がない）。state 系では `walletType` 未指定はリクエストエラー。
+- **保有者の定義**: `balance > 0` のユーザー。`locked_balance` は参考値として `totalLockedBalance` で別途返却する。
+- **distribution の boundaries**: `purchase/distribution` と完全に同じ仕様。CSV、昇順、正整数、最大20個。境界外（balance < 先頭境界）は bucket=0 に集約。さらに完全な 0 残高ウォレットは別途 `zeroBalanceCount` として返す。
+- **クライアント / フック**: `services/client/walletStateAnalyticsClient.ts` および `hooks/useWalletState{Summary,Ranking,Distribution}.ts` を提供済み。下流ではこれらをそのまま再利用する想定。
+- **既定バケット値の扱い**: アップストリームでは保持しない。事業ごとに妥当なバケット値が異なるため、ダウンストリーム側の管理画面コンポーネント等で `boundaries` を組み立ててクライアント関数に渡すこと。

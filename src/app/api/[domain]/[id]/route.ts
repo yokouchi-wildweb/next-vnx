@@ -2,12 +2,13 @@
 
 import { createDomainIdRoute } from "src/lib/routeFactory";
 import type { WithOptions } from "@/lib/crud";
-import { parseBooleanFlag, parseWithRelations } from "../search/utils";
+import { parseBooleanFlag, parsePositiveInteger, parseWithRelations } from "../search/utils";
 
 // GET /api/[domain]/[id] : IDで単一データを取得
 export const GET = createDomainIdRoute(
   {
     operation: "GET /api/[domain]/[id]",
+    crudOp: "get",
     operationType: "read",
   },
   async (req, { service, params }) => {
@@ -15,8 +16,10 @@ export const GET = createDomainIdRoute(
     const options: WithOptions = {};
     const withRelations = parseWithRelations(query.get("withRelations"));
     const withCount = parseBooleanFlag(query.get("withCount"), "withCount");
+    const hasManyLimit = parsePositiveInteger(query.get("hasManyLimit"), "hasManyLimit");
     if (withRelations) options.withRelations = withRelations;
     if (withCount) options.withCount = withCount;
+    if (typeof hasManyLimit === "number") options.hasManyLimit = hasManyLimit;
     return service.get(params.id, options);
   },
 );
@@ -25,6 +28,7 @@ export const GET = createDomainIdRoute(
 export const PUT = createDomainIdRoute(
   {
     operation: "PUT /api/[domain]/[id]",
+    crudOp: "update",
     operationType: "write",
   },
   async (req, { service, params }) => {
@@ -37,6 +41,7 @@ export const PUT = createDomainIdRoute(
 export const DELETE = createDomainIdRoute(
   {
     operation: "DELETE /api/[domain]/[id]",
+    crudOp: "remove",
     operationType: "write",
   },
   async (_req, { service, params }) => {

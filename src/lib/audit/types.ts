@@ -1,0 +1,158 @@
+// src/lib/audit/types.ts
+
+/**
+ * 監査ログを行ったアクター（操作者）の種別。
+ * - system: バッチ・cron・移行スクリプトなど人間以外
+ * - admin: 管理者によるユーザー / データへの介入
+ * - user: 一般ユーザー本人による操作
+ * - api_key: 外部システムからの API キー認証経由
+ * - webhook: Webhook ドリブンの自動処理
+ */
+export const AUDIT_ACTOR_TYPES = ["system", "admin", "user", "api_key", "webhook"] as const;
+export type AuditActorType = (typeof AUDIT_ACTOR_TYPES)[number];
+
+/**
+ * リクエスト単位の監査コンテキスト。
+ * routeFactory が ALS に注入し、recorder が暗黙参照する。
+ *
+ * - actorId: 操作者の userId（system / 認証なしの場合は null）
+ * - actorType: 操作者種別
+ * - ip / userAgent: HTTP リクエストヘッダから抽出
+ * - sessionId: 認証済みセッションの識別子（持っていない場合は null）
+ * - requestId: リクエスト単位で発番される UUID（複数の audit を相関させるため）
+ */
+export type AuditContext = {
+  actorId: string | null;
+  actorType: AuditActorType;
+  ip: string | null;
+  userAgent: string | null;
+  sessionId: string | null;
+  requestId: string;
+};
+
+/**
+ * `auditLogger.record` に渡す入力。
+ * context は ALS から自動取得されるため指定不要。
+ * 明示したい場合（バッチ、テスト、特殊用途）は context を明示できる。
+ */
+export type AuditRecordInput = {
+  /** ターゲット種別（"user" / "post" / "order" 等のドメイン discriminator） */
+  targetType: string;
+  /** ターゲットの ID（uuid 以外も許容するため text で受ける） */
+  targetId: string;
+  /**
+   * 「この操作が誰のユーザーに対するものか」を表す集約キー（"data subject"）。
+   *
+   * - target_type='user' の場合: targetId と同値を冗長設定する（後段の `audit_logs WHERE
+   *   subject_user_id = $1` クエリで関連エンティティと混在で取得できるようにするため）
+   * - target_type='wallet' / 'user_item' 等の関連エンティティ操作: そのレコードが属する
+   *   userId を必ず設定する（ユーザー詳細画面のアクティビティタイムラインで集約するため）
+   * - bulk aggregate / システム設定変更 / 対象ユーザーが特定できない操作: 省略可（NULL）
+   *
+   * 規約として「ユーザーに紐づく操作」では必ず設定すること。詳細は
+   * docs/how-to/監査ログ採用ガイド.md の "actor vs subject" セクション参照。
+   */
+  subjectUserId?: string | null;
+  /** action 名（規約: "<domain>.<entity>.<verb_past>"。例: "user.email.changed"） */
+  action: string;
+  /** 変更前のスナップショット（変更フィールドのみ推奨） */
+  before?: Record<string, unknown> | null;
+  /** 変更後のスナップショット（変更フィールドのみ推奨） */
+  after?: Record<string, unknown> | null;
+  /** ドメイン固有の追加情報 */
+  metadata?: Record<string, unknown> | null;
+  /** 任意のコメント（操作理由など） */
+  reason?: string | null;
+  /** ログの保持期間（日数）。省略時はドメイン側のデフォルトに従う */
+  retentionDays?: number;
+  /**
+   * true の場合、書き込み失敗時に dead-letter に退避し例外を呑み込む（best-effort）。
+   * 既定は false（strict）= 失敗時は呼び出し元の tx を巻き込んで rollback。
+   */
+  bestEffort?: boolean;
+  /**
+   * 明示的にコンテキストを渡したい場合に使用。
+   * 通常は ALS から自動取得されるため省略する。
+   */
+  context?: AuditContext;
+  /**
+   * リクエスト context の actor を上書きする。
+   * 未認証経路でユーザー本人による操作を記録したい場合（仮登録 / 本登録など、
+   * routeFactory が actorType="system" で context を構築する経路）に使う。
+   *
+   * actorOverride を指定しても ip / userAgent / requestId は ALS の値を維持する。
+   * actorId / actorType のみ上書きされる。
+   */
+  actorOverride?: {
+    actorId?: string | null;
+    actorType?: AuditActorType;
+  };
+  /**
+   * バッチ記録単位を識別する UUID。`audit_logs.batch_id` 列に永続化される。
+   *
+   * - `recordMany` / `recordManyDiff` 経由で記録すると、未指定なら自動発番され
+   *   バッチ全行で共通の UUID が割り当てられる
+   * - `record` / `recordDiff` で単件記録する場合に、論理的に親バッチへ紐づけたい
+   *   ときは明示的に同じ UUID を渡せる
+   * - 省略時 (undefined / null) は NULL として記録され、index 対象外となる
+   *
+   * 主な用途は dead-letter 復旧後のトレースと、SQL での横断検索:
+   * `SELECT * FROM audit_logs WHERE batch_id = $1`
+   */
+  batchId?: string | null;
+};
+
+/**
+ * `auditLogger.recordDiff` に渡す入力。
+ * record() と異なり before / after を必須にして、内部で差分を計算する。
+ */
+export type AuditRecordDiffInput = Omit<AuditRecordInput, "before" | "after"> & {
+  before: Record<string, unknown> | null | undefined;
+  after: Record<string, unknown> | null | undefined;
+  /**
+   * 差分検出対象を限定するフィールド名のリスト。
+   * 省略時は before / after の union を対象にする。
+   * denylist 対象は常に除外される。
+   */
+  trackedFields?: readonly string[];
+  /**
+   * true（既定）なら差分が無い場合に記録をスキップする。
+   * 監査として「変更なしの操作も残したい」場合のみ false にする。
+   */
+  skipIfNoChanges?: boolean;
+};
+
+/**
+ * 監査ログの recorder インターフェース。
+ *
+ * 実体は features/core/auditLog/services/server に存在する `auditLogger` だが、
+ * lib 層（lib/crud 等）からは features を import できないため、
+ * 呼び出し側が DI でインスタンスを渡す形を取る（`createCrudService` の `audit.recorder`）。
+ *
+ * tx は `unknown` で受けて recorder 実装側で適切な型に narrow する。
+ * これは lib/crud → lib/audit 経由で features の DbTransaction 型を曝さないための割り切り。
+ */
+export interface AuditRecorder {
+  record(input: AuditRecordInput & { tx?: unknown }): Promise<void>;
+  recordDiff(input: AuditRecordDiffInput & { tx?: unknown }): Promise<void>;
+}
+
+/**
+ * 監査ログの内部表現（DB 永続化前の構造）。
+ * recorder 実装が DB へ insert する際の入力。
+ */
+export type AuditLogPayload = {
+  targetType: string;
+  targetId: string;
+  /** "data subject"（操作対象のユーザー ID）。特定不能な場合は null */
+  subjectUserId: string | null;
+  actorId: string | null;
+  actorType: AuditActorType;
+  action: string;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+  context: Record<string, unknown>;
+  metadata: Record<string, unknown> | null;
+  reason: string | null;
+  retentionDays: number;
+};

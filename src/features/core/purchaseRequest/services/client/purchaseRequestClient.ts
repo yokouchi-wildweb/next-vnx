@@ -10,6 +10,7 @@ import type {
 } from "@/features/core/purchaseRequest/entities/form";
 import { normalizeHttpError } from "@/lib/errors/httpError";
 import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
+import type { LaunchInstruction } from "@/features/core/purchaseRequest/types/payment";
 
 // 基本CRUDクライアント
 export const purchaseRequestClient: ApiClient<
@@ -64,6 +65,11 @@ export type InitiatePurchaseRequest = {
   walletType: string;
   amount: number;
   paymentAmount: number;
+  /**
+   * ユーザーが選択した支払い方法 ID（payment.config.ts の paymentMethods[i].id と一致）。
+   * 例: "credit_card", "convenience_store", "bank_transfer"
+   * サーバー側で provider 解決 (resolveProviderForMethod) に使用される。
+   */
   paymentMethod: string;
   /** 商品名（決済ページに表示） */
   itemName?: string;
@@ -73,11 +79,17 @@ export type InitiatePurchaseRequest = {
 
 /**
  * 購入開始レスポンス
+ *
+ * instruction はクライアントへの起動指示。useCoinPurchase が executePaymentLaunch
+ * 経由で type に応じてリダイレクト or SDK 起動を行う。
+ * successUrl / cancelUrl は SDK 型完了後のクライアント側遷移先として使用する。
  */
 export type InitiatePurchaseResponse = {
   success: boolean;
   requestId: string;
-  redirectUrl: string;
+  instruction: LaunchInstruction;
+  successUrl: string;
+  cancelUrl: string;
   alreadyProcessing?: boolean;
   alreadyCompleted?: boolean;
 };
@@ -98,3 +110,46 @@ export async function initiatePurchase(
     throw normalizeHttpError(error, "購入処理の開始に失敗しました");
   }
 }
+
+// ============================================================================
+// 進行中の購入リクエストをユーザー自身がキャンセル
+// ============================================================================
+
+/**
+ * 購入キャンセルのレスポンス
+ *
+ * サーバーは status を expired に変更し、関連する bank_transfer_review があれば
+ * rejected に遷移させる。redirectUrl は決済方法選択画面（同一の amount / price）への
+ * リダイレクト URL を想定。
+ */
+export type CancelPurchaseResponse = {
+  success: boolean;
+  requestId: string;
+  /** 決済方法選択画面 (/wallet/[slug]/purchase?amount=...&price=...) への遷移先 */
+  redirectUrl: string;
+};
+
+/**
+ * 自分の進行中の購入リクエストをキャンセルする。
+ * 主な用途: 銀行振込の案内画面から「キャンセル」ボタンで購入をやり直す。
+ *
+ * サーバー側で:
+ * - 認可（user_id 一致）
+ * - status が pending / processing のときのみ受け付け（completed 等は 400）
+ * - status を expired に変更
+ * - 関連 bank_transfer_review が pending_review なら rejected に変更
+ * - redirectUrl で決済方法選択画面に戻す
+ */
+export async function cancelPurchase(
+  requestId: string,
+): Promise<CancelPurchaseResponse> {
+  try {
+    const res = await axios.post<CancelPurchaseResponse>(
+      `/api/wallet/purchase/${requestId}/cancel`,
+    );
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "キャンセル処理に失敗しました");
+  }
+}
+

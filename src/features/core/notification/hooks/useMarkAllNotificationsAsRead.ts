@@ -3,10 +3,12 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useSWRConfig } from "swr";
 import { markAllAsRead } from "../services/client/userNotificationClient";
 import { MY_NOTIFICATIONS_SWR_KEY } from "./useMyNotifications";
+import { MY_NOTIFICATIONS_COUNT_SWR_KEY } from "./useMyNotificationsCount";
+import { MY_NOTIFICATIONS_PAGE_SWR_KEY } from "./useMyNotificationsPage";
 import { UNREAD_NOTIFICATION_COUNT_SWR_KEY } from "./useUnreadNotificationCount";
 
 type UseMarkAllNotificationsAsReadReturn = {
@@ -19,24 +21,42 @@ export function useMarkAllNotificationsAsRead(): UseMarkAllNotificationsAsReadRe
   const { mutate } = useSWRConfig();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const lockRef = useRef(false);
 
   const handleMarkAllAsRead = useCallback(async () => {
+    if (lockRef.current) return;
+    lockRef.current = true;
     setIsLoading(true);
     setError(null);
 
     try {
       await markAllAsRead();
-      // 一覧と未読数のキャッシュを更新
-      mutate((key: unknown) =>
-        typeof key === "string"
-          ? key.startsWith(MY_NOTIFICATIONS_SWR_KEY) || key === UNREAD_NOTIFICATION_COUNT_SWR_KEY
-          : Array.isArray(key) && key[0] === MY_NOTIFICATIONS_SWR_KEY
-      );
+      // 一覧 / ページ / 件数 / 未読数 のキャッシュを更新
+      mutate((key: unknown) => {
+        if (typeof key === "string") {
+          return (
+            key.startsWith(MY_NOTIFICATIONS_SWR_KEY) ||
+            key === UNREAD_NOTIFICATION_COUNT_SWR_KEY ||
+            key === MY_NOTIFICATIONS_COUNT_SWR_KEY ||
+            key === MY_NOTIFICATIONS_PAGE_SWR_KEY
+          );
+        }
+        if (Array.isArray(key)) {
+          const head = key[0];
+          return (
+            head === MY_NOTIFICATIONS_SWR_KEY ||
+            head === MY_NOTIFICATIONS_COUNT_SWR_KEY ||
+            head === MY_NOTIFICATIONS_PAGE_SWR_KEY
+          );
+        }
+        return false;
+      });
     } catch (err) {
       const e = err instanceof Error ? err : new Error("全既読処理に失敗しました。");
       setError(e);
       throw e;
     } finally {
+      lockRef.current = false;
       setIsLoading(false);
     }
   }, [mutate]);

@@ -15,6 +15,8 @@ import type {
  */
 export class DummyPaymentProvider implements PaymentProvider {
   readonly providerName = "dummy";
+  readonly launchType = "redirect" as const;
+  readonly correlationKey = "session_id" as const;
 
   /**
    * ダミー決済セッションを作成
@@ -25,9 +27,11 @@ export class DummyPaymentProvider implements PaymentProvider {
 
     // ダミー決済確認ページにリダイレクト
     // このページでユーザーが「支払いを完了する」ボタンを押すとWebhookが発火する
+    // payment_method はデモ画面に「ユーザーが選択した支払い方法」を表示する用途で渡す
     const queryParams = new URLSearchParams({
       session_id: sessionId,
       amount: String(params.amount),
+      payment_method: params.paymentMethod,
       success_url: params.successUrl,
       cancel_url: params.cancelUrl,
     });
@@ -35,7 +39,7 @@ export class DummyPaymentProvider implements PaymentProvider {
 
     return {
       sessionId,
-      redirectUrl,
+      instruction: { type: "redirect", url: redirectUrl },
       expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30分後
     };
   }

@@ -1,20 +1,15 @@
-// src/config/maintenance.config.ts
+// src/config/app/maintenance.config.ts
 
 /**
  * メンテナンスモードの設定
- * サービスイン前の事前登録期間など、特定ページ以外へのアクセスを制限する
+ *
+ * 有効フラグ・開始/終了日時は管理画面のシステム設定（DB）で管理する。
+ * このファイルには、コードに依存する構造的な設定のみを残す。
+ *
+ * - 管理画面 UI: /admin/settings/maintenance
+ * - サーバー判定: settingService.isMaintenanceActive()
  */
 export const maintenanceConfig = {
-  // メンテナンスモードの有効/無効
-  enabled: false,
-
-  // スケジュール設定（enabled: true の場合のみ有効）
-  // null = 制限なし
-  schedule: {
-    start: null as string | null, // 開始時刻（ISO8601形式）例: '2025-01-27T10:00:00+09:00'
-    end: null as string | null, // 終了時刻（ISO8601形式）例: '2025-01-27T14:00:00+09:00'
-  },
-
   // メンテナンス中もアクセス許可するパス（完全一致）
   allowedPaths: [
     '/maintenance',
@@ -41,6 +36,9 @@ export const maintenanceConfig = {
   ],
 
   // バイパスできるロール（これらのロールを持つユーザーは制限を受けない）
+  // 拡張ポイント: より細かい条件（特定 userId、IP、機能フラグ等）を追加したい場合は
+  //   src/features/core/setting/utils/maintenanceBypass.ts の canBypassMaintenance を編集する。
+  //   そこが proxy と /api/health の両方から参照される単一情報源となっている。
   bypassRoles: ['admin', 'debugger'] as const,
 
   // メンテナンス中のリダイレクト先

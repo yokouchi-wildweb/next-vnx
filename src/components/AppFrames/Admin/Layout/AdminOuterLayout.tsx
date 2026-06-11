@@ -8,7 +8,6 @@ import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import { cn } from "@/lib/cn";
 import { useAdminLayoutStore } from "@/stores/adminLayout";
 
-import { Footer } from "../Sections/Footer";
 import { Header } from "../Sections/Header";
 
 export type AdminLayoutClientProps = {
@@ -38,15 +37,22 @@ export function AdminOuterLayout({
   return (
     <div
       className={cn(
-        "relative flex min-h-[var(--viewport-height,100dvh)] flex-col bg-background text-foreground",
+        "relative flex h-[var(--viewport-height,100dvh)] flex-col overflow-hidden bg-background text-foreground",
         className,
         extraClassName,
       )}
       style={layoutStyle}
     >
       <Header />
-      <div className="flex-1 min-h-0 flex flex-col">{children}</div>
-      <Footer />
+      {/* ヘッダー固定 + メイン領域は配下が独自にスクロールを担う土台。
+          ここは scroll container 化させてはならないため overflow-clip を使う。
+          overflow-hidden は視覚クリップは効くが scroll container として残るため、sr-only な
+          checkbox（SwitchInput など）に focus が移った際のブラウザ自動 scrollIntoView で
+          ここの scrollTop が動いてしまい、フォーム全体が画面外へ押し出される崩れが起きる。
+          overflow-clip は CSS 仕様上 scroll container を作らないため focus 駆動の
+          スクロールも発火しない。配下（ResizableArea / InsaneResizableArea / login・setup の
+          Main）が自前でスクロール可能領域を確保する前提。 */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-clip">{children}</div>
     </div>
   );
 }

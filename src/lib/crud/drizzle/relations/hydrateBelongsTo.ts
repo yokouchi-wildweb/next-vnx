@@ -1,8 +1,8 @@
 // src/lib/crud/drizzle/relations/hydrateBelongsTo.ts
 
 import { db } from "@/lib/drizzle";
-import { inArray } from "drizzle-orm";
-import type { BelongsToRelation, BelongsToManyObjectRelation } from "@/lib/crud/types";
+import { and, inArray, isNull } from "drizzle-orm";
+import type { BelongsToRelation, BelongsToManyObjectRelation, HasManyRelation } from "@/lib/crud/types";
 
 /**
  * belongsTo リレーションを展開する。
@@ -26,6 +26,11 @@ export async function hydrateBelongsTo<T extends Record<string, any>>(
     relations: BelongsToManyObjectRelation[],
     depth: number,
   ) => Promise<void>,
+  hydrateHasManyFn?: (
+    records: Record<string, any>[],
+    relations: HasManyRelation[],
+    depth: number,
+  ) => Promise<void>,
 ): Promise<void> {
   if (records.length === 0 || relations.length === 0 || depth < 1) return;
 
@@ -47,10 +52,19 @@ export async function hydrateBelongsTo<T extends Record<string, any>>(
         return;
       }
 
+      const softDeleteFilter =
+        rel.useSoftDelete && rel.deletedAtColumn
+          ? isNull(rel.deletedAtColumn)
+          : undefined;
+
       const relatedRecords = await db
         .select()
         .from(rel.table)
-        .where(inArray(rel.table.id, foreignKeys));
+        .where(
+          softDeleteFilter
+            ? and(inArray(rel.table.id, foreignKeys), softDeleteFilter)
+            : inArray(rel.table.id, foreignKeys),
+        );
 
       const relatedMap = new Map(
         relatedRecords.map((r: any) => [r.id, r])
@@ -79,6 +93,7 @@ export async function hydrateBelongsTo<T extends Record<string, any>>(
         rel.nested.belongsTo,
         depth - 1,
         hydrateBelongsToMany,
+        hydrateHasManyFn,
       );
     }
 
@@ -86,6 +101,14 @@ export async function hydrateBelongsTo<T extends Record<string, any>>(
       await hydrateBelongsToMany(
         nestedRecords,
         rel.nested.belongsToMany,
+        depth - 1,
+      );
+    }
+
+    if (hydrateHasManyFn && rel.nested.hasMany && rel.nested.hasMany.length > 0) {
+      await hydrateHasManyFn(
+        nestedRecords,
+        rel.nested.hasMany,
         depth - 1,
       );
     }

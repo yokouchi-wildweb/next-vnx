@@ -8,9 +8,12 @@ import { parseDateRangeParams } from "@/features/core/analytics/services/server/
 import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
 import {
   getPurchaseDistribution,
-  parseBoundaries,
   parseMetric,
 } from "@/features/core/analytics/services/server/purchaseDistributionAnalytics";
+import {
+  parseBoundaries,
+  BOUNDARIES_ERROR_MESSAGE,
+} from "@/features/core/analytics/services/server/utils/distribution";
 
 export const GET = createApiRoute(
   {
@@ -39,10 +42,7 @@ export const GET = createApiRoute(
     const boundaries = parseBoundaries(boundariesParam);
     if (!boundaries) {
       return NextResponse.json(
-        {
-          message:
-            "boundaries は正の整数のカンマ区切り（昇順、最大20個）で指定してください。",
-        },
+        { message: BOUNDARIES_ERROR_MESSAGE },
         { status: 400 },
       );
     }

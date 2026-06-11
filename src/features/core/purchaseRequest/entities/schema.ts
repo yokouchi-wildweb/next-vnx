@@ -3,6 +3,7 @@
 import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { PURCHASE_TYPE_KEYS } from "@/config/app/purchaseType.config";
 import { nullableDatetime } from "@/lib/crud/utils";
 
 // CURRENCY_CONFIG から動的に walletType の値を取得
@@ -13,13 +14,22 @@ export const PurchaseRequestBaseSchema = z.object({
   wallet_history_id: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   idempotency_key: z.string().trim().min(1, { message: "冪等キーは必須です。" }),
-  wallet_type: z.enum(walletTypes),
+  // 購入の履行形態。未指定の場合は wallet_topup を既定とする（後方互換）。
+  purchase_type: z.enum(PURCHASE_TYPE_KEYS).default("wallet_topup"),
+  // purchase_type=wallet_topup 以外では NULL を許容する。戦略側で整合性を担保する。
+  wallet_type: z.enum(walletTypes).nullish()
+    .transform((value) => value ?? null),
   amount: z.coerce.number().int(),
   payment_amount: z.coerce.number().int(),
   payment_method: z.string().trim().min(1, { message: "支払い方法は必須です。" }),
   status: z.enum(["pending", "processing", "completed", "failed", "expired"]),
   payment_provider: z.string().trim().min(1, { message: "決済プロバイダは必須です。" }),
   payment_session_id: z.string().trim().nullish()
+    .transform((value) => emptyToNull(value)),
+  // プロバイダ固有の注文ID（Fincode 等で Webhook 照合に使用）
+  // initiatePurchase で base.update() 経由で書き込むため、ここに定義しないと
+  // Zod の strip により無視され、DB に NULL のまま残ってしまう
+  provider_order_id: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   transaction_id: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
@@ -35,6 +45,10 @@ export const PurchaseRequestBaseSchema = z.object({
     .transform((value) => emptyToNull(value)),
   discount_amount: z.coerce.number().int().nullish(),
   original_payment_amount: z.coerce.number().int().nullish(),
+  // 下流プロジェクト向けの汎用メタデータ（JSONB）。
+  // purchase_type 固有の識別情報や拡張情報を opaque に格納する。
+  // コアロジックは中身を解釈しない。下流での運用指針は docs 参照。
+  metadata: z.unknown().nullish(),
   completed_at: nullableDatetime.nullish(),
   paid_at: nullableDatetime.nullish(),
   expires_at: nullableDatetime.nullish(),

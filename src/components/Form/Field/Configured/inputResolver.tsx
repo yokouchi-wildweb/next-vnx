@@ -80,7 +80,7 @@ export function renderInputByFormType<
           field={field}
           options={normalizeOptions(fieldConfig.options)}
           placeholder={fieldConfig.placeholder}
-          disabled={fieldConfig.disabled}
+          disabled={fieldConfig.disabled || readOnly}
           className={inputClassName}
         />
       );
@@ -91,7 +91,7 @@ export function renderInputByFormType<
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
           options={normalizeOptions(fieldConfig.options)}
           placeholder={fieldConfig.placeholder}
-          disabled={fieldConfig.disabled}
+          disabled={fieldConfig.disabled || readOnly}
           className={inputClassName}
         />
       );
@@ -102,7 +102,7 @@ export function renderInputByFormType<
           field={field}
           options={normalizeOptions(fieldConfig.options)}
           placeholder={fieldConfig.placeholder}
-          disabled={fieldConfig.disabled}
+          disabled={fieldConfig.disabled || readOnly}
           className={inputClassName}
         />
       );
@@ -114,7 +114,7 @@ export function renderInputByFormType<
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
           options={options}
           displayType={(fieldConfig.displayType as RadioGroupDisplayType | undefined) ?? "standard"}
-          disabled={fieldConfig.disabled}
+          disabled={fieldConfig.disabled || readOnly}
           className={inputClassName}
         />
       );
@@ -128,7 +128,7 @@ export function renderInputByFormType<
             field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
             options={normalizeOptions(fieldConfig.options)}
             displayType={(fieldConfig.displayType as CheckGroupDisplayType | undefined) ?? "standard"}
-            disabled={fieldConfig.disabled}
+            disabled={fieldConfig.disabled || readOnly}
             className={inputClassName}
           />
         );
@@ -137,7 +137,7 @@ export function renderInputByFormType<
         <BooleanCheckboxInput
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
           label={fieldConfig.label}
-          disabled={fieldConfig.disabled}
+          disabled={fieldConfig.disabled || readOnly}
           className={inputClassName}
         />
       );
@@ -147,7 +147,7 @@ export function renderInputByFormType<
       return (
         <StepperInput
           field={field}
-          disabled={fieldConfig.disabled}
+          disabled={fieldConfig.disabled || readOnly}
           className={inputClassName}
         />
       );
@@ -162,7 +162,7 @@ export function renderInputByFormType<
             onValue={options[0].value}
             offValue={options[1].value}
             label={fieldConfig.label}
-            disabled={fieldConfig.disabled}
+            disabled={fieldConfig.disabled || readOnly}
             className={inputClassName}
           />
         );
@@ -171,7 +171,7 @@ export function renderInputByFormType<
         <SwitchInput
           field={field}
           label={fieldConfig.label}
-          disabled={fieldConfig.disabled}
+          disabled={fieldConfig.disabled || readOnly}
           className={inputClassName}
         />
       );
@@ -202,10 +202,11 @@ export function renderInputByFormType<
       return null;
 
     case "mediaUploader":
-      // mediaUploader は特殊な処理が必要なため、ConfiguredField では未サポート
+    case "mediaUploaderMulti":
+      // mediaUploader / mediaUploaderMulti は特殊な処理が必要なため、ConfiguredField では未サポート
       // FieldRenderer を使用してください
       console.warn(
-        `[ConfiguredField] formInput="mediaUploader" is not supported. Use FieldRenderer instead. Field: ${fieldConfig.name}`
+        `[ConfiguredField] formInput="${formInput}" is not supported. Use FieldRenderer instead. Field: ${fieldConfig.name}`
       );
       return null;
 
@@ -285,6 +286,7 @@ export function shouldUseFieldItem(formInput: FormInputType): boolean {
     "hidden",
     "none",
     "mediaUploader",
+    "mediaUploaderMulti",
   ];
   return !noFieldItemTypes.includes(formInput);
 }
@@ -330,6 +332,7 @@ const BLUR_MODE_CONFIG: Record<FormInputType, "immediate" | "debounce" | "none">
   hidden: "none",
   none: "none",
   mediaUploader: "none",  // onUrlChangeで即時コミット+保存
+  mediaUploaderMulti: "none",  // onUrlsChangeで即時コミット+保存
   custom: "none",  // 独自コンポーネントで処理
 
   // 非同期リレーション: ポップオーバー閉じた時に即時保存

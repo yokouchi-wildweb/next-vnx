@@ -38,6 +38,18 @@ export const UserCoreSchema = z.object({
     .string()
     .nullish()
     .transform((value) => emptyToNull(value)),
+  /** 管理者メモ (機能フラグ enableUserMemo で UI 切り替え。空文字は null に正規化) */
+  adminMemo: z
+    .string()
+    .nullish()
+    .transform((value) => emptyToNull(value)),
+  // アカウントロックアウト関連 (詳細: src/config/app/auth-lockout.config.ts)
+  // 認証フロー側で管理するため admin/self 編集スキーマには含めない。
+  failedLoginCount: z.number().int().nonnegative().default(0),
+  lockedUntil: z.coerce.date().nullish(),
+  lastFailedLoginAt: z.coerce.date().nullish(),
+  // セッション失効境界時刻。invalidateSessionsForUser 経由でのみ更新される。
+  sessionsInvalidatedAt: z.coerce.date().nullish(),
   user_tag_ids: z.array(z.string()).optional(),
 });
 
@@ -62,6 +74,7 @@ export const UserUpdateByAdminSchema = UserOptionalSchema.pick({
   role: true,
   isDemo: true,
   phoneNumber: true,
+  adminMemo: true,
 });
 
 /**

@@ -13,6 +13,7 @@ import { getRoleCategory, hasRoleProfile, type UserRoleType } from "@/features/c
 import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
 import { syncBelongsToManyRelations } from "@/lib/crud/drizzle/belongsToMany";
 import { db } from "@/lib/drizzle";
+import { invalidateSessionsForUser } from "@/features/core/auth/services/server/sessionInvalidation";
 
 async function updateFirebaseEmail(uid: string, email: string): Promise<void> {
   const auth = getServerAuth();
@@ -132,7 +133,7 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     await updateFirebasePassword(current.providerUid, normalizedNewPassword);
   }
 
-  // 電話番号の Firebase 同期（local 以外 = Firebase Auth 連携ユーザー）
+  // 電話番号の Firebase 同期（local はFirebase Auth不使用のためDB更新のみ）
   const shouldSyncFirebasePhone =
     current.providerType !== "local" &&
     phoneNumber !== undefined &&
@@ -149,6 +150,11 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
 
   if (current.providerType === "local" && localPassword !== undefined) {
     updatePayload.localPassword = localPassword;
+    // ローカル認証ユーザーのパスワード変更時はロックアウト関連カウンタを同時リセット。
+    // (管理者によるパスワード再発行で即時再ログイン可能にするため)
+    updatePayload.failedLoginCount = 0;
+    updatePayload.lockedUntil = null;
+    updatePayload.lastFailedLoginAt = null;
   }
 
   // 電話番号変更時に phoneVerifiedAt も更新
@@ -162,6 +168,21 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     Object.keys(updatePayload).length === 0
       ? current
       : await base.update(id, updatePayload);
+
+  // パスワード変更が発生した場合は全セッションを失効させる (既存 JWT 無効化 + Firebase revoke)。
+  // local: localPassword (DB側) が更新された場合。
+  // Firebase 系: shouldSyncFirebasePassword が true で Firebase 側パスワードが更新された場合。
+  const passwordChanged =
+    (current.providerType === "local" && localPassword !== undefined) ||
+    shouldSyncFirebasePassword;
+
+  if (passwordChanged) {
+    await invalidateSessionsForUser({
+      userId: id,
+      providerUid: current.providerUid,
+      reason: "password_change",
+    });
+  }
 
   // プロフィールデータの更新
   const effectiveRole = (updatePayload.role ?? current.role) as UserRoleType;

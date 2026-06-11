@@ -20,9 +20,13 @@ import {
   sendToAllSafe,
 } from "./notification/sendSafe";
 import { getMyNotifications } from "./notification/getMyNotifications";
+import { getMyNotificationsCount } from "./notification/getMyNotificationsCount";
+import { getMyNotificationsPage } from "./notification/getMyNotificationsPage";
 import { getUnreadCount } from "./notification/getUnreadCount";
 import { markAsRead } from "./notification/markAsRead";
 import { markAllAsRead } from "./notification/markAllAsRead";
+import { getReadCounts } from "./notification/getReadCounts";
+import { getReadersWithUsers } from "./notification/getReadersWithUsers";
 
 export const notificationService = {
   ...base,
@@ -41,7 +45,11 @@ export const notificationService = {
   sendToRoleSafe,
   sendToAllSafe,
   getMyNotifications,
+  getMyNotificationsCount,
+  getMyNotificationsPage,
   getUnreadCount,
   markAsRead,
   markAllAsRead,
+  getReadCounts,
+  getReadersWithUsers,
 };

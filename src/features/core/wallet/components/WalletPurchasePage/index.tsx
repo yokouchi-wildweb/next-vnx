@@ -11,7 +11,11 @@ import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
+import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/core/wallet/utils/purchaseSuspension";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
+import { ActiveTransferBanner } from "@/features/core/bankTransferReview/components/ActiveTransferBanner";
+
+import { PurchaseSuspended } from "../common/PurchaseSuspended";
 import { CurrencyPurchase } from "./CurrencyPurchase";
 
 type WalletPurchasePageProps = {
@@ -96,6 +100,22 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
     );
   }
 
+  // 購入一時停止チェック
+  if (isPurchaseSuspended()) {
+    return (
+      <Stack space={6}>
+        <Flex justify="end">
+          <LinkButton href={backUrl} variant="outline" size="sm">
+            {config.label}管理に戻る
+          </LinkButton>
+        </Flex>
+        {/* 進行中の自社銀行振込バナー（active が null なら自動的に非描画） */}
+        <ActiveTransferBanner />
+        <PurchaseSuspended message={getPurchaseSuspensionMessage()} />
+      </Stack>
+    );
+  }
+
   // 該当ウォレットの残高を取得
   const wallet = data?.wallets.find((w) => w.type === config.walletType);
   const currentBalance = wallet?.balance ?? 0;
@@ -107,6 +127,8 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
           {config.label}管理に戻る
         </LinkButton>
       </Flex>
+      {/* 進行中の自社銀行振込バナー（active が null なら自動的に非描画） */}
+      <ActiveTransferBanner />
       <CurrencyPurchase
         purchaseAmount={purchaseAmount}
         paymentAmount={paymentAmount}

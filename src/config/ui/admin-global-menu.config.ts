@@ -3,6 +3,7 @@
 import { adminDataMenu } from "@/registry/adminDataMenu";
 import type { UserRoleType } from "@/features/core/user/types";
 import { APP_FEATURES } from "@/config/app/app-features.config";
+import { buildSettingMenuItems } from "@/features/core/setting/menu";
 import type { IconComponent } from "@/components/Icons";
 import {
   Home,
@@ -15,6 +16,9 @@ import {
   Megaphone,
   Ticket,
   Bell,
+  ScrollText,
+  Inbox,
+  Banknote,
 } from "lucide-react";
 
 // ============================================
@@ -36,6 +40,8 @@ export type AdminMenuItem = {
   href: string;
   /** アイコン（省略可、ADMIN_MENU_ICONS_ENABLEDがtrueの場合のみ表示） */
   icon?: IconComponent;
+  /** 指定した場合、そのロールのみ表示（未指定は全員表示） */
+  allowRoles?: UserRoleType[];
 };
 
 export type AdminMenuSection = {
@@ -83,6 +89,15 @@ export const adminMenu: AdminMenuSection[] = [
     items: adminDataMenu.filter((item) => item.href !== "/admin/user-tags"),
   },
   {
+    title: "リクエスト管理",
+    href: null,
+    icon: Inbox,
+    items: [
+      { title: "銀行振込レビュー", href: "/admin/bank-transfer-reviews/pending-review", icon: Banknote },
+    ],
+    allowRoles: ["admin"],
+  },
+  {
     title: "ユーザー管理",
     href: null,
     icon: Users,
@@ -98,6 +113,16 @@ export const adminMenu: AdminMenuSection[] = [
     ],
     allowRoles: ["admin"],
   },
+  // 現状運用では未使用のため一時的に非表示。再開時はコメントアウトを解除する。
+  // {
+  //   title: "監査ログ",
+  //   href: "/admin/audit-logs",
+  //   icon: ScrollText,
+  //   items: [
+  //     { title: "横断検索", href: "/admin/audit-logs" },
+  //   ],
+  //   allowRoles: ["admin"],
+  // },
   {
     title: "UIデモ",
     href: "/admin/tabs-demo/overview",
@@ -110,8 +135,8 @@ export const adminMenu: AdminMenuSection[] = [
   },
   {
     title: "システム設定",
-    href: "/admin/settings",
+    href: null,
     icon: Settings,
-    items: [],
+    items: buildSettingMenuItems(),
   },
 ];

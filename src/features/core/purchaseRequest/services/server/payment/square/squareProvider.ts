@@ -16,8 +16,12 @@ import {
 import {
   SQUARE_ERROR_MAP,
   isSuccessPaymentStatus,
+  isFailurePaymentStatus,
   extractPaymentMethod,
 } from "./errorMapping";
+import { paymentConfig } from "@/config/app/payment.config";
+// Square Checkout API は payment_method_types のような明示指定を持たないため、
+// methodMapping は「Square が担当するメソッドかどうか」のバリデーション用途で参照する。
 
 /**
  * Square 環境設定
@@ -139,6 +143,8 @@ type SquarePayment = {
  */
 export class SquarePaymentProvider implements PaymentProvider {
   readonly providerName = "square";
+  readonly launchType = "redirect" as const;
+  readonly correlationKey = "session_id" as const;
 
   private getConfig(): SquareConfig {
     const accessToken = process.env.SQUARE_ACCESS_TOKEN;
@@ -187,6 +193,17 @@ export class SquarePaymentProvider implements PaymentProvider {
     const config = this.getConfig();
     const baseUrl = this.getApiBaseUrl();
 
+    // Square が担当しないメソッドが渡ってきた場合は早期にエラー化する。
+    // （resolveProviderForMethod で正しく解決されていれば通常到達しないが、
+    //  paymentProvider 引数で直接 "square" を指定された経路に対する防御。）
+    const squareMappingExists =
+      paymentConfig.providers.square?.methodMapping?.[params.paymentMethod];
+    if (!squareMappingExists) {
+      throw new Error(
+        `[Square] 支払い方法 "${params.paymentMethod}" の methodMapping が定義されていません。payment.config.ts を確認してください。`,
+      );
+    }
+
     // idempotency_keyとしてpurchaseRequestIdを使用
     const idempotencyKey = params.purchaseRequestId;
 
@@ -226,7 +243,11 @@ export class SquarePaymentProvider implements PaymentProvider {
       payment_note: params.purchaseRequestId,
     };
 
-    console.log("[Square] Creating payment link:", JSON.stringify(requestBody, null, 2));
+    if (paymentConfig.debugLog) {
+      console.log("[Square] Creating payment link:", JSON.stringify(requestBody, null, 2));
+    } else {
+      console.log(`[Square] Creating payment link: purchaseRequestId=${params.purchaseRequestId}, amount=${params.amount}`);
+    }
 
     const response = await fetch(`${baseUrl}/v2/online-checkout/payment-links`, {
       method: "POST",
@@ -252,7 +273,7 @@ export class SquarePaymentProvider implements PaymentProvider {
 
     return {
       sessionId: data.payment_link.id,
-      redirectUrl: data.payment_link.url,
+      instruction: { type: "redirect", url: data.payment_link.url },
       // Square Payment Linkには明示的な有効期限がないため undefined
       expiresAt: undefined,
     };
@@ -265,7 +286,11 @@ export class SquarePaymentProvider implements PaymentProvider {
     try {
       const body: SquareWebhookPayload = await request.json();
 
-      console.log("[Square] Webhook payload:", JSON.stringify(body, null, 2));
+      if (paymentConfig.debugLog) {
+        console.log("[Square] Webhook payload:", JSON.stringify(body, null, 2));
+      } else {
+        console.log(`[Square] Webhook received: type=${body.type}, paymentId=${body.data?.object?.payment?.id}`);
+      }
 
       const eventType = body.type;
       const payment = body.data.object.payment;
@@ -282,31 +307,44 @@ export class SquarePaymentProvider implements PaymentProvider {
 
       // payment.noteに保存したpurchaseRequestIdを取得
       const sessionId = payment.note || payment.order_id || "";
-      const isSuccess = isSuccessPaymentStatus(payment.status);
 
-      if (isSuccess) {
+      // 成功（COMPLETED / APPROVED）
+      if (isSuccessPaymentStatus(payment.status)) {
         return {
           success: true,
+          status: "completed",
           sessionId,
           transactionId: payment.id,
           paymentMethod: extractPaymentMethod(payment.source_type),
           paidAt: new Date(payment.updated_at || payment.created_at),
+          paidAmount: payment.amount_money?.amount,
           rawResponse: body,
         };
       }
 
-      // 失敗・キャンセル
-      const cardStatus = payment.card_details?.status;
-      const errorCode = cardStatus
-        ? mapProviderError(cardStatus, SQUARE_ERROR_MAP)
-        : PAYMENT_ERROR_CODES.PAYMENT_FAILED;
+      // 確定的な失敗（CANCELED / FAILED）
+      if (isFailurePaymentStatus(payment.status)) {
+        const cardStatus = payment.card_details?.status;
+        const errorCode = cardStatus
+          ? mapProviderError(cardStatus, SQUARE_ERROR_MAP)
+          : PAYMENT_ERROR_CODES.PAYMENT_FAILED;
 
+        return {
+          success: false,
+          status: "failed",
+          sessionId,
+          errorCode,
+          errorMessage: this.getErrorMessageFromStatus(payment.status),
+          rawResponse: body,
+        };
+      }
+
+      // 未確定（PENDING 等）— 処理をスキップして 200 を返す
+      console.log(`[Square] 未確定ステータスのためスキップ: status=${payment.status}, sessionId=${sessionId}`);
       return {
         success: false,
+        status: "pending",
         sessionId,
-        errorCode,
-        errorMessage: this.getErrorMessageFromStatus(payment.status),
-        rawResponse: body,
       };
     } catch (error) {
       console.error("[Square] Webhook parsing error:", error);

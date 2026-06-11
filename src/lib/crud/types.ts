@@ -211,6 +211,18 @@ export type BulkUpdateResult<T> = {
   notFoundIds: string[];
 };
 
+/**
+ * duplicate のオプション。
+ */
+export type DuplicateOptions = {
+  /**
+   * 複製後レコードの name。
+   * 未指定時は複製元の name に「_コピー」を付与する（従来動作）。
+   * 複製元に string 型の name フィールドがない場合は無視される。
+   */
+  name?: string;
+};
+
 export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   getAll(options?: WithOptions): Promise<T[]>;
   getById(id: string, options?: WithOptions): Promise<T>;
@@ -224,7 +236,7 @@ export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   bulkUpsert?(records: CreateData[], options?: BulkUpsertOptions<CreateData>): Promise<BulkUpsertResult<T>>;
   bulkUpdate?(records: BulkUpdateRecord<UpdateData>[]): Promise<BulkUpdateResult<T>>;
   bulkUpdateByIds?(ids: string[], data: UpdateData): Promise<{ count: number }>;
-  duplicate?(id: string): Promise<T>;
+  duplicate?(id: string, options?: DuplicateOptions): Promise<T>;
   // ソフトデリート用メソッド
   restore?(id: string): Promise<T>;
   hardDelete?(id: string): Promise<void>;
@@ -344,6 +356,11 @@ export type WithOptions = {
    * 全件取得が必要な場合は listAll() を使用する。
    */
   limit?: number;
+  /**
+   * hasMany リレーション展開時の、親レコードあたりの子レコード取得上限。
+   * 省略時はデフォルト 100。
+   */
+  hasManyLimit?: number;
 };
 
 // ============================================================
@@ -357,6 +374,7 @@ export type WithOptions = {
 export type NestedRelations = {
   belongsTo?: BelongsToRelation[];
   belongsToMany?: BelongsToManyObjectRelation[];
+  hasMany?: HasManyRelation[];
 };
 
 /**
@@ -372,6 +390,13 @@ export type BelongsToRelation<TTable = any> = {
   table: TTable;
   /** 取得するカラム名（省略時は全カラム） */
   targetFields?: string[];
+  /**
+   * リレーション先のテーブルが論理削除を使う場合 true。
+   * 設定すると hydrate 時に deletedAt IS NULL で絞り込み、削除済みレコードを除外する。
+   */
+  useSoftDelete?: boolean;
+  /** リレーション先テーブルの deletedAt カラム（useSoftDelete: true の時のみ参照） */
+  deletedAtColumn?: any;
   /**
    * 2階層目のリレーション設定。
    * withRelations: 2 の場合にこのリレーション先のさらにリレーションを展開する。
@@ -391,6 +416,15 @@ export type BelongsToManyObjectRelation<
 > = {
   /** 展開後のフィールド名（例: "sample_tags"） */
   field: string;
+  /**
+   * ID 配列を格納するフィールド名（例: "sample_tag_ids"）。
+   * 指定した場合、JOIN で取得したターゲットIDから ID 配列を派生させ、
+   * `field` のオブジェクト配列と並べて `record[idField]` に格納する。
+   * ネスト階層で `hydrateBelongsToManyRelations` が呼ばれないため、
+   * ネスト先の belongsToMany で *_ids を使いたい場合に指定する。
+   * 追加 DB クエリは発生しない（JOIN 済みデータから派生）。
+   */
+  idField?: string;
   /** リレーション先のテーブル（例: SampleTagTable） */
   targetTable: TTargetTable;
   /** 中間テーブル（例: SampleToSampleTagTable） */
@@ -402,6 +436,40 @@ export type BelongsToManyObjectRelation<
   /** 取得するカラム名（省略時は全カラム） */
   targetFields?: string[];
   /**
+   * リレーション先のテーブルが論理削除を使う場合 true。
+   * 設定すると hydrate 時に targetTable.deletedAt IS NULL で絞り込み、削除済みレコードを除外する。
+   */
+  useSoftDelete?: boolean;
+  /** リレーション先テーブルの deletedAt カラム（useSoftDelete: true の時のみ参照） */
+  deletedAtColumn?: any;
+  /**
+   * 2階層目のリレーション設定。
+   * withRelations: 2 の場合にこのリレーション先のさらにリレーションを展開する。
+   */
+  nested?: NestedRelations;
+};
+
+/**
+ * hasMany リレーション設定。
+ * 親→子方向のリレーションを展開し、子レコードの配列を取得する。
+ */
+export type HasManyRelation<TTable = any> = {
+  /** 展開後のフィールド名（例: "samples"） */
+  field: string;
+  /** 子テーブル（例: SampleTable） */
+  table: TTable;
+  /** 子テーブル側の外部キーカラム名（例: "sample_category_id"） */
+  foreignKey: string;
+  /** 取得するカラム名（省略時は全カラム） */
+  targetFields?: string[];
+  /**
+   * 子テーブルが論理削除を使う場合 true。
+   * 設定すると hydrate 時に deletedAt IS NULL で絞り込み、削除済みレコードを除外する。
+   */
+  useSoftDelete?: boolean;
+  /** 子テーブルの deletedAt カラム（useSoftDelete: true の時のみ参照） */
+  deletedAtColumn?: any;
+  /**
    * 2階層目のリレーション設定。
    * withRelations: 2 の場合にこのリレーション先のさらにリレーションを展開する。
    */
@@ -412,11 +480,22 @@ export type BelongsToManyObjectRelation<
  * belongsToMany リレーションのカウント設定。
  * 中間テーブルを経由してリレーション先のレコード数を取得する。
  */
-export type CountableRelation<TThroughTable = any> = {
+export type CountableRelation<TThroughTable = any, TTargetTable = any> = {
   /** カウントフィールド名（例: "sample_tags"） */
   field: string;
   /** 中間テーブル（例: SampleToSampleTagTable） */
   throughTable: TThroughTable;
   /** 中間テーブルの source 側外部キー名（例: "sampleId"） */
   foreignKey: string;
+  /**
+   * カウント対象のターゲットテーブル。
+   * useSoftDelete: true の場合に JOIN 対象として必須。
+   */
+  targetTable?: TTargetTable;
+  /** 中間テーブルの target 側カラム（例: SampleToSampleTagTable.sampleTagId）。useSoftDelete: true の場合に必須 */
+  targetColumn?: any;
+  /** ターゲットテーブルが論理削除を使う場合 true */
+  useSoftDelete?: boolean;
+  /** ターゲットテーブルの deletedAt カラム（useSoftDelete: true の時のみ参照） */
+  deletedAtColumn?: any;
 };

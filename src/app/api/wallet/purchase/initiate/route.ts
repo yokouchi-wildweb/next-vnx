@@ -6,6 +6,9 @@ import { z } from "zod";
 import { createApiRoute } from "@/lib/routeFactory";
 import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { getAppBaseUrl } from "@/lib/url";
+import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/core/wallet/utils/purchaseSuspension";
+import { isPaymentMethodSelectable } from "@/config/app/payment.config";
 
 // currency.config.ts から動的に walletType の値を取得（型安全）
 const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
@@ -23,7 +26,16 @@ const InitiatePurchaseSchema = z.object({
     .number()
     .int()
     .positive({ message: "支払い金額は1以上の整数で指定してください。" }),
-  paymentMethod: z.string().min(1, { message: "支払い方法を指定してください。" }),
+  /**
+   * ユーザーが選択した支払い方法 ID（payment.config.ts の paymentMethods[i].id）。
+   * status="available" かつ provider が enabled のメソッドのみ受け付ける。
+   */
+  paymentMethod: z
+    .string()
+    .min(1, { message: "支払い方法を指定してください。" })
+    .refine(isPaymentMethodSelectable, {
+      message: "選択された支払い方法は現在利用できません。",
+    }),
   /** 商品名（決済ページに表示） */
   itemName: z.string().optional(),
   /** クーポンコード（割引適用時） */
@@ -41,6 +53,14 @@ export const POST = createApiRoute(
       return NextResponse.json({ message: "ログインが必要です。" }, { status: 401 });
     }
 
+    // 購入一時停止チェック
+    if (isPurchaseSuspended()) {
+      return NextResponse.json(
+        { message: getPurchaseSuspensionMessage() },
+        { status: 503 },
+      );
+    }
+
     let payload: z.infer<typeof InitiatePurchaseSchema>;
     try {
       const json = await req.json();
@@ -54,7 +74,7 @@ export const POST = createApiRoute(
       return NextResponse.json({ message: "リクエストボディの解析に失敗しました。" }, { status: 400 });
     }
 
-    const baseUrl = getBaseUrl(req);
+    const baseUrl = getAppBaseUrl();
 
     const result = await purchaseRequestService.initiatePurchase({
       userId: session.userId,
@@ -71,16 +91,12 @@ export const POST = createApiRoute(
     return {
       success: true,
       requestId: result.purchaseRequest.id,
-      redirectUrl: result.redirectUrl,
+      instruction: result.instruction,
+      successUrl: result.successUrl,
+      cancelUrl: result.cancelUrl,
       alreadyProcessing: result.alreadyProcessing ?? false,
       alreadyCompleted: result.alreadyCompleted ?? false,
     };
   },
 );
 
-function getBaseUrl(req: Request): string {
-  const headers = req.headers;
-  const host = headers.get("x-forwarded-host") ?? headers.get("host") ?? "localhost:3000";
-  const protocol = headers.get("x-forwarded-proto") ?? "https";
-  return `${protocol}://${host}`;
-}

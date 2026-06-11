@@ -15,7 +15,10 @@ import {
   resolveDateRange,
   generateDateKeys,
   formatDateRangeForResponse,
+  granularityDateExpr,
+  derivePreviousRange,
 } from "./utils/dateRange";
+import type { Granularity } from "@/features/core/analytics/types/common";
 import { changeRate } from "./utils/aggregation";
 
 // ============================================================================
@@ -67,9 +70,9 @@ export type RegistrationSummaryParams = DateRangeParams & UserFilter;
 
 const u = UserTable;
 
-/** グルーピング用日付式（created_at をタイムゾーン変換して日付にキャスト） */
-function registrationDateExpr(tz: string) {
-  return sql<string>`DATE(${u.createdAt} AT TIME ZONE ${tz})::text`;
+/** グルーピング用日付式（created_at を granularity 単位でバケット化） */
+function registrationDateExpr(tz: string, granularity: Granularity) {
+  return granularityDateExpr(u.createdAt, granularity, tz);
 }
 
 /** UserTable に対する直接フィルタ条件（サブクエリではなくカラム直接参照） */
@@ -110,7 +113,7 @@ export async function getUserRegistrationDaily(
   const tz = range.timezone;
 
   const conditions = buildConditions(range.dateFrom, range.dateTo, params);
-  const dateSql = registrationDateExpr(tz);
+  const dateSql = registrationDateExpr(tz, range.granularity);
 
   const dailyRows = await db
     .select({
@@ -148,11 +151,7 @@ export async function getUserRegistrationSummary(
 
   const conditions = buildConditions(range.dateFrom, range.dateTo, params);
 
-  // 前期の日付範囲
-  const prevDateFrom = new Date(range.dateFrom);
-  prevDateFrom.setDate(prevDateFrom.getDate() - range.dayCount);
-  const prevDateTo = new Date(range.dateFrom);
-  prevDateTo.setMilliseconds(prevDateTo.getMilliseconds() - 1);
+  const { dateFrom: prevDateFrom, dateTo: prevDateTo } = derivePreviousRange(range);
 
   // 当期+前期を1クエリで集計するための条件
   const unifiedConditions: SQL[] = [

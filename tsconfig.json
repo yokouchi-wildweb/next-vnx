@@ -25,8 +25,11 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
+      "@/features/admin/*": ["./src/features/core/admin/*"],
       "@/features/adminCommand/*": ["./src/features/core/adminCommand/*"],
       "@/features/analytics/*": ["./src/features/core/analytics/*"],
+      "@/features/auditLog/*": ["./src/features/core/auditLog/*"],
+      "@/features/bankTransferReview/*": ["./src/features/core/bankTransferReview/*"],
       "@/features/auth/*": ["./src/features/core/auth/*"],
       "@/features/coupon/*": ["./src/features/core/coupon/*"],
       "@/features/couponHistory/*": ["./src/features/core/couponHistory/*"],
@@ -35,18 +38,22 @@
       "@/features/milestone/*": ["./src/features/core/milestone/*"],
       "@/features/notification/*": ["./src/features/core/notification/*"],
       "@/features/notificationTemplate/*": ["./src/features/core/notificationTemplate/*"],
+      "@/features/purchaseQuota/*": ["./src/features/core/purchaseQuota/*"],
       "@/features/purchaseRequest/*": ["./src/features/core/purchaseRequest/*"],
       "@/features/rateLimit/*": ["./src/features/core/rateLimit/*"],
       "@/features/referral/*": ["./src/features/core/referral/*"],
       "@/features/referralReward/*": ["./src/features/core/referralReward/*"],
       "@/features/setting/*": ["./src/features/core/setting/*"],
       "@/features/user/*": ["./src/features/core/user/*"],
-      "@/features/userActionLog/*": ["./src/features/core/userActionLog/*"],
       "@/features/userProfile/*": ["./src/features/core/userProfile/*"],
+      "@/features/userLineProfile/*": ["./src/features/core/userLineProfile/*"],
+      "@/features/userXProfile/*": ["./src/features/core/userXProfile/*"],
       "@/features/userTag/*": ["./src/features/core/userTag/*"],
       "@/features/wallet/*": ["./src/features/core/wallet/*"],
       "@/features/chatRoom/*": ["./src/features/core/chatRoom/*"],
-      "@/features/walletHistory/*": ["./src/features/core/walletHistory/*"]
+      "@/features/walletHistory/*": ["./src/features/core/walletHistory/*"],
+      "@/features/batchJob/*": ["./src/features/core/batchJob/*"],
+      "@/features/messaging/*": ["./src/features/core/messaging/*"]
     }
   },
   "include": [

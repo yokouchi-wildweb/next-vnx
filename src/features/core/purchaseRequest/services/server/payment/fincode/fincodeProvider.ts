@@ -1,6 +1,7 @@
 // src/features/core/purchaseRequest/services/server/payment/fincode/fincodeProvider.ts
 // GMO Fincode 決済プロバイダ実装（リダイレクト型決済）
 
+import crypto from "crypto";
 import type {
   PaymentProvider,
   CreatePaymentSessionParams,
@@ -17,7 +18,7 @@ import {
   isSuccessEvent,
   extractPaymentMethod,
 } from "./errorMapping";
-import { getProviderPayTypes } from "@/config/app/payment.config";
+import { paymentConfig, getProviderApiMethodId } from "@/config/app/payment.config";
 
 /**
  * Fincode 環境設定
@@ -51,7 +52,9 @@ type FincodeWebhookPayload = {
   transaction_id?: string;
   // 決済情報
   pay_type?: string;
-  amount?: string;
+  // amount は仕様上 string だが、実運用では number で来るケースも観測されうるため
+  // unknown としてパース時に正規化する（parsePaidAmount を参照）
+  amount?: unknown;
   // 日時
   transaction_date?: string;
   // エラー情報
@@ -78,6 +81,17 @@ type FincodeSessionStatusResponse = {
  */
 export class FincodePaymentProvider implements PaymentProvider {
   readonly providerName = "fincode";
+  readonly launchType = "redirect" as const;
+  // Fincode は order_id（provider_order_id）で照合する（GET /v1/payments/Card/{order_id}）。
+  readonly correlationKey = "order_id" as const;
+
+  /**
+   * Fincode の order_id を purchase_request.id から導出する。
+   * UUID のハイフンを除去し 30 文字に切り詰める（Fincode の order_id 制約に合わせる）。
+   */
+  deriveProviderOrderId(purchaseRequestId: string): string {
+    return purchaseRequestId.replace(/-/g, "").slice(0, 30);
+  }
 
   private getConfig(): FincodeConfig {
     const apiUrl = process.env.FINCODE_API_URL;
@@ -104,14 +118,31 @@ export class FincodePaymentProvider implements PaymentProvider {
   async createSession(params: CreatePaymentSessionParams): Promise<PaymentSession> {
     const config = this.getConfig();
 
+    // ユーザーが選択した支払い方法を Fincode の pay_type 形式に変換する。
+    // 1メソッド = 1プロバイダの設計上、ここでは選択された単一メソッドのみを渡す。
+    // mapping が無いと Fincode が共通 ID を解釈できないため、明示的にエラーにする。
+    const fincodePayType = getProviderApiMethodId("fincode", params.paymentMethod);
+    if (!fincodePayType || fincodePayType === params.paymentMethod) {
+      // mapping が見つからない場合 getProviderApiMethodId は元の ID をそのまま返すため、
+      // ここで Fincode 側に意図せぬ ID が渡らないよう守る。
+      const mappingExists =
+        paymentConfig.providers.fincode?.methodMapping?.[params.paymentMethod];
+      if (!mappingExists) {
+        throw new Error(
+          `[Fincode] 支払い方法 "${params.paymentMethod}" の methodMapping が定義されていません。payment.config.ts を確認してください。`,
+        );
+      }
+    }
+
     const requestBody = {
       success_url: params.successUrl,
       cancel_url: params.cancelUrl,
       // お支払い画面案内メール送信フラグ: "0" = 送信しない
       guide_mail_send_flag: "0",
       transaction: {
-        // 対応する支払い方法（payment.config.ts の設定に基づく）
-        pay_type: getProviderPayTypes("fincode"),
+        // ユーザーが選択した単一の支払い方法のみを Fincode に渡す
+        // （Fincode 側の選択画面ではこれ1種のみが提示される）
+        pay_type: [fincodePayType],
         amount: String(params.amount),
         // オーダーID（Webhook照合用）- 最大30文字、ハイフン除去
         order_id: params.purchaseRequestId.replace(/-/g, "").slice(0, 30),
@@ -133,7 +164,11 @@ export class FincodePaymentProvider implements PaymentProvider {
       ...(params.metadata && { metadata: params.metadata }),
     };
 
-    console.log("[Fincode] Request body:", JSON.stringify(requestBody, null, 2));
+    if (paymentConfig.debugLog) {
+      console.log("[Fincode] Request body:", JSON.stringify(requestBody, null, 2));
+    } else {
+      console.log(`[Fincode] Creating session: purchaseRequestId=${params.purchaseRequestId}, amount=${params.amount}`);
+    }
 
     const response = await fetch(`${config.apiUrl}/v1/sessions`, {
       method: "POST",
@@ -154,7 +189,7 @@ export class FincodePaymentProvider implements PaymentProvider {
 
     return {
       sessionId: data.id,
-      redirectUrl: data.link_url,
+      instruction: { type: "redirect", url: data.link_url },
       expiresAt: data.expire ? new Date(data.expire) : undefined,
     };
   }
@@ -166,7 +201,11 @@ export class FincodePaymentProvider implements PaymentProvider {
     try {
       const body: FincodeWebhookPayload = await request.json();
 
-      console.log("[Fincode] Webhook payload:", JSON.stringify(body, null, 2));
+      if (paymentConfig.debugLog) {
+        console.log("[Fincode] Webhook payload:", JSON.stringify(body, null, 2));
+      } else {
+        console.log(`[Fincode] Webhook received: event=${body.event}, orderId=${body.order_id}`);
+      }
 
       const eventType = body.event;
       const isSuccess = this.isSuccessWebhook(body);
@@ -188,6 +227,7 @@ export class FincodePaymentProvider implements PaymentProvider {
           transactionId: body.access_id || body.transaction_id,
           paymentMethod: extractPaymentMethod(eventType),
           paidAt,
+          paidAmount: parsePaidAmount(body.amount),
           rawResponse: body,
         };
       }
@@ -232,28 +272,113 @@ export class FincodePaymentProvider implements PaymentProvider {
 
   /**
    * Webhook署名を検証
-   * Fincodeは登録時に設定した固定値でシンプルに検証
+   * Fincodeは登録時に設定した固定トークンをヘッダーに付与する方式（HMAC ではない）
+   * タイミング攻撃防止のため定数時間比較を使用
    */
   async verifyWebhookSignature(_request: Request, signature: string): Promise<boolean> {
     const config = this.getConfig();
-    return signature === config.webhookSignature;
+    const expected = Buffer.from(config.webhookSignature);
+    const actual = Buffer.from(signature);
+    if (expected.length !== actual.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(expected, actual);
   }
 
   /**
-   * 決済ステータスを照会
+   * 決済ステータスを照会（Webhook フォールバック用）
    *
-   * 注意: Fincodeのリダイレクト型決済ではセッション照会APIが存在しないため、
-   * このメソッドは常に "pending" を返します。
-   * 決済完了の検知はWebhookに依存します。
+   * `GET /v1/payments/Card/{order_id}` で Fincode API に問い合わせ、現在の決済状態を取得する。
+   * クライアント側のポーリング (`usePurchaseStatusPolling`) から
+   * `getPurchaseStatusForUser` 経由で呼ばれるため、Webhook が何らかの理由で届かない場合でも
+   * 購入リクエストが自動で completed に遷移する（セルフヒーリング）。
+   *
+   * Webhook との二重化により、以下のいずれの故障ケースでも UX が保たれる:
+   *   - Webhook 未登録イベント種別（例: 売上確定を登録し忘れ）で発火しない
+   *   - Webhook 署名不一致で 401 返却
+   *   - その他 Vercel 側でのリクエスト拒否
+   *
+   * @param identifier Fincode の `order_id`
+   *   （`initiatePurchase` で `purchaseRequest.id` からハイフン除去・30 文字切り詰めした値）
+   * @param paymentMethod 購入時にユーザーが選択した支払い方法 ID。
+   *   照会 API の `pay_type` クエリに必要（メソッドごとに値が異なる）。
+   *   未指定時は後方互換として "Card" を使用する。
    */
-  async getPaymentStatus(sessionId: string): Promise<PaymentStatusResult> {
-    // Fincodeのリダイレクト型決済はセッション照会APIをサポートしていない
-    // 決済完了はWebhookで通知されるため、ここでは pending を返す
-    console.log("[Fincode] getPaymentStatus called - returning pending (Webhook-dependent)");
-    return {
-      status: "pending",
-      sessionId,
-    };
+  async getPaymentStatus(identifier: string, paymentMethod?: string): Promise<PaymentStatusResult> {
+    const config = this.getConfig();
+
+    if (!identifier) {
+      return { status: "pending", sessionId: identifier };
+    }
+
+    // Fincode 公式 API 仕様:
+    //   GET /v1/payments/{id}?pay_type=Card
+    //   ({id} は order_id、pay_type は path ではなく query で指定する)
+    // 購入時に選択された pay_type を動的に解決する（mapping が無い場合は Card にフォールバック）。
+    const fincodePayType = paymentMethod
+      ? getProviderApiMethodId("fincode", paymentMethod)
+      : "Card";
+
+    try {
+      const response = await fetch(
+        `${config.apiUrl}/v1/payments/${encodeURIComponent(identifier)}?pay_type=${encodeURIComponent(fincodePayType)}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${config.secretKey}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        // 404: まだ Fincode 側にも決済が存在しない（ユーザーが決済画面を開いていない等）→ pending
+        // その他のエラー: 次回ポーリングでリトライさせるため pending を返す
+        const errorText = await response.text().catch(() => "");
+        console.warn(
+          `[Fincode] getPaymentStatus HTTP ${response.status}: identifier=${identifier}, body=${errorText}`,
+        );
+        return { status: "pending", sessionId: identifier };
+      }
+
+      const data = (await response.json()) as FincodeSessionStatusResponse;
+
+      if (paymentConfig.debugLog) {
+        console.log("[Fincode] Payment status response:", JSON.stringify(data, null, 2));
+      } else {
+        console.log(
+          `[Fincode] Payment status: identifier=${identifier}, fincodeStatus=${data.status}`,
+        );
+      }
+
+      const mapped = this.mapFincodeStatus(data.status);
+
+      // Fincode レスポンスの日時フィールド優先順位:
+      //   1. process_date — 決済処理日時
+      //   2. updated      — レコード更新日時
+      //   3. paid         — (旧仕様、後方互換用)
+      // いずれも "YYYY/MM/DD HH:mm:ss.sss" 形式
+      let paidAt: Date | undefined;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawDate = (data as any).process_date || (data as any).updated || data.paid;
+      if (rawDate && typeof rawDate === "string") {
+        const parsed = new Date(rawDate.replace(/\//g, "-"));
+        if (!Number.isNaN(parsed.getTime())) {
+          paidAt = parsed;
+        }
+      }
+
+      return {
+        status: mapped,
+        sessionId: identifier,
+        transactionId: data.access_id,
+        paidAt,
+        errorCode: data.error_code ?? undefined,
+      };
+    } catch (error) {
+      console.error("[Fincode] getPaymentStatus network error:", error);
+      return { status: "pending", sessionId: identifier };
+    }
   }
 
   /**
@@ -303,3 +428,51 @@ export class FincodePaymentProvider implements PaymentProvider {
  * Fincodeプロバイダのシングルトンインスタンス
  */
 export const fincodePaymentProvider = new FincodePaymentProvider();
+
+/**
+ * Fincode webhook ペイロードの amount フィールドを安全に数値化する。
+ *
+ * Fincode のドキュメント上 amount は「整数を文字列で表現したもの（円単位）」だが、
+ * 実運用ではイベント種別やプロバイダのバージョン差により以下のパターンが観測されうる:
+ *   - undefined / null / 空文字: 当該イベントに金額情報がない
+ *   - "1000": 通常の整数文字列
+ *   - "1000.00": 小数点付き（一部イベントで観測）
+ *   - "1,000": カンマ区切り（互換のため許容）
+ *   - 数値型 1000: 型定義は string だが念のため対応
+ *
+ * 上記いずれにも該当しない（パース不能、NaN、負数）場合は undefined を返し、
+ * 金額照合チェックをスキップさせる。これにより、Fincode 側のペイロード仕様変更で
+ * 誤って金額不一致エラーになり購入が永久に塩漬けになる事故を防ぐ。
+ *
+ * セキュリティ的には、金額照合は防御層の1つに過ぎず（Webhook 署名検証・冪等キー・
+ * order_id 紐付けが先に効いている）、パース不能ケースをスキップしても他の防御層で
+ * カバーされる。実際の不一致は completePurchase 側で検出され、markAsFatalFailure
+ * で failed 状態に遷移するため、UX も保たれる。
+ */
+function parsePaidAmount(raw: unknown): number | undefined {
+  if (raw == null) return undefined;
+
+  // 数値型がそのまま渡ってきた場合
+  if (typeof raw === "number") {
+    return Number.isFinite(raw) && raw >= 0 ? raw : undefined;
+  }
+
+  if (typeof raw !== "string") return undefined;
+
+  // 空文字・空白のみは未設定として扱う
+  const trimmed = raw.trim();
+  if (trimmed === "") return undefined;
+
+  // カンマ区切りを除去（"1,000" → "1000"）
+  const normalized = trimmed.replace(/,/g, "");
+
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    console.warn(
+      `[Fincode] paidAmount のパースに失敗。金額照合をスキップします: raw=${JSON.stringify(raw)}`,
+    );
+    return undefined;
+  }
+
+  return parsed;
+}

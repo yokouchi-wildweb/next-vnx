@@ -52,6 +52,7 @@ function mapTsType(t) {
       return 'boolean';
     case 'array':
     case 'stringArray':
+    case 'mediaUploaderMulti':
       return 'string[]';
     case 'timestamp':
     case 'timestamp With Time Zone':
@@ -95,12 +96,15 @@ lines.push(`  id: ${idTs};`);
     addField(lines, fieldName, values, f.required);
   } else {
     const t = mapTsType(f.fieldType);
-    addField(lines, fieldName, t, f.required);
+    // mediaUploaderMulti は常に NOT NULL なので required 扱い（null を返さない）
+    const treatAsRequired = f.fieldType === 'mediaUploaderMulti' ? true : f.required;
+    addField(lines, fieldName, t, treatAsRequired);
   }
 });
 
 if (config.useCreatedAt) lines.push('  createdAt: Date | null;');
 if (config.useUpdatedAt) lines.push('  updatedAt: Date | null;');
+if (config.useSoftDelete) lines.push('  deletedAt: Date | null;');
 
 // リレーション情報を収集
 const belongsToRelations = (config.relations || []).filter(

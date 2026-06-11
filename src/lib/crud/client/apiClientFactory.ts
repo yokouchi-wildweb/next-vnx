@@ -1,4 +1,4 @@
-// src/lib/crud/apiClientFactory.ts
+// src/lib/crud/client/apiClientFactory.ts
 
 import axios from "axios";
 import type {
@@ -12,6 +12,7 @@ import type {
   BulkUpsertResult,
   BulkUpdateRecord,
   BulkUpdateResult,
+  DuplicateOptions,
   WhereExpr,
   WithOptions,
 } from "../types";
@@ -54,6 +55,7 @@ function buildWithOptionsParams(options?: WithOptions): string {
   const params = new URLSearchParams();
   if (options.withRelations) params.set("withRelations", String(options.withRelations));
   if (options.withCount) params.set("withCount", "true");
+  if (options.hasManyLimit) params.set("hasManyLimit", String(options.hasManyLimit));
   const str = params.toString();
   return str ? `?${str}` : "";
 }
@@ -126,10 +128,11 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
         async () =>
           (await axios.post<{ count: number }>(`${baseUrl}/bulk/update-by-ids`, { ids, data })).data,
       ),
-    duplicate: (id: string) =>
+    duplicate: (id: string, options?: DuplicateOptions) =>
       handleRequest(
         "duplicate",
-        async () => (await axios.post<T>(`${baseUrl}/${id}/duplicate`)).data,
+        async () =>
+          (await axios.post<T>(`${baseUrl}/${id}/duplicate`, options?.name !== undefined ? { name: options.name } : undefined)).data,
       ),
     restore: (id: string) =>
       handleRequest(

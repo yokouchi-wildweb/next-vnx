@@ -5,6 +5,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Main, PageTitle, Para } from "@/components/TextBlocks";
 
 const DEMO_PAGES = [
+  { path: "bank-transfer-vision", label: "Bank Transfer Vision", description: "AIによる銀行振込画像の事前判定" },
   { path: "block-appearance", label: "Block Appearance", description: "ブロック要素の外観設定" },
   { path: "check-env", label: "Check Env", description: "環境変数の確認" },
   { path: "dummy-payment", label: "Dummy Payment", description: "ダミー決済フロー" },
@@ -15,7 +16,8 @@ const DEMO_PAGES = [
   { path: "media-input", label: "Media Input", description: "メディアアップロード" },
   { path: "overlay", label: "Overlay", description: "モーダル・ダイアログ" },
   { path: "popover", label: "Popover", description: "ポップオーバー" },
-  { path: "slider", label: "Slider", description: "スライダーコンポーネント" },
+  { path: "scroll-slider", label: "ScrollSlider", description: "横スクロール型スライダー" },
+  { path: "fade-slider", label: "FadeSlider", description: "フェード型スライダー" },
   { path: "sortable-list", label: "Sortable List", description: "並び替え可能なリスト" },
   { path: "status-badge", label: "Status Badge", description: "ステータスバッジ" },
   { path: "tables", label: "Tables", description: "テーブルコンポーネント" },

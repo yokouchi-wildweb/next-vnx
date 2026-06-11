@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import axios from "axios";
 import { CreditCard } from "lucide-react";
@@ -18,9 +18,11 @@ export function DummyPaymentForm() {
   const successUrl = searchParams.get("success_url");
   const cancelUrl = searchParams.get("cancel_url");
   const amount = searchParams.get("amount");
+  const paymentMethod = searchParams.get("payment_method");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lockRef = useRef(false);
 
   // パラメータ不足チェック
   if (!sessionId || !successUrl || !cancelUrl) {
@@ -44,14 +46,19 @@ export function DummyPaymentForm() {
   }
 
   const handlePayment = async (success: boolean) => {
+    if (lockRef.current) return;
+    lockRef.current = true;
     setLoading(true);
     setError(null);
 
     try {
       // Webhookを呼び出して決済結果を通知
+      // payment_method はユーザーが選択したメソッドをそのまま伝搬する
+      // （未指定時は dummy 側で credit_card にフォールバックされる）
       await axios.post("/api/webhook/payment?provider=dummy", {
         event_type: success ? "payment.completed" : "payment.failed",
         session_id: sessionId,
+        payment_method: paymentMethod ?? undefined,
       });
 
       // 成功または失敗のURLへリダイレクト
@@ -63,6 +70,7 @@ export function DummyPaymentForm() {
     } catch (err) {
       console.error("Payment webhook call failed:", err);
       setError("決済処理中にエラーが発生しました。");
+      lockRef.current = false;
       setLoading(false);
     }
   };
@@ -109,6 +117,16 @@ export function DummyPaymentForm() {
                   </Para>
                   <Para size="sm" weight="bold">
                     {Number(amount).toLocaleString()} 円
+                  </Para>
+                </Flex>
+              )}
+              {paymentMethod && (
+                <Flex justify="between">
+                  <Para tone="muted" size="sm">
+                    支払い方法
+                  </Para>
+                  <Para size="sm" className="font-mono text-xs">
+                    {paymentMethod}
                   </Para>
                 </Flex>
               )}

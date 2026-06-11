@@ -2,6 +2,9 @@
 
 管理者・システムからユーザーへお知らせを送信する仕組み。全体/ロール別/個別送信、既読管理、スケジュール配信を提供。ユーザー側UIはフック・APIのみ提供し、ダウンストリーム側で自由に構成する。
 
+設計思想・計算量特性・大規模化したときの拡張判断基準は
+[通知機能の設計方針とスケーリング指針](../../../../docs/concepts/通知機能の設計方針とスケーリング指針.md) を参照。
+
 ---
 
 ## ディレクトリ構成
@@ -24,17 +27,21 @@ src/features/core/notification/
 │   │       ├── sendDirect.ts        # 送信（低レベル）
 │   │       ├── sendHelpers.ts       # 送信ヘルパー（sendToUser等）
 │   │       ├── sendSafe.ts          # 全send関数のSafe版
-│   │       ├── getMyNotifications.ts # ユーザー向け一覧取得
-│   │       ├── getUnreadCount.ts    # 未読数取得
+│   │       ├── getMyNotifications.ts      # ユーザー向け一覧取得（配列のみ）
+│   │       ├── getMyNotificationsCount.ts # ユーザー向け総件数取得（unreadOnly対応）
+│   │       ├── getMyNotificationsPage.ts  # keyset ページネーション（無限スクロール推奨）
+│   │       ├── getUnreadCount.ts    # 未読数取得（getMyNotificationsCountのラッパ）
 │   │       ├── markAsRead.ts        # 個別既読
 │   │       ├── markAllAsRead.ts     # 全既読
-│   │       ├── queryHelpers.ts      # 共通WHERE条件
+│   │       ├── queryHelpers.ts      # 共通WHERE条件 / 未読条件
 │   │       └── resolveNotificationImage.ts # 通知画像リゾルバ（汎用）
 │   └── client/
 │       ├── notificationClient.ts        # 標準CRUDクライアント（生成）
 │       └── userNotificationClient.ts    # ユーザー向けAPIクライアント
 ├── hooks/
-│   ├── useMyNotifications.ts            # お知らせ一覧
+│   ├── useMyNotifications.ts            # お知らせ一覧（配列のみ）
+│   ├── useMyNotificationsPage.ts        # 無限スクロール（keyset, useSWRInfinite）
+│   ├── useMyNotificationsCount.ts       # 総件数（unreadOnly対応）
 │   ├── useUnreadNotificationCount.ts    # 未読数（バッジ用）
 │   ├── useMarkNotificationAsRead.ts     # 個別既読
 │   └── useMarkAllNotificationsAsRead.ts # 全既読
@@ -72,6 +79,36 @@ src/features/core/notification/
 | read_at | timestamptz | 既読日時 |
 
 複合PK: (notification_id, user_id)。レコードなし = 未読。
+
+## 可視性ルール（誰にどの通知が見えるか）
+
+ユーザー向け通知クエリ（`getMyNotifications` / `getMyNotificationsPage` / `getMyNotificationsCount` / `getUnreadCount` / `markAllAsRead`）が「閲覧者にどの通知が見えるか」を判定するルールは、**`queryHelpers.ts` の `buildVisibilityWhere(viewer)` 1箇所に集約**されている。配信レコードを持たず、読み取り時にこの WHERE 条件で対象者を動的に判定する設計（query-time fan-out）。
+
+現在のルール:
+
+- `published_at <= now()` — 公開済みのみ（予約投稿は時刻到来まで非表示）
+- `published_at >= 閲覧者の登録日時（user.created_at）` — **登録日以前の通知は閲覧不可**。新規ユーザーに過去の全体配信がすべて見えてしまう問題への対策（アクセス制御）。相関のないサブクエリで実装しているため PG では1回だけ評価される。`created_at` が NULL / ユーザー行が存在しない場合は比較結果が NULL となり全件除外＝**fail-closed**（安全側）
+- ターゲット一致 — `target_type = 'all'` OR ロール一致 OR userId 一致
+
+### 閲覧者コンテキスト（NotificationViewer）
+
+可視性判定に必要な閲覧者の情報は `services/server/notification/viewer.ts` の `NotificationViewer` 型に集約され、各クエリ関数はこのオブジェクトを受け取る。API ルートなどセッションがある文脈では `notificationViewerFromSession(session)` で生成する。
+
+```typescript
+import { notificationViewerFromSession } from "@/features/core/notification/services/server/notification/viewer";
+
+const viewer = notificationViewerFromSession(session);
+const notifications = await notificationService.getMyNotifications(viewer, { unreadOnly: true });
+```
+
+### 可視性ルールの拡張方法
+
+ルールにユーザー属性を追加したい場合（例: 配信停止設定、セグメント）:
+
+1. `NotificationViewer` 型に属性を追加（eager に DB から取りたい値なら `notificationViewerFromSession` を resolver 化して取得）
+2. `buildVisibilityWhere()` に WHERE 句を1つ追加
+
+この2箇所だけで、全消費者（一覧 / ページ / 件数 / 既読化）へ一貫して反映される。呼び出し側のシグネチャは変わらない。
 
 ---
 
@@ -194,27 +231,66 @@ await notificationService.sendToUserSafe(userId, {
 });
 ```
 
-### getMyNotifications — ユーザー向け一覧取得
+### getMyNotifications — ユーザー向け一覧取得（配列のみ）
 
 ```typescript
+const viewer = notificationViewerFromSession(session);
 const notifications = await notificationService.getMyNotifications(
-  userId,
-  userRole,
+  viewer,
   { limit: 20, offset: 0, unreadOnly: true }
 );
 ```
 
-### getUnreadCount — 未読数取得
+### getMyNotificationsPage — keyset ページネーション（推奨）
+
+無限スクロール推奨パス。`(published_at, id)` の複合カーソルで O(page) を保つ
+（OFFSET は深いページで O(offset) になるため不採用）。並び順は published_at DESC, id DESC。
+`total` は keyset では安価に出せないため返さない（件数が必要なら getMyNotificationsCount を併用）。
 
 ```typescript
-const count = await notificationService.getUnreadCount(userId, userRole);
+// 先頭ページ
+const first = await notificationService.getMyNotificationsPage(viewer, {
+  limit: 20,
+  unreadOnly: false,
+});
+// 次ページは前ページの nextCursor を渡す
+const next = await notificationService.getMyNotificationsPage(viewer, {
+  limit: 20,
+  cursor: first.nextCursor,
+});
+```
+
+戻り値: `{ items: MyNotification[]; hasMore: boolean; nextCursor: string | null }`
+（`nextCursor` は不透明文字列。`hasMore=false` のとき null）
+
+### getMyNotificationsCount — 総件数のみ取得
+
+バッジ表示など件数のみ必要な場面で使用。`unreadOnly: false`（デフォルト）の場合は
+`notification_reads` への JOIN を省略するため軽量。
+
+```typescript
+// 自分宛通知の全件数
+const total = await notificationService.getMyNotificationsCount(viewer);
+
+// 未読のみ（getUnreadCount と同義）
+const unread = await notificationService.getMyNotificationsCount(viewer, {
+  unreadOnly: true,
+});
+```
+
+### getUnreadCount — 未読数取得
+
+`getMyNotificationsCount({ unreadOnly: true })` の薄いラッパ。互換のため残されている。
+
+```typescript
+const count = await notificationService.getUnreadCount(viewer);
 ```
 
 ### markAsRead / markAllAsRead — 既読マーク
 
 ```typescript
 await notificationService.markAsRead(notificationId, userId);
-await notificationService.markAllAsRead(userId, userRole);
+await notificationService.markAllAsRead(viewer);
 ```
 
 ---
@@ -231,24 +307,49 @@ await notificationService.markAllAsRead(userId, userRole);
 ### ユーザー向け
 | メソッド | パス | 説明 |
 |---------|------|------|
-| GET | /api/notification/my | 自分のお知らせ一覧 |
+| GET | /api/notification/my | 自分のお知らせ一覧（配列のみ） |
+| GET | /api/notification/my/page | keyset ページネーション（無限スクロール推奨） |
+| GET | /api/notification/my/count | 自分宛通知の総件数（unreadOnly対応） |
 | GET | /api/notification/my/unread-count | 未読数 |
 | POST | /api/notification/[id]/read | 個別既読マーク |
 | POST | /api/notification/read-all | 全既読マーク |
 
 GET /api/notification/my クエリパラメータ: limit, offset, unreadOnly(true/false)
+GET /api/notification/my/page クエリパラメータ: limit, cursor, unreadOnly(true/false)
+GET /api/notification/my/count クエリパラメータ: unreadOnly(true/false)
 
 ---
 
 ## クライアントフック
 
-### useMyNotifications — お知らせ一覧
+### useMyNotifications — お知らせ一覧（配列のみ）
 
 ```typescript
 const { notifications, isLoading, mutate } = useMyNotifications({
   limit: 20,
   unreadOnly: false,
 });
+```
+
+### useMyNotificationsPage — 無限スクロール（keyset, 推奨）
+
+useSWRInfinite ベース。前ページの nextCursor を辿って順次取得し、全ページを flatten した
+`items` を返す。`loadMore()` で次ページを追加読み込み。
+
+```typescript
+const { items, hasMore, isLoading, isLoadingMore, loadMore } =
+  useMyNotificationsPage({ limit: 20 });
+// items: MyNotification[]（取得済み全ページ）
+// hasMore: 次ページの有無 / loadMore(): 追加読み込み
+```
+
+### useMyNotificationsCount — 総件数（unreadOnly対応）
+
+バッジや件数表示用。`unreadOnly` 省略時は全件、`true` 指定で未読のみカウント。
+
+```typescript
+const { count } = useMyNotificationsCount();                  // 全件
+const { count: unread } = useMyNotificationsCount({ unreadOnly: true }); // 未読のみ
 ```
 
 ### useUnreadNotificationCount — 未読数（バッジ表示用）
@@ -352,6 +453,23 @@ const { count } = useUnreadNotificationCount();
 const { notifications } = useMyNotifications({ limit: 20 });
 const { markAsRead } = useMarkNotificationAsRead();
 // 各通知をクリック時に markAsRead(id)
+```
+
+### パターン2-b: 無限スクロール（推奨）
+
+`useMyNotificationsPage` は keyset ページネーション（useSWRInfinite ベース）。
+カーソルを内部で辿るので、呼び出し側は `loadMore()` を末尾検知時に呼ぶだけでよい。
+件数（total）は返らないため、必要なら `useMyNotificationsCount` を併用する。
+
+```typescript
+const { items, hasMore, isLoading, isLoadingMore, loadMore } =
+  useMyNotificationsPage({ limit: 20 });
+
+// 末尾検知時（IntersectionObserver 等）に次ページを読み込み
+if (hasMore && !isLoadingMore) loadMore();
+
+// items を表示
+items.map((n) => /* ... */);
 ```
 
 ### パターン3: システム通知の発火

@@ -10,7 +10,7 @@
 
 | プロパティ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
-| domainConfigVersion | string | 🟢 Yes | 設定バージョン（現在 `"1.2"`） |
+| domainConfigVersion | string | 🟢 Yes | 設定バージョン（現在 `"1.3"`） |
 | singular | string | 🟢 Yes | ドメイン名単数形（snake_case、例: `sample_category`） |
 | plural | string | 🟢 Yes | ドメイン名複数形（snake_case、例: `sample_categories`） |
 | label | string | 🟢 Yes | 管理画面での表示名（日本語可） |
@@ -30,6 +30,8 @@
 | useImportExport | boolean | ⚪ No | データ入出力機能の有無（CSV/ZIP形式） |
 | useAutoSave | boolean | ⚪ No | 編集フォームでオートセーブを使用するか |
 | compositeUniques | string[][] | ⚪ No | 複合ユニーク制約（Neon のみ） |
+| indexes | Index[] | ⚪ No | 非ユニーク検索/集計用インデックス（Neon のみ） |
+| apiAccess | ApiAccess | ⚪ No | 汎用 API（`/api/[domain]/**`）のアクセス制御（後述）。**未宣言時は admin カテゴリのみ許可（fail-closed）** |
 | generateFiles | GenerateFiles | 🟢 Yes | 生成対象ファイルの設定 |
 
 > ⚠️ **オプショナルフィールドを追加する場合**: `src/registry/domainConfigRegistry.ts` の `DomainConfigOptionals` にも同じフィールドを追加すること。省略すると、そのフィールドを持たないドメインが存在するだけで DomainConfig の union 型が壊れてビルドエラーになる。
@@ -42,8 +44,8 @@
 |-----------|-----|------|------|
 | domain | string | 🟢 Yes | 関連先ドメイン名（snake_case） |
 | label | string | 🟢 Yes | 表示名 |
-| fieldName | string | 🟢 Yes | フィールド名（例: `category_id`, `tag_ids`） |
-| fieldType | `"uuid"` \| `"string"` \| `"number"` | 🟢 Yes | 外部キーの型 |
+| fieldName | string | 条件付き | フィールド名。relationType により意味が異なる（後述） |
+| fieldType | `"uuid"` \| `"string"` \| `"number"` | 条件付き | 外部キーの型（belongsTo / belongsToMany で必須、hasMany では不要） |
 | relationType | RelationType | 🟢 Yes | リレーション種別 |
 | required | boolean | ⚪ No | 必須かどうか（belongsTo のみ有効） |
 | onDelete | `"RESTRICT"` \| `"CASCADE"` \| `"SET_NULL"` | ⚪ No | 削除時の挙動（belongsTo のみ） |
@@ -56,13 +58,32 @@
 | 値 | 説明 | Neon | Firestore |
 |----|------|------|-----------|
 | belongsTo | N:1 参照 | ○ | ○ |
-| hasMany | 1:N 子リスト | ○ | ○ |
+| hasMany | 1:N 子リスト（withRelations で子レコード配列を展開） | ○ | × |
 | hasOne | 1:1 | ○ | ○ |
 | belongsToMany | M:N 多対多 | ○ | × |
 
+#### fieldName の意味（relationType 別）
+
+| relationType | fieldName の意味 | 例 |
+|---|---|---|
+| belongsTo | 自テーブルの外部キーカラム名 | `"category_id"` |
+| belongsToMany | 自テーブルの配列フィールド名 | `"tag_ids"` |
+| hasMany | 管理用の識別名（**子テーブルの FK 生成には使われない**） | `"sample_id"` 等 |
+
+> ⚠️ **hasMany の FK 生成ルール**: 子テーブル側の外部キーカラム名は `親のsingular + "_id"` で自動決定される。例: 親が `gacha_machine` なら子テーブルの FK は `gacha_machine_id`。fieldName の値は直接使われない。
+
+#### hasMany と withRelations
+
+hasMany リレーションを定義すると、`dc:generate` 時に drizzleBase.ts へ `hasManyRelations` 設定が自動生成される。これにより `withRelations: 1` で子レコード配列が親に展開される。
+
+- 親あたりのデフォルト取得上限: 100件
+- 呼び出し側で `hasManyLimit` を指定してオーバーライド可能（例: `search({ withRelations: 1, hasManyLimit: 20 })`）
+- `withRelations` の depth 上限は 3（`resolveRelationDepth` で制限）
+- hasMany はエンティティ・スキーマ・フォームには影響しない（サーバーサービスの読み取り時のみ）
+
 #### RelationFormInput
 
-リレーションフィールドのフォーム入力種別。省略時は relationType に応じたデフォルト値が使われる。
+リレーションフィールドのフォーム入力種別。省略時は relationType に応じたデフォルト値が使われる。hasMany / hasOne にはフォーム入力は適用されない。
 
 | relationType | デフォルト | 指定可能な値 |
 |---|---|---|
@@ -79,6 +100,8 @@
 `custom` を指定した場合、データ取得は行われず FieldConfig のみ生成される。
 `beforeField` / `afterField` で独自コンポーネントを注入する（通常フィールドの `custom` と同じ仕組み）。
 
+#### リレーション定義例
+
 ```json
 {
   "relations": [
@@ -91,12 +114,17 @@
       "formInput": "asyncCombobox"
     },
     {
-      "domain": "project",
-      "label": "プロジェクト",
-      "fieldName": "project_id",
+      "domain": "tag",
+      "label": "タグ",
+      "fieldName": "tag_ids",
       "fieldType": "uuid",
-      "relationType": "belongsTo",
-      "formInput": "custom"
+      "relationType": "belongsToMany"
+    },
+    {
+      "domain": "order_item",
+      "label": "注文明細",
+      "fieldName": "order_item_id",
+      "relationType": "hasMany"
     }
   ]
 }
@@ -130,7 +158,7 @@ custom リレーションの UI 実装例:
 | fieldType | FieldType | 🟢 Yes | データ型 |
 | formInput | FormInput | 🟢 Yes | フォーム入力種別 |
 | required | boolean | ⚪ No | 必須かどうか |
-| readonly | boolean | ⚪ No | 読み取り専用（textInput, numberInput, textarea のみ） |
+| readonly | boolean | ⚪ No | 読み取り専用（テキスト系は readOnly、選択系は disabled として適用） |
 | defaultValue | any | ⚪ No | デフォルト値 |
 | options | Option[] | ⚪ No | 選択肢（select, radio, checkbox, multiSelect で使用） |
 | displayType | `"standard"` \| `"bookmark"` | ⚪ No | radio/checkbox の表示スタイル |
@@ -317,6 +345,69 @@ mimeType, src, durationSec, durationFormatted
 
 ---
 
+### indexes（非ユニーク検索/集計用インデックス）
+
+**Neon (PostgreSQL/Drizzle) 専用機能**。Firestore では利用不可。
+
+検索・集計頻度が高いカラム（WHERE フィルタ、期間絞り込み、JOIN キー等）にインデックスを宣言する場合に使用。`compositeUniques` がユニーク制約を強制するのに対し、`indexes` は**ユニーク制約なしの検索高速化用**。
+
+```json
+{
+  "indexes": [
+    { "fields": ["status"] },
+    { "fields": ["status", "fulfilled_at"] },
+    { "fields": ["status"], "where": "deleted_at IS NULL" },
+    { "fields": ["external_id"], "name": "custom_short_idx" }
+  ]
+}
+```
+
+#### プロパティ
+
+| プロパティ | 型 | 必須 | 説明 |
+|---|---|---|---|
+| fields | string[] | 🟢 Yes | インデックス対象カラム（先頭から複合キー）。TS プロパティ名で指定 |
+| where | string | ⚪ No | 部分インデックスの WHERE 句（SQL リテラル）。例: `"deleted_at IS NULL"` |
+| name | string | ⚪ No | インデックス名のオーバーライド。省略時は `{テーブル名}_{col1}_{col2}_..._idx` で自動命名 |
+
+#### 名前の自動命名規則
+
+省略時: `{テーブル名}_{col1}_{col2}_..._idx`
+例: `indexes: [{ "fields": ["status", "fulfilled_at"] }]` → `referral_rewards_status_fulfilled_at_idx`
+
+PostgreSQL の識別子上限 (63 文字) を超える場合は generator がエラーで停止する。その場合は `name` で短縮指定する。
+
+#### compositeUniques との使い分け
+
+| 用途 | フィールド |
+|---|---|
+| 一意性を強制したい (DB レベルの制約) | `compositeUniques` |
+| 検索/集計を高速化したい (ユニーク強制なし) | `indexes` |
+
+#### ⚠️ DB への反映が必須
+
+`indexes` を追加・変更しても、それだけでは実 DB にインデックスは作成されない。Drizzle スキーマ定義 (`entities/drizzle.ts`) に反映後、必ず以下を実行する:
+
+```bash
+npx drizzle-kit push
+```
+
+詳細手順は [Neon マイグレーション実行手順](../../docs/how-to/implementation/Neonのマイグレーション実行手順.md) を参照。push を忘れると、コード上は index 定義があってもクエリは全表スキャンのままで、本機能の目的 (検索/集計の高速化) を達成できない。
+
+---
+
+### core ドメインへの indexes 反映について
+
+core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンドの対象外** (ベースの設計上、`features/` 直下のみ対応)。core ドメインで `indexes` を追加・変更する場合は以下のいずれかで反映する:
+
+1. **手書きで `entities/drizzle.ts` を直接編集** (推奨、変更が小さい場合)
+   - `domain.json` の `indexes` 宣言も同時に更新する (将来の整合性のため)
+   - 手書きの形式は generator 出力と完全一致させる（一時的に features/ 直下に複製して `dc:generate` した出力をコピーすると確実）
+2. **features/ 直下に一時複製してから再生成 → core/ に戻す**
+   - 既存の運用フローと同じ手順
+
+---
+
 ### GenerateFiles
 
 | プロパティ | 型 | 説明 |
@@ -333,13 +424,62 @@ mimeType, src, durationSec, durationFormatted
 
 ---
 
+### ApiAccess（汎用 API アクセス制御）
+
+`/api/[domain]/**` の汎用 CRUD ルートに対するロールベースのアクセス制御。
+判定は `createDomainRoute`（`src/lib/routeFactory`）が一元的に行う。
+
+| プロパティ | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| read | AccessRule | ⚪ No | 読み取り操作（list, get, search, count）の既定ルール |
+| write | AccessRule | ⚪ No | 書き込み操作（create, update, remove, upsert 等）の既定ルール |
+| operations | Record<Operation, AccessRule> | ⚪ No | 操作単位の上書き（read/write より優先） |
+
+#### AccessRule
+
+| 値 | 説明 |
+|----|------|
+| `"public"` | 未認証でもアクセス可 |
+| `"authenticated"` | ログイン済み（利用可能ステータス）なら誰でも可 |
+| `"none"` | 汎用 API を無効化（404）。専用ルートのみ公開したいドメイン用 |
+| `{ "roles": [...], "roleCategories": [...] }` | 指定ロール ID / ロールカテゴリのみ可（OR 条件） |
+
+#### Operation（operations のキー）
+
+`list` `get` `search` `count` `create` `update` `remove` `upsert` `duplicate` `restore` `hardDelete` `reorder` `searchForSorting` `bulkUpsert` `bulkUpdate` `bulkUpdateByIds` `bulkDeleteByIds` `bulkDeleteByQuery`
+
+#### フォールバック（fail-closed）
+
+- `apiAccess` 自体、または `read` / `write` が未宣言の場合、グローバル既定値（`src/config/app/domain-api-access.config.ts`、初期値: admin カテゴリのみ）が適用される
+- domain.json を持たないが serviceRegistry に登録されているドメイン（wallet 等）も同様に既定値が適用される
+- **新ドメイン追加時にガードを書き忘れても安全側（admin-only）に倒れる**
+
+#### 例
+
+```json
+"apiAccess": {
+  "read": "public",
+  "write": { "roleCategories": ["admin"] },
+  "operations": { "hardDelete": "none" }
+}
+```
+
+#### ⚠️ オーナーシップ制御は対象外
+
+ロールガードのみで「自分のレコードだけ」という制御はできない。ユーザー所有データ
+（notification 等）の汎用 API は admin-only のままにし、ユーザー向けアクセスは
+`/api/me/` 系の専用ルートで提供すること。`"read": "authenticated"` を設定すると
+**他ユーザーのレコードも読める**点に注意。
+
+---
+
 ## サンプル
 
 最小構成:
 
 ```json
 {
-  "domainConfigVersion": "1.2",
+  "domainConfigVersion": "1.3",
   "singular": "category",
   "plural": "categories",
   "label": "カテゴリ",
@@ -357,6 +497,10 @@ mimeType, src, durationSec, durationFormatted
       "required": true
     }
   ],
+  "apiAccess": {
+    "read": { "roleCategories": ["admin"] },
+    "write": { "roleCategories": ["admin"] }
+  },
   "generateFiles": {
     "entities": true,
     "components": true,

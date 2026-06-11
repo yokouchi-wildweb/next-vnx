@@ -1,8 +1,8 @@
 // src/lib/crud/drizzle/relations/hydrateBelongsToManyObjects.ts
 
 import { db } from "@/lib/drizzle";
-import { eq, inArray } from "drizzle-orm";
-import type { BelongsToRelation, BelongsToManyObjectRelation } from "@/lib/crud/types";
+import { and, eq, inArray, isNull } from "drizzle-orm";
+import type { BelongsToRelation, BelongsToManyObjectRelation, HasManyRelation } from "@/lib/crud/types";
 
 /**
  * belongsToMany リレーションをオブジェクト配列で展開する。
@@ -30,6 +30,16 @@ export async function hydrateBelongsToManyObjects<T extends Record<string, any>>
       relations: BelongsToManyObjectRelation[],
       depth: number,
     ) => Promise<void>,
+    hydrateHasManyFn?: (
+      records: Record<string, any>[],
+      relations: HasManyRelation[],
+      depth: number,
+    ) => Promise<void>,
+  ) => Promise<void>,
+  hydrateHasManyFn?: (
+    records: Record<string, any>[],
+    relations: HasManyRelation[],
+    depth: number,
   ) => Promise<void>,
 ): Promise<void> {
   if (records.length === 0 || relations.length === 0 || depth < 1) return;
@@ -43,9 +53,17 @@ export async function hydrateBelongsToManyObjects<T extends Record<string, any>>
     if (recordIds.length === 0) {
       for (const record of records) {
         (record as any)[rel.field] = [];
+        if (rel.idField) {
+          (record as any)[rel.idField] = [];
+        }
       }
       continue;
     }
+
+    const softDeleteFilter =
+      rel.useSoftDelete && rel.deletedAtColumn
+        ? isNull(rel.deletedAtColumn)
+        : undefined;
 
     // 2. 中間テーブル + ターゲットテーブルをJOINで取得
     // sourceColumn: SampleToSampleTagTable.sampleId
@@ -61,20 +79,34 @@ export async function hydrateBelongsToManyObjects<T extends Record<string, any>>
         rel.targetTable,
         eq(rel.targetColumn, rel.targetTable.id)
       )
-      .where(inArray(rel.sourceColumn, recordIds));
+      .where(
+        softDeleteFilter
+          ? and(inArray(rel.sourceColumn, recordIds), softDeleteFilter)
+          : inArray(rel.sourceColumn, recordIds),
+      );
 
-    // 3. sourceId でグルーピング
+    // 3. sourceId でグルーピング（オブジェクト配列 + ID 配列を同時に構築）
     const grouped = new Map<string, any[]>();
+    const groupedIds = new Map<string, string[]>();
     for (const jr of joinedRecords) {
       const sourceId = jr.sourceId as string;
       const list = grouped.get(sourceId) ?? [];
       list.push(jr.target);
       grouped.set(sourceId, list);
+
+      if (rel.idField) {
+        const idList = groupedIds.get(sourceId) ?? [];
+        idList.push((jr.target as { id: string }).id);
+        groupedIds.set(sourceId, idList);
+      }
     }
 
-    // 4. 各レコードに紐付け
+    // 4. 各レコードに紐付け（idField 指定時は *_ids も併せて格納）
     for (const record of records) {
       (record as any)[rel.field] = grouped.get(record.id) ?? [];
+      if (rel.idField) {
+        (record as any)[rel.idField] = groupedIds.get(record.id) ?? [];
+      }
     }
 
     // 5. 2階層目の展開（depth > 1 かつ nested 設定がある場合）
@@ -105,6 +137,7 @@ export async function hydrateBelongsToManyObjects<T extends Record<string, any>>
             rel.nested.belongsTo,
             depth - 1,
             wrappedHydrateBelongsToMany,
+            hydrateHasManyFn,
           );
         }
 
@@ -115,6 +148,16 @@ export async function hydrateBelongsToManyObjects<T extends Record<string, any>>
             rel.nested.belongsToMany,
             depth - 1,
             hydrateBelongsTo,
+            hydrateHasManyFn,
+          );
+        }
+
+        // hasMany のネスト展開
+        if (hydrateHasManyFn && rel.nested.hasMany && rel.nested.hasMany.length > 0) {
+          await hydrateHasManyFn(
+            nestedRecords,
+            rel.nested.hasMany,
+            depth - 1,
           );
         }
       }

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithCustomToken } from "firebase/auth";
 
@@ -14,17 +14,23 @@ import { err } from "@/lib/errors";
 type AdminLoginParams = {
   email: string;
   password: string;
+  /** ログイン成功後の遷移先。未指定時は /admin */
+  redirectTo?: string;
 };
+
+const DEFAULT_REDIRECT_PATH = "/admin";
 
 export function useAdminLogin() {
   const router = useRouter();
   const { refreshSession } = useAuthSession();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const lockRef = useRef(false);
 
   const signIn = useCallback(
-    async ({ email, password }: AdminLoginParams) => {
-      if (isLoading) return;
+    async ({ email, password, redirectTo }: AdminLoginParams) => {
+      if (lockRef.current) return;
+      lockRef.current = true;
 
       setIsLoading(true);
       setErrorMessage(null);
@@ -42,15 +48,16 @@ export function useAdminLogin() {
         if (result.requiresReactivation) {
           router.push("/reactivate");
         } else {
-          router.push("/admin");
+          router.push(redirectTo ?? DEFAULT_REDIRECT_PATH);
         }
       } catch (error) {
         setErrorMessage(err(error, "ログインに失敗しました"));
       } finally {
+        lockRef.current = false;
         setIsLoading(false);
       }
     },
-    [isLoading, refreshSession, router],
+    [refreshSession, router],
   );
 
   return {
