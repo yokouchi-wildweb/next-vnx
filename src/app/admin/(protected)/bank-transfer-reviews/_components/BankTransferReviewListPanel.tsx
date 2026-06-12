@@ -2,7 +2,8 @@
 //
 // 銀行振込レビュー管理画面のメインコンテナ。
 // status タブ・ページング・モーダル開閉などの状態を一括で管理する。
-// CSV 一括取込ボタンは全タブ共通でヘッダーに常設する。
+// status タブは AdminHeaderPortal (slot="center") で管理画面ヘッダー中央に表示する。
+// CSV 一括取込ボタンは全タブ共通でページ上部に常設する。
 
 "use client";
 
@@ -17,6 +18,7 @@ import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
+import { AdminHeaderPortal } from "@/components/AppFrames/Admin/Elements/AdminHeaderPortal";
 import {
   adminListBankTransferReviews,
   adminGetBankTransferReviewStatusCounts,
@@ -146,9 +148,17 @@ export function BankTransferReviewListPanel({ status }: Props) {
 
   return (
     <>
+      {/* status タブはページ内ではなく管理画面ヘッダー中央のポータルスロットに表示する */}
+      <AdminHeaderPortal slot="center">
+        <StatusTabs counts={statusCountsData?.counts} />
+      </AdminHeaderPortal>
+
       <Stack space={4}>
+        {/* タブをヘッダーへ移設して空いた最上段に、件数・検索・CSV・ページャを 1 段で収める */}
         <Flex justify="between" align="center" wrap="wrap" gap="sm">
-          <StatusTabs counts={statusCountsData?.counts} />
+          <Para size="xs" tone="muted">
+            {total > 0 ? `${start} - ${end} (全 ${total} 件)` : "該当なし"}
+          </Para>
           <Flex gap="sm" align="center" wrap="wrap">
             <SearchBox
               makeHref={makeSearchHref}
@@ -163,40 +173,34 @@ export function BankTransferReviewListPanel({ status }: Props) {
               <Upload className="size-4 mr-1" />
               振込明細CSVで一括判定
             </Button>
+            {totalPages > 1 ? (
+              <Flex gap="xs" align="center">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  aria-label="前のページ"
+                >
+                  <ChevronLeft className="size-4" />
+                </Button>
+                <Para size="xs" tone="muted">
+                  {page} / {totalPages}
+                </Para>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  aria-label="次のページ"
+                >
+                  <ChevronRight className="size-4" />
+                </Button>
+              </Flex>
+            ) : null}
           </Flex>
-        </Flex>
-
-        <Flex justify="between" align="center" wrap="wrap" gap="sm">
-          <Para size="xs" tone="muted">
-            {total > 0 ? `${start} - ${end} (全 ${total} 件)` : "該当なし"}
-          </Para>
-          {totalPages > 1 ? (
-            <Flex gap="xs" align="center">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                aria-label="前のページ"
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <Para size="xs" tone="muted">
-                {page} / {totalPages}
-              </Para>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                aria-label="次のページ"
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-            </Flex>
-          ) : null}
         </Flex>
 
         {error ? (
