@@ -115,6 +115,38 @@ async function searchWithProfile(
   }
 }
 
+/**
+ * メールアドレスが登録済みユーザーとして存在するかを判定する（サインアップ用）。
+ * PII を返さない公開エンドポイント（/api/auth/email-exists）を叩く。
+ */
+async function checkEmailRegistered(email: string): Promise<{ exists: boolean }> {
+  try {
+    const response = await axios.post<{ exists: boolean }>("/api/auth/email-exists", { email });
+    return response.data;
+  } catch (error) {
+    throw normalizeHttpError(error);
+  }
+}
+
+/**
+ * providerType + providerUid の登録済みユーザーが存在するかを判定する（OAuth ログイン用）。
+ * PII を返さない公開エンドポイント（/api/auth/account-exists）を叩く。
+ */
+async function checkAccountRegistered(
+  providerType: string,
+  providerUid: string,
+): Promise<{ exists: boolean }> {
+  try {
+    const response = await axios.post<{ exists: boolean }>("/api/auth/account-exists", {
+      providerType,
+      providerUid,
+    });
+    return response.data;
+  } catch (error) {
+    throw normalizeHttpError(error);
+  }
+}
+
 export const userClient = {
   ...baseClient,
   changeStatus,
@@ -125,4 +157,6 @@ export const userClient = {
   sendEmailChangeVerification,
   confirmEmailChange,
   searchWithProfile,
+  checkEmailRegistered,
+  checkAccountRegistered,
 };

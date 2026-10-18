@@ -1,0 +1,274 @@
+// src/lib/seamlessVideo/hooks/useSeamlessReel.ts
+//
+// SeamlessReel(映像+音声 結合プレイヤー)を React から扱うためのフック。
+
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import type { FragmentFetcher, ReelFragment, SeamlessFragmentSource } from "../types";
+import { SeamlessReel, type SeamlessReelOptions, type SeamlessReelState } from "../core/SeamlessReel";
+import { getSharedAudioEngine } from "@/lib/webAudio";
+
+export type SeamlessReelStatus = "idle" | "loading" | "ready" | "error";
+
+export type UseSeamlessReelOptions = Pick<
+  SeamlessReelOptions,
+  "mimeType" | "syncThreshold" | "hardResyncThreshold" | "syncIntervalMs" | "loop" | "bufferBehindSec" | "onFragmentError"
+> & {
+  /** URL ソースのバイト取得を差し替える(認証/キャッシュ/CDN 等) */
+  fetcher?: FragmentFetcher;
+  onLog?: (message: string) => void;
+  onDrift?: (driftSec: number, corrected: boolean) => void;
+  onPlay?: () => void;
+  onPause?: () => void;
+  onEnded?: () => void;
+};
+
+export type SeamlessReelLoaded = { video: number; audio: number; total: number };
+
+export type UseSeamlessReelResult = {
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  /**
+   * AudioContext を生成 & resume する(再生はしない)。load より前に、確実なユーザー操作(開始タップ等)の
+   * 同期内で 1 回呼んでおくと、以降の load()/play() を await 後(gesture 外)に呼んでも音声が鳴る。冪等。
+   */
+  unlock: () => Promise<void>;
+  /** フラグメント(映像+音声)を読み込み連結する。progressive=true で先頭準備時点から再生可能に。open=true で動的継ぎ足し可 */
+  load: (fragments: ReelFragment[], opts?: { progressive?: boolean; open?: boolean }) => Promise<void>;
+  play: () => Promise<void>;
+  pause: () => void;
+  reset: () => void;
+  /** 実行時にフラグメントを継ぎ足す(load を open:true で行った場合) */
+  appendFragment: (fragment: ReelFragment) => Promise<void>;
+  /** open ストリームを確定する */
+  endReel: () => Promise<void>;
+  /** 指定フラグメント先頭へシーク */
+  seekToFragment: (index: number) => void;
+  /**
+   * 再生レート(早送り)を変更する。範囲は 0.25〜4x にクランプ。setRate(1) で完全に等速へ復帰。
+   * 音程(ピッチ)は rate に比例して上がる。opts.mute 指定でレート変更と同時にミュート切替も行える。
+   */
+  setRate: (rate: number, opts?: { mute?: boolean }) => void;
+  /** フラグメント音声のミュート切替(volume は保持。早送り中の音を消す用途) */
+  setMuted: (muted: boolean) => void;
+  /** フラグメント音声の音量(0..) */
+  setVolume: (v: number) => void;
+  /** フラグメント音声を target へ durationSec でフェード */
+  fade: (target: number, durationSec: number) => void;
+  /** 連続 BGM を設定(再生は play() か playBgm()) */
+  setBgm: (source: SeamlessFragmentSource, opts?: { loop?: boolean; volume?: number }) => Promise<void>;
+  playBgm: () => Promise<void>;
+  stopBgm: () => void;
+  setBgmVolume: (v: number) => void;
+  fadeBgm: (target: number, durationSec: number) => void;
+  /** ワンショット効果音を再生(再生開始後に呼ぶ) */
+  playSe: (source: SeamlessFragmentSource, opts?: { atFragment?: number; volume?: number }) => Promise<void>;
+  /** status==="ready" は「再生可能(playable)」を意味する */
+  status: SeamlessReelStatus;
+  error: Error | null;
+  progress: { appended: number; total: number };
+  audioEnabled: boolean;
+  /** 再生可能になったか(progressive では先頭準備時点で true) */
+  playable: boolean;
+  /** 全フラグメントの読み込み完了 */
+  complete: boolean;
+  /** 読み込み済み数 */
+  loaded: SeamlessReelLoaded;
+  /** 現在位置から先のバッファ秒数 */
+  bufferedSec: number;
+  /** 再生中フラグメント index(不明は -1) */
+  currentFragment: number;
+};
+
+export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamlessReelResult {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const reelRef = useRef<SeamlessReel | null>(null);
+  // AudioContext はアプリ全体で共有する単一エンジンを使う(効果音 playSe 等と同一 ctx)。
+  // iOS のオーディオセッション競合を避けるため、ここでは close() せず生かし続ける。
+  const engine = getSharedAudioEngine();
+
+  const [status, setStatus] = useState<SeamlessReelStatus>("idle");
+  const [error, setError] = useState<Error | null>(null);
+  const [progress, setProgress] = useState({ appended: 0, total: 0 });
+  const [audioEnabled, setAudioEnabled] = useState(false);
+  const [playable, setPlayable] = useState(false);
+  const [complete, setComplete] = useState(false);
+  const [loaded, setLoaded] = useState<SeamlessReelLoaded>({ video: 0, audio: 0, total: 0 });
+  const [bufferedSec, setBufferedSec] = useState(0);
+  const [currentFragment, setCurrentFragment] = useState(-1);
+
+  const optionsRef = useRef(options);
+  useEffect(() => {
+    optionsRef.current = options;
+  });
+
+  const applyState = useCallback((s: SeamlessReelState) => {
+    setPlayable(s.playable);
+    setComplete(s.complete);
+    setLoaded({ video: s.loadedVideo, audio: s.loadedAudio, total: s.total });
+    setBufferedSec(s.bufferedSec);
+    setCurrentFragment(s.currentFragment);
+  }, []);
+
+  /** AudioContext を生成 & resume(再生はしない)。開始タップ等の同期内で 1 回呼ぶ。冪等。 */
+  const unlock = useCallback(async () => {
+    await engine.unlock();
+  }, [engine]);
+
+  const reset = useCallback(() => {
+    reelRef.current?.destroy();
+    reelRef.current = null;
+    // 共有 AudioContext はアプリ全体で再利用するため close しない(reel の destroy で音は停止済み)
+    setStatus("idle");
+    setError(null);
+    setProgress({ appended: 0, total: 0 });
+    setAudioEnabled(false);
+    setPlayable(false);
+    setComplete(false);
+    setLoaded({ video: 0, audio: 0, total: 0 });
+    setBufferedSec(0);
+    setCurrentFragment(-1);
+  }, []);
+
+  const load = useCallback(
+    async (fragments: ReelFragment[], opts?: { progressive?: boolean; open?: boolean }) => {
+      const video = videoRef.current;
+      if (!video) return;
+      reelRef.current?.destroy();
+      setError(null);
+      setStatus("loading");
+      setProgress({ appended: 0, total: fragments.length });
+      setPlayable(false);
+      setComplete(false);
+      setLoaded({ video: 0, audio: 0, total: fragments.length });
+
+      const opt = optionsRef.current;
+      const reel = new SeamlessReel(video, {
+        mimeType: opt.mimeType,
+        fetcher: opt.fetcher,
+        audioEngine: engine, // load を跨いで AudioContext を共有・永続化
+        syncThreshold: opt.syncThreshold,
+        hardResyncThreshold: opt.hardResyncThreshold,
+        syncIntervalMs: opt.syncIntervalMs,
+        loop: opt.loop,
+        bufferBehindSec: opt.bufferBehindSec,
+        onFragmentError: opt.onFragmentError,
+        onLog: opt.onLog,
+        onDrift: opt.onDrift,
+        onPlay: opt.onPlay,
+        onPause: opt.onPause,
+        onEnded: opt.onEnded,
+        onFragmentAppended: (appended, total) => setProgress({ appended, total }),
+        onState: applyState,
+        onError: (e) => {
+          setError(e);
+          setStatus("error");
+        },
+      });
+      reelRef.current = reel;
+
+      try {
+        await reel.load(fragments, opts);
+        setAudioEnabled(reel.audioEnabled);
+        setStatus("ready"); // playable に達したら ready
+      } catch (e) {
+        setError(e instanceof Error ? e : new Error(String(e)));
+        setStatus("error");
+      }
+    },
+    [applyState, engine],
+  );
+
+  const play = useCallback(async () => {
+    try {
+      await reelRef.current?.play();
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error(String(e)));
+      setStatus("error");
+    }
+  }, []);
+
+  const pause = useCallback(() => {
+    reelRef.current?.pause();
+  }, []);
+
+  const appendFragment = useCallback(async (fragment: ReelFragment) => {
+    await reelRef.current?.appendFragment(fragment);
+  }, []);
+  const endReel = useCallback(async () => {
+    await reelRef.current?.endReel();
+  }, []);
+  const seekToFragment = useCallback((index: number) => {
+    reelRef.current?.seekToFragment(index);
+  }, []);
+  const setRate = useCallback((rate: number, opts?: { mute?: boolean }) => {
+    reelRef.current?.setRate(rate, opts);
+  }, []);
+  const setMuted = useCallback((muted: boolean) => {
+    reelRef.current?.setMuted(muted);
+  }, []);
+  const setVolume = useCallback((v: number) => {
+    reelRef.current?.setVolume(v);
+  }, []);
+  const fade = useCallback((target: number, durationSec: number) => {
+    reelRef.current?.fade(target, durationSec);
+  }, []);
+  const setBgm = useCallback(async (source: SeamlessFragmentSource, opts?: { loop?: boolean; volume?: number }) => {
+    await reelRef.current?.setBgm(source, opts);
+  }, []);
+  const playBgm = useCallback(async () => {
+    await reelRef.current?.playBgm();
+  }, []);
+  const stopBgm = useCallback(() => {
+    reelRef.current?.stopBgm();
+  }, []);
+  const setBgmVolume = useCallback((v: number) => {
+    reelRef.current?.setBgmVolume(v);
+  }, []);
+  const fadeBgm = useCallback((target: number, durationSec: number) => {
+    reelRef.current?.fadeBgm(target, durationSec);
+  }, []);
+  const playSe = useCallback(async (source: SeamlessFragmentSource, opts?: { atFragment?: number; volume?: number }) => {
+    await reelRef.current?.playSe(source, opts);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      reelRef.current?.destroy();
+      reelRef.current = null;
+      // 共有 AudioContext はアプリ全体で再利用するため unmount でも close しない
+    };
+  }, []);
+
+  return {
+    videoRef,
+    unlock,
+    load,
+    play,
+    pause,
+    reset,
+    appendFragment,
+    endReel,
+    seekToFragment,
+    setRate,
+    setMuted,
+    setVolume,
+    fade,
+    setBgm,
+    playBgm,
+    stopBgm,
+    setBgmVolume,
+    fadeBgm,
+    playSe,
+    status,
+    error,
+    progress,
+    audioEnabled,
+    playable,
+    complete,
+    loaded,
+    bufferedSec,
+    currentFragment,
+  };
+}

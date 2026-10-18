@@ -1,6 +1,6 @@
 // src/features/save/services/client/saveClient.ts
 
-import { createApiClient } from "@/lib/crud/client";
+import { createApiClient } from "@/lib/crud";
 import type { ApiClient } from "@/lib/crud/types";
 import type { Save } from "@/features/save/entities";
 import type {

@@ -69,6 +69,22 @@ pnpm claude:test
 
 事前設定: `.env.development` に `ANTHROPIC_API_KEY` を設定
 
+### Storage (CORS)
+
+```bash
+# Firebase Storage バケットに CORS を設定(origin は "*")
+pnpm storage:setup-cors
+
+# origin を実ドメインに限定(本番推奨)
+pnpm storage:setup-cors https://your-app.com https://www.your-app.com
+```
+
+用途: 別ドメインの Storage バイトをブラウザで読む全機能(MSE / `fetch()` / `<video crossOrigin>`→canvas / Web Audio)の共通基盤前提。バケット単位・一度きりの設定。判定ルール・トラブルシュート・前提(権限/env)は一次情報に集約:
+
+➡ [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../docs/how-to/initial-setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)
+
+事前設定: `MY_SERVICE_ACCOUNT_KEY`(storage.buckets.update 権限) と `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+
 ## ディレクトリ構成
 
 ```

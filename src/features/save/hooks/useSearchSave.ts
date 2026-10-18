@@ -7,7 +7,7 @@ import { saveClient } from "../services/client/saveClient";
 import type { Save } from "../entities";
 import type { SearchParams } from "@/lib/crud/types";
 
-export type SaveSearchParams = typeof saveClient.search extends (
+export type SaveSearchParams = NonNullable<typeof saveClient.search> extends (
   params: infer P,
 ) => Promise<unknown>
   ? P

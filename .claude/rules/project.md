@@ -6,6 +6,7 @@ name: next-vnx
 base: next-starter fork
 goal: "Next.js of VN engines"
 
+<<<<<<< HEAD
 ## stack
 rendering: PixiJS, pixi-live2d-display
 state: Zustand
@@ -125,6 +126,14 @@ type Archetype = {
 | Composer | - | ✓ | - | - |
 | Executor | - | - | write | ✓ |
 | Feature | - | ✓ | read/write | - |
+
+## TIER (multi-tier hierarchy)
+this_repo: Tier2 (downstream fork of next-starter = Tier1). Hierarchy: Tier1 → Tier2 → Tier3.
+upstream_remote: upstream (git@github.com:yokouchi-wildweb/next-starter.git)
+rule: generic/foundational capabilities belong to Tier1; do not hardcode them here — escalate with /upreq instead. VN engine / studio features are this repo's own scope.
+request_protocol (shared mailbox: ~/.claude/upstream-requests/):
+- file a generic-capability request with /upreq (writes a structured ticket to the mailbox)
+- track status of own filed requests with /wen (open vs resolved)
 
 ## Tone and personality
 
