@@ -1,0 +1,54 @@
+/*
+ * src/styles/custom/hud.css — HudFrame(サイバー HUD 風フレーム)専用の色トークン(下流所有)
+ *
+ * 対象: src/components/Widgets/HudFrame/
+ * 背景: 共有 UI(src/components)では生パレット色クラス(bg-slate-900 / text-white / bg-[rgb(...)] 等)が
+ *       ESLint(style-tokens/no-raw-palette)で禁止されるため、HudFrame が使う色をトークン化している。
+ *       値は従来の見た目(Tailwind v4 の slate / purple / pink パレット)と同じ oklch 値。
+ *
+ * 使い方: text-hud-accent / border-hud-accent/30 / from-hud-surface/90 のようにテーマトークンとして使う。
+ *
+ * アクセント色について:
+ *   --hud-accent は「R G B」の三つ組で、HudFrame が accent prop に応じて要素の inline style で上書きする
+ *   (値の一覧: HudFrame/presets.ts の HUD_ACCENT_PRESETS)。ここの :root はその既定値(cyan)。
+ *   --color-hud-accent は必ず `@theme inline` で定義すること。inline でないと `rgb(var(--hud-accent))` が
+ *   :root 側で先に解決され、要素ごとの --hud-accent 上書きがユーティリティに反映されなくなる。
+ *
+ * dark / light はサイトテーマ(.dark クラス)ではなく HudFrame の mode prop で切り替わるため、
+ * light 用は hud-light-* として別名で持つ(presets.ts がモードごとにクラス名を選ぶ)。
+ */
+
+:root {
+  /* アクセント既定値(cyan-500 相当の RGB 三つ組)。HudFrame が inline style で上書きする */
+  --hud-accent: 6 182 212;
+}
+
+@theme inline {
+  /* アクセント(枠線・アイコン・タイトル文字・コーナー・プログレスバー始点) */
+  --color-hud-accent: rgb(var(--hud-accent));
+  /* サブカラー: プログレスバー終点(purple-500 相当) */
+  --color-hud-secondary: oklch(62.7% 0.265 303.9);
+  /* サブカラー淡色: ウィンドウドット・プログレス右の ✦(purple-400 相当) */
+  --color-hud-secondary-soft: oklch(71.4% 0.203 305.504);
+  /* 第 3 色: ウィンドウドット(pink-400 相当) */
+  --color-hud-tertiary: oklch(71.8% 0.202 349.761);
+
+  /* dark モード: フレーム背景(slate-900 相当)と背景グラデーション終点の紫味(purple-950 相当) */
+  --color-hud-surface: oklch(20.8% 0.042 265.755);
+  --color-hud-surface-tint: oklch(29.1% 0.149 302.717);
+  /* dark モード: 文字・区切り線・プログレスバーの光沢(white 相当。透過率で濃淡を付ける) */
+  --color-hud-foreground: oklch(100% 0 0);
+  /* dark モード: プログレスバーのトラック(slate-800 相当) */
+  --color-hud-track: oklch(27.9% 0.041 260.031);
+
+  /* light モード: フレーム背景 3 段(white / slate-50 / purple-50 相当) */
+  --color-hud-light-surface: oklch(100% 0 0);
+  --color-hud-light-surface-2: oklch(98.4% 0.003 247.858);
+  --color-hud-light-surface-tint: oklch(97.7% 0.014 308.299);
+  /* light モード: 本文文字(slate-800 相当)・補助文字(slate-500 相当) */
+  --color-hud-light-foreground: oklch(27.9% 0.041 260.031);
+  --color-hud-light-muted: oklch(55.4% 0.046 257.417);
+  /* light モード: 区切り線(slate-300 相当)・プログレスバーのトラック(slate-200 相当) */
+  --color-hud-light-divider: oklch(86.9% 0.022 252.894);
+  --color-hud-light-track: oklch(92.9% 0.013 255.508);
+}

@@ -34,6 +34,8 @@ import type { LegacyRouteEntry } from "@/lib/screens/types";
 
 export const FORK_SCAN_ROOTS: string[] = [];
 
-export const FORK_SCAN_EXCLUDES: string[] = [];
+// src/app/lab/: 実験場(画面モック、ハードコード OK — .claude/rules/project.md の dev_approach)。
+// engine/ へ切り出すまでの使い捨てなので SCREENS 構造の検査対象外にする。
+export const FORK_SCAN_EXCLUDES: string[] = ["src/app/lab"];
 
 export const FORK_LEGACY_ROUTES: LegacyRouteEntry[] = [];

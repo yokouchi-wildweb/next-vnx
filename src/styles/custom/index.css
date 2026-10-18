@@ -20,3 +20,5 @@
 @import "./palette.css";
 @import "./typography.css";
 @import "./overrides.css";
+/* ウィジェット専用トークン(HudFrame) */
+@import "./hud.css";

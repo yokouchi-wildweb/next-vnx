@@ -19,9 +19,9 @@ function DefaultProgressBar({ theme = HUD_FRAME_THEME }) {
           )}
           style={{ width: "100%" }}
         />
-        {/* 光のスキャン */}
+        {/* 光のスキャン（モードに関わらず白の光沢 = hud-foreground） */}
         <div className="absolute inset-0 animate-status-scan">
-          <div className="w-8 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+          <div className="w-8 h-full bg-gradient-to-r from-transparent via-hud-foreground/40 to-transparent" />
         </div>
       </div>
       <span className={cn("text-xs font-mono", theme.progressStarClass)}>✦</span>

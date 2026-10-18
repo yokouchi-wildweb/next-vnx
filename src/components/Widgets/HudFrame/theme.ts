@@ -1,7 +1,8 @@
 /**
  * HUDフレームテーマ
- * - アクセントカラー: CSS変数 --hud-accent を参照
+ * - アクセントカラー: CSS変数 --hud-accent を参照（クラスは hud-accent トークン経由、inline style は rgb(var(--hud-accent)) 直参照）
  * - モード: プリセットから取得した値を使用
+ * - 色トークン定義: src/styles/custom/hud.css
  */
 
 import { HUD_MODE_PRESETS, HudMode } from "./presets";
@@ -22,8 +23,8 @@ export function createHudFrameTheme(mode: HudMode) {
   return {
     // フレーム
     frameBg: m.frameBg,
-    frameBorderClass: "border-[rgb(var(--hud-accent))]/30",
-    innerBorderClass: "border-[rgb(var(--hud-accent))]/30",
+    frameBorderClass: "border-hud-accent/30",
+    innerBorderClass: "border-hud-accent/30",
     boxShadow: `0 0 0 1px ${accentAlpha(0.1)}, inset 0 1px 0 ${m.innerHighlight}, 0 20px 50px -20px ${m.dropShadow}`,
     scanline: m.scanline,
     reflectionOpacity: "opacity-20",
@@ -31,16 +32,16 @@ export function createHudFrameTheme(mode: HudMode) {
     lightRgba: accentAlpha(0.5),
 
     // タイトルバー
-    titleBarBorderClass: "border-[rgb(var(--hud-accent))]/20",
+    titleBarBorderClass: "border-hud-accent/20",
     titleSubtext: m.subtextClass,
     dividerBg: m.dividerClass,
-    iconClass: "text-[rgb(var(--hud-accent))]",
-    textClass: "text-[rgb(var(--hud-accent))]/80",
-    starClass: "text-[rgb(var(--hud-accent))]/60",
+    iconClass: "text-hud-accent",
+    textClass: "text-hud-accent/80",
+    starClass: "text-hud-accent/60",
     windowDots: {
-      pink: "bg-pink-400/60",
-      accent: "bg-[rgb(var(--hud-accent))]/60",
-      purple: "bg-purple-400/60",
+      pink: "bg-hud-tertiary/60",
+      accent: "bg-hud-accent/60",
+      purple: "bg-hud-secondary-soft/60",
     },
     windowDotShadows: {
       pink: `rgb(${FIXED_COLORS.pink} / 0.5)`,
@@ -52,11 +53,11 @@ export function createHudFrameTheme(mode: HudMode) {
     contentText: m.contentTextClass,
 
     // ステータスバー
-    arrowClass: "text-[rgb(var(--hud-accent))]/80",
+    arrowClass: "text-hud-accent/80",
     statusText: m.statusTextClass,
     progressBg: m.progressBgClass,
-    progressBar: "from-[rgb(var(--hud-accent))] to-purple-500",
-    progressStarClass: "text-purple-400/60",
+    progressBar: "from-hud-accent to-hud-secondary",
+    progressStarClass: "text-hud-secondary-soft/60",
 
     // 反射グラデーション用
     reflectionGradient: `linear-gradient(90deg, ${accentAlpha(0.5)}, rgb(${FIXED_COLORS.purple} / 0.5))`,
