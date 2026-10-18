@@ -34,6 +34,7 @@ pattern: handler chain — each ProxyHandler returns Response (intercept) or voi
 handlers: maintenanceProxy → demoModeProxy → featureGateProxy → redirectProxy (order matters)
 headers: proxy.ts sets x-pathname on request headers → server components read via headers().get("x-pathname")
 adding_handler: create src/proxies/\<name\>.ts implementing ProxyHandler → register in src/proxies/index.ts
+decorators: ProxyResponseDecorator (request,response)=>void — side-effect (cookie write etc.) on pass-through NextResponse.next() | register in proxyResponseDecorators (src/proxies/index.ts) | NOT executed when a handler intercepts | current: attributionDecorator (USER_ACQUISITION)
 note: Next.js 16 uses proxy (src/proxy.ts), NOT middleware (middleware.ts)
 
 ## DIRECTORY_STRUCTURE
@@ -76,11 +77,17 @@ ref: src/features/core/setting/README.md
 ## API_ROUTES
 required: every route uses one of 3 factories (createDomainRoute / createApiRoute / createMeRoute). each enforces authz structurally
 generic: GET|POST / (list|create) | GET|PATCH|DELETE /[id] (get|update|soft-delete) | POST /search, /count, /upsert, /bulk/delete-by-ids, /[id]/duplicate, /[id]/restore | DELETE /[id]/hard-delete
-generic_access_control: serviceRegistry entry { service, access } (access TYPE-REQUIRED) → createDomainRoute enforces. access runtime source = registry (domain.json apiAccess is editing source, dc:generate expands it into registry; core domains write access directly in registry) | rules: public | authenticated | none | {roles,roleCategories}, per-op override via operations | not covered → fail-closed (admin only, default: src/config/app/domain-api-access.config.ts) | role check uses DB-synced getSessionUser | ref: docs/how-to/汎用APIアクセス制御ガイド.md
+generic_access_control: serviceRegistry entry { service, access } (access TYPE-REQUIRED) → createDomainRoute enforces. access runtime source = registry (domain.json apiAccess is editing source, dc:generate expands it into registry; core domains write access directly in registry) | rules: public | authenticated | none | {roles,roleCategories}, per-op override via operations | not covered → fail-closed (admin only, default: src/config/app/domain-api-access.config.ts) | presets (same file): ADMIN_ONLY | PUBLIC_READ | ADMIN_OR_DEBUGGER (+single-rule ADMIN_OR_DEBUGGER_RULE for createApiRoute access / per-op override) | role check uses DB-synced getSessionUser | ref: docs/how-to/汎用APIアクセス制御ガイド.md
 custom_route_authz: createApiRoute requires `access` (TYPE-REQUIRED, fail-closed by construction): "public"|"authenticated"|{roles,roleCategories}|"custom". non-custom → factory enforces. "custom" → guard in handler yourself (webhook sig etc.) via requireAdmin()/requireAuthenticated() (@/features/core/auth/services/server/requireRole, throws DomainError→401/403, DB-synced getSessionUser) | lint route-authz/require-authz: warns if access:"custom" lacks an in-handler guard
 ownership_routes: user-owned data ("self only") → createMeRoute (/api/me/**). enforces auth, passes DB-synced `user` to handler. scope by user.userId server-side (never trust client-supplied id). generic /api/[domain] canNOT enforce ownership (where user_id is client-controlled) → keep admin-only | ref: docs/how-to/APIルート認可実装ガイド.md
-domain-specific: auth/, admin/, wallet/, webhook/, storage/, me/
+domain-specific: auth/, admin/, wallet/, webhook/, storage/, me/, debug/ (ADMIN_OR_DEBUGGER_RULE, template: api/debug/ping)
 ref: src/lib/routeFactory/README.md
+
+## ROLES & PAGE_GUARD
+roles: 1 file per role src/features/core/user/roles/*.role.json (core: _admin/_user, _ prefix) → role:generate → src/registry/roleRegistry.ts (ALL_ROLES) → USER_ROLES → user_role enum | category: admin | user (getRoleCategory/getRolesByCategory @/features/core/user/constants) | debugger role: category user, purpose = maintenance bypass (maintenance.config.ts bypassRoles) + /debug area | ref: src/features/core/user/README.md
+page_guard (SSR layout/page): authGuard({allowRoles, allowStatuses, redirectTo, returnBack, statusRedirects}) @/features/core/auth/services/server/authorization — DB-synced getSessionUser, redirect on deny | guarded areas (layout-level, pages under them need no own guard): admin/(protected) + admin/insane (admin roles, redirect /admin/login) | (user)/(protected) (redirect /login) | debug/ (admin category + debugger, redirect /login)
+3-layer flow: proxy(redirectProxy, cookie JWT) → layout(authGuard) → page(requireCurrentUser: self record from DB, behavior notFound|redirect|null) | ref: docs/how-to/implementation/認証ガードとユーザー取得フローまとめ.md
+debug_scaffold: /debug/** page area (src/app/debug/, layout enforces) + GET /api/debug/ping (copy source for debug APIs). add debug pages/APIs there, do NOT re-implement guards
 
 ## CRUD_SERVICE (createCrudService)
 operations: create, list, get, update, remove, search, count, query, upsert, duplicate, restore, hardDelete, bulkDeleteByIds, bulkDeleteByQuery, bulkUpsert, bulkUpdate | drizzle-only: belongsToMany, reorder(id,afterId), searchForSorting(auto-init NULL sort_order) | sorting requires: sortOrderColumn option
@@ -88,14 +95,18 @@ conditional: duplicate(useDuplicateButton), restore/hardDelete(useSoftDelete), r
 note: list is a subset of search — use only for simple full-fetch. for relations, filtering, pagination → use search. count returns { total } without fetching records
 hooks: each operation auto-generates a corresponding use\<Op\>\<Domain\> hook (conditional ops generate only when enabled)
 hook_naming_exceptions: get→use\<Domain\>, list→use\<Domain\>List, remove→useDelete\<Domain\>, count→useCount\<Domain\>
-server-only(no hook): query, belongsToMany
+server-only(no hook): query, belongsToMany, systemUpdate, bulkUpdateByQuery, systemBulkUpdateByQuery
+system_write (Drizzle only): systemUpdate(id,data,tx?) / systemBulkUpdateByQuery(where,data,tx?) — parseUpdate bypass for Zod-excluded system columns (ended_at etc.), fail-closed allowlist via systemColumns option (domain.json key for business domains), sql`` values OK (atomic increment/CASE). service-layer ONLY, never wire to HTTP routes | bulkUpdateByQuery(where,data,tx?)→{count} = update counterpart of bulkDeleteByQuery (parseUpdate path) | audit/requestMemo hooks fire like update | detail: src/lib/crud/README.md
 hook-only: use\<Domain\>ViewModal(useDetailModal)
 relationWhere: search/searchWithDeleted/searchForSorting/count accept `relationWhere?: RelationFilter[]` for filtering by relations (Drizzle only). Two variants: BelongsToManyFilter(targetIds+mode:any|all|none) for M2M | BelongsToFilter(where:WhereExpr) for belongsTo. Discriminated by targetIds vs where. Type: RelationFilter from @/lib/crud/types
 extraWhere: search/searchWithDeleted/searchForSorting/count accept `extraWhere?: SQL` (Drizzle only) for conditions beyond WhereExpr DSL (subqueries, EXISTS, JSONB, etc.). Type: ExtraWhereOption from @/lib/crud/drizzle
+extraOrderBy: search/searchWithDeleted accept `extraOrderBy?: SQL[]` (Drizzle only) for SQL-expression ordering (COALESCE/CASE etc.) beyond column-name OrderBySpec. Takes precedence over orderBy (orderBy becomes tiebreak). Type: ExtraOrderByOption from @/lib/crud/drizzle
 withRelations: `withRelations?: boolean | number`. true/1 = 1 level, 2+ = recursive nested relation fetch (requires nested config on relation definition, max depth=3). Expands belongsTo(FK→object), belongsToMany(IDs→objects), hasMany(parent→child array). use\<Domain\>/use\<Domain\>List hooks do NOT accept WithOptions — use useSearch\<Domain\> (search hook) which passes WithOptions through params
 hasManyLimit: `hasManyLimit?: number` in WithOptions. Per-parent child record limit for hasMany expansion (default: 100). Passed via query param from client→API→service
 extension: 1.check base methods → 2.relationWhere for relation filtering → 3.extraWhere for SQL injection → 4.base.query()+wrappers → 5.custom service
 files: xxxService.ts(import only) | wrappers/(CRUD override) | \<other\>/(domain-specific)
+requestMemo: option requestMemo:true → get(id) request-scoped memoized + all write methods auto-invalidate | enabled: user, setting | Drizzle only
+requestMemo_rule (MANDATORY): raw SQL write to enabled table → base.invalidateRequestMemo() right after | detail: src/lib/requestMemo/README.md
 firestore_limits: no or | single orderBy | no belongsToMany
 
 ## AUDIT
@@ -114,17 +125,61 @@ trackedFields: omit = denylist-applied all fields | denylist: src/lib/audit/deny
 retention_days: per-row | default 365 | compliance 730+ | cron auto-prunes
 emergency_stop: AUDIT_MODE=disabled → all audit no-op
 
+user_visibility: GET /api/me/audit-logs is fail-closed — returns ONLY actions allow-listed in src/registry/userVisibleAuditActionsRegistry.ts (USER_VISIBLE_AUDIT_ACTIONS, upstream default empty = always empty results). exact name or "prefix.*" | covert admin actions stay invisible to the target user by default | admin routes/AuditTimeline unaffected
 non_http_context: runAsSystem(fn) | runWithAuditContext(ctx, fn)
 ui: \<AuditTimeline targetType targetId /\> | /admin/audit-logs cross-search | registerActionLabels({...}) for i18n
 cron: pnpm cron audit-log-prune (0 3 * * *) | pnpm cron audit-log-recover-dead-letter (0 * * * *)
 ref: docs/how-to/監査ログ採用ガイド.md
 
+## COUNTING (which primitive — check BEFORE building any count/tracking feature)
+matrix: user×key(login-only) → userCounter | content×action(anonymous OK) → interactionTracking | user×day "visited?"(DAU/active-days) → analytics DAU base | userCounter/interactionTracking have lifetime + daily
+userCounter: bump(lifetime) / bumpDaily(lifetime+daily same-tx) / getTodayCount(daily-limit check) / getDailySeries. server-internal only (no client route) | ref: src/features/core/userCounter/README.md (decision guide)
+dau: user_daily_activities (1 row per user per day, permanent, analytics-OWNED source-of-truth ingest) | ingest: useDauTracker → POST /api/activity/dau → dauService.recordDailyActivity (server contexts call directly) | reads: dauAnalytics getDauDaily(day=DAU/week=WAU/month=MAU) / getDauSummary / getDauRanking(active-days top-N, paginated) + userId param = per-user drill-down (active days, 0/1 calendar series) | hooks: useDauDaily/useDauSummary/useDauRanking | "did user visit day X / days visited per user / most active users" → HERE, NOT a userCounter key
+interactionTracking: public ingest POST /api/interactions (fail-closed via src/registry/interactionTargetRegistry.ts) + batch ingest POST /api/interactions/batch (impressions etc: registry batchActions only, counters-only no detail) + server record()/recordBatch(). reads: getCounts / getCountsBulk(admin list columns) / getDailySeries(marketing time-series, permanent) / getAudience+getAudienceSummary(who-clicked, admin PII) | client: trackInteraction() fire-and-forget, useImpressionTracker()(viewport→buffered batch send) | ref: src/features/core/interactionTracking/README.md
+lifetime counters + content-daily + dau: permanent | event detail + user-daily: retention_days + prune cron
+NOT_for: game telemetry, scroll/mousemove streams, sustained tens-of-millions events/day → needs separate queue/external pipeline, do NOT retrofit these domains
+adjacent: auditLog = mutation history/compliance (behavioral reuse prohibited) | analytics = aggregation reads over existing tables + OWNS the DAU ingest above (user_daily_activities = first-party record, NOT derived; analytics_daily_rollups = recomputable pre-aggregation cache, NOT source of truth — see ANALYTICS_PERF)
+
+## USER_ACQUISITION (signup attribution, multi-touch)
+flow: proxy decorator (src/proxies/attribution.ts) accumulates utm/click-ID/external-referrer touches into httpOnly cookie (no DB write pre-signup) → /api/auth/register reads cookie server-side → user_acquisitions (1:1 first/last summary) + user_acquisition_touches (1:N timeline) | config: src/config/app/acquisition.config.ts (opt-in, default disabled — downstream enables when needed, no retroactive data)
+rules: users table gets NO analytics columns — per-concern satellite tables (this domain is the precedent) | aggregation axes = typed columns, long-tail = extras jsonb | dashboard aggregation → ANALYTICS_PERF
+referral_link: ?invite=CODE (param vocab shared via config referralParam) | TWO independent tracks: analytics = touch w/ source/medium=invite (gated by acquisition enabled) | function = dedicated pending_invite cookie (referral/lib/inviteLinkCookie.ts + src/proxies/inviteLink.ts, gated by marketing.referral.enabled ONLY) → signup form prefill (GET /api/referral/pending-invite-code → auth useInviteCodePrefill) + register fallback | register inviteCode semantics: non-empty=use | ""=explicit decline, no fallback | undefined=fallback to cookie | cross-browser (in-app browser → default browser via email): send-email-link embeds pending code into continueUrl → proxy re-bakes cookie in the opening browser. multi-touch history does NOT survive browser switch (known limit, invite only) | GA4 alignment: googleTag lib auto-sets campaign_source/medium=invite + ignore_referrer on invite-only landings (GA cannot classify custom params itself)
+ref: src/features/core/userAcquisition/README.md (cookie spec, read API, aggregation recipes, invite-link recipe)
+
+## USER_NAME (display name = ユーザー名/表示名 = users.name | validation + optional uniqueness)
+config: src/config/app/user-name.config.ts (maxLength + unique.enabled default false + caseInsensitive) | shared schema: user/entities/userName.ts (UserNameSchema required | UserNameNullishSchema entity nullable | UserNameFormSchema RHF empty-OK) — ALL name write paths MUST use these, never redefine name rules inline
+unique: app-layer check (user/services/server/helpers/nameAvailability.ts), NOT db unique constraint (late-enable + soft-delete + normalization reasons) | scope: deleted_at IS NULL AND is_demo=false | TOCTOU race closed via pg_advisory_xact_lock (withUserNameGuard wraps check+write in one tx, pass tx to base.create/update/restore) | lookup index: users_name_norm_idx lower(btrim(name)) (non-unique, always-on) | violation → DomainError 409 | bulk: isUserNamesTaken(names[]) → Set<taken inputs> (single query, same semantics)
+reserved_names: src/registry/reservedUserNamesRegistry.ts (downstream registers ReservedUserNameProvider, upstream ships empty) — non-user names (bots/NPC/synthetic entries/reserved words like 運営・admin) join the uniqueness check + suffix allocation avoids them | provider contract: filterReserved(normalizedNames)→reserved subset, fast local DB reads ONLY (runs inside advisory-lock tx), normalization = normalizeUserNameForComparison
+write points wired: registration/activate, wrappers/update (name change only), console/createGeneralUser+createAdmin+restore, wrappers/restore (generic /[id]/restore: collision → auto-suffix "name_2", not blocked)
+enable flow: unique.enabled=true deploy → pnpm cron user-name-dedup -- --dry-run → pnpm cron user-name-dedup (one-shot, idempotent, oldest keeps name) | ref: src/features/core/user/README.md
+
+## USER_STATUS_HISTORY (withdraw/pause/ban timing aggregation)
+user_status_histories: all users.status transitions, permanent (no prune), always-on | write: recordStatusTransition (user/services/server/statusHistory.ts) — MANDATORY when adding any status-writing code (from===to auto-skips) | agg: withdrawals/day = to_status='withdrawn' GROUP BY changed_at, exclude demo via users JOIN | backfill: pnpm cron user-status-history-backfill (one-shot, idempotent, restores from audit_logs within retention) | audit_logs reuse for aggregation prohibited | ref: src/features/core/user/README.md
+
+## CRON_TASKS
+scheduler not built-in: downstream copies vercel.json.example → Vercel auto-runs | new task = wire ALL 4: api/cron route + run.ts TASKS + vercel.json.example + docs/reference/cron-tasks.md
+one-shot migration task (e.g. wallet-lots-init): run.ts only, never scheduled | design: idempotent, batched+SKIP LOCKED, no-op unless opted-in | ref: src/lib/cron/README.md
+
+## ANALYTICS_PERF (heavy dashboard reads — check BEFORE adding per-domain caching/snapshot tables)
+cache: withAnalyticsCache({key,range}, fn) — closed(past-only) range=12h TTL, includes today=60s, auto-judged | per-instance memory | NOT immutable: call invalidateAnalyticsCache() after rewriting closed buckets | escape: ANALYTICS_CACHE=disabled
+rollup: analytics_daily_rollups + src/registry/analyticsRollupRegistry.ts (downstream registers RollupMetricConfig, upstream ships none) | kind: flow(sum) | snapshot(closing value, baseline=1-row lookup → fixes running-balance full-history scans) | read: readRolledDailySeries (closed=rollup rows, today=live merge) | cron analytics-rollup-daily + backfill CLI (idempotent; backfill re-run = recompute path for retroactive fixes)
+decision: simple GROUP BY still fast → cache only | unbounded-growth scan → rollup | composable (cache front, rollup behind)
+ref: src/features/core/analytics/README.md
+
+## AI_AGENT (generic agent foundation + DB inspection agent)
+foundation: src/lib/ai/ — domain-free agent runtime. runAgent({system,tools,messages,signal})→AsyncGenerator<AgentEvent> | shared Anthropic client (@/lib/ai/client, aiVision re-exports) | SSE: createAgentSSEResponse (server) + parseAgentEventStream (client) | config: src/config/app/ai-agent.config.ts (model default claude-opus-4-8, maxIterations, maxTokensPerStep)
+contract (versioned, downstream UI binds to it): AgentEvent v:1 = agent.text_delta | tool_call_started | tool_result | blocks | done{usage} | error (done ALWAYS last) | AgentBlock = text|stat|table|chart|entity_link|sql | present_result built-in tool → agent.blocks | breaking change → bump AGENT_PROTOCOL_VERSION, keep old types
+new_agent_recipe: tools (AgentToolDefinition[], zod-validate input=model output) + system prompt (stable part first, cache) + service wrapping runAgent + routeFactory route returning createAgentSSEResponse + streaming ClientService | per-agent safety boundary is the agent author's job (foundation only guarantees "nothing beyond given tools") | ref: src/lib/ai/README.md
+db_agent: src/lib/dbAgent/ + POST /api/admin/db-agent (admin, SSE, maxDuration) | fail-closed: DATABASE_URL_READONLY unset → 503, NO fallback to DATABASE_URL | safety layers: single-statement SELECT-only validation → row cap (cursor) → column mask (audit denylist) → readonly role + statement_timeout + default_transaction_read_only | audit: admin.db_agent.query_executed (per SQL) + turn_completed (usage), recorder injected from route (lib→features NG準拠, crud recorder precedent) | registries (upstream empty): dbAgentPromptRegistry (domain knowledge fragments), dbAgentToolRegistry (extra read-only tools) | ref: src/lib/dbAgent/README.md
+streaming_clientservice_exception: streaming ClientService MAY use fetch + ReadableStream (axios cannot stream in browser) | HTTP calls stay concentrated in ClientService (Hook/Component direct fetch still NG) | applies ONLY to SSE/stream endpoints
+
 ## COMPONENTS
 placement: multi-domain→src/components/ or AppFrames/ | single-domain→features/\<domain\>/components/common/ | page-only→app/\<route\>/_components/
+core_domain_ui_boundary: core domains (this upstream) ship DATA LAYER ONLY (entities/services/API routes/client services/hooks) — do NOT add domain-screen UI components under src/features/core/**. Screen/design is downstream-owned; provide UI as README recipes on the data contract instead. Even if an upreq ticket requests a UI part, counter-propose data-layer + recipe (precedent: interactionTracking audience viewer, removed by 20260704-154147). Existing widgets (AuditTimeline etc.) are grandfathered — do not add new ones
 
-wrappers (raw HTML NG): div→Layout/{Block,Flex,Grid,Stack} | main→Layout/Main or UserPage | section→Layout/Section | button→Form/Button | input→Form/Input | p→TextBlocks/Para | h2→TextBlocks/SecTitle | skeleton→Skeleton/BaseSkeleton
+wrappers (raw HTML NG): div→Layout/{Block,Flex,Grid,Stack} | main→Layout/Main or UserPage | section→Layout/Section | button→Form/Button | input→Form/Input | p→TextBlocks/Para | h2→TextBlocks/SecTitle | skeleton→Skeleton/BaseSkeleton | img→Media/AppImage (direct next/image NG too; encapsulates fill/sizes/fallback + unregistered-host crash guard, ref: src/components/Media/AppImage/README.md)
 
-overlays (direct _shadcn/dialog or self-built overlay NG — pick from here): modal-confirm→Overlays/Dialog | generic modal→Overlays/Modal | tabbed modal→Overlays/TabbedModal | media+rows detail→Overlays/DetailModal | inline confirm→Overlays/Popover/ConfirmPopover | text/number prompt→Overlays/Popover/PromptPopover | action menu→Overlays/Popover/ActionPopover | multi-select list→Overlays/Popover/ChecklistPopover | help/info bubble→Overlays/Popover/InfoPopover | generic popover→Overlays/Popover | hover hint→Overlays/Tooltip | hover preview card→Overlays/HoverCard | image zoom→Overlays/ImageViewer | loading overlay→Overlays/Loading/ScreenLoader | toast→@/lib/toast (GlobalToast+useToast) | low-level only→Overlays/DialogPrimitives
+overlays (direct _shadcn/dialog or self-built overlay NG — pick from here): modal-confirm→Overlays/Dialog | generic modal→Overlays/Modal | tabbed modal→Overlays/TabbedModal | media+rows detail→Overlays/DetailModal | inline confirm→Overlays/Popover/ConfirmPopover | text/number prompt→Overlays/Popover/PromptPopover | action menu→Overlays/Popover/ActionPopover | multi-select list→Overlays/Popover/ChecklistPopover | help/info bubble(click)→Overlays/Popover/InfoPopover | label+?icon hover help→Overlays/Tooltip/HelpTip | generic popover→Overlays/Popover | hover hint→Overlays/Tooltip (shared TooltipProvider mounted in app/layout.tsx — per-instance skipDelayDuration falls back to local Provider) | hover preview card→Overlays/HoverCard | image zoom→Overlays/ImageViewer | loading overlay→Overlays/Loading/ScreenLoader | toast→@/lib/toast (GlobalToast+useToast) | low-level only→Overlays/DialogPrimitives
 ref: src/components/Overlays/README.md
 
 UserPage: Main alias, wraps \<main\> with containerType, h1 not included
@@ -137,12 +192,15 @@ ui_layers:
   rule: call hooks at upper layer, pass handlers via props
 
 page_controls: AppFrames/User/controls/ (header/footer/bottomMenu visibility, use in page.tsx)
-FieldRenderer: baseFields, fieldPatches, fieldGroups, inlineGroups | onMediaStateChange(MediaState)
+FieldRenderer: baseFields, fieldPatches, insertBefore/insertAfter, fieldGroups, inlineGroups | onMediaStateChange(MediaState) | UI slots: beforeAll/afterAll, beforeField/afterField(field-name key), beforeGroup/afterGroup(FieldGroup.key, UNGROUPED_GROUP_KEY="__ungrouped__" for ungrouped block, grouped path only, hidden when collapsed) | ref: src/components/Form/FieldRenderer/README.md
 FormInputType: textInput, numberInput, textarea, select, multiSelect, combobox, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, colorInput, mediaUploader, mediaUploaderMulti, hidden, custom, none
 mediaUploaderMulti: 複数枚アップロード(string[])。validationRule.maxItems(既定10)/minItems、reorderable(既定true)、画像/動画両対応(mediaTypePreset). DBは text[] NOT NULL DEFAULT [] (Neon)
 programmatic_value: hidden(in schema, no UI, value submitted) or custom(in schema, own UI) | none = excluded from schema entirely, NOT for programmatic use
 async_select: AsyncComboboxInput(single), AsyncMultiSelectInput(multi) — async search+select. User-specific: UserAsyncCombobox/UserAsyncMultiSelect (features/core/user/components/common/) — props: role, where, initialId(s), formatLabel
 async_guard: useAsyncAction(src/hooks/) — useRefベースの排他ロックで非同期アクションの二重発火を防止。Dialog/ConfirmPopoverはonConfirmがPromiseを返すと自動でloading管理+ロック
+async_feedback (MUST): client-side background通信(mutation/送信/同期)中は必ずローディング状態を可視化 — ボタン内スピナー/ScreenLoader(local)/persistent toast(variant:loading)のいずれか。無反応UI禁止。Dialog/ConfirmPopoverのPromise自動loading・useAsyncActionのpending活用を優先 | 例外: fire-and-forget計測(trackInteraction等)
+infinite_scroll: 無限スクロール画面は @/components/Widgets/InfiniteScrollList を使う (sentinel/初回ローダー/空表示/追加スピナー/完了メッセージを内包)。データ取得は @/hooks/useInfiniteScrollQuery 派生フックで、isInitialLoading / isFetchingMore / hasMore / updateItems / removeItems / revalidate を返却する
+action_optimistic: ステータス変更系の server logic (例: convertToCoins/requestShipping) は処理済み UserItem ID 配列を返す (例: convertedItemIds / requestedItemIds)。クライアントは hook の onSuccess でこの ID を受け、updateItems (status 書き換え) / removeItems (フィルタ済みリストから除去) でローカル即時反映する。完了後の revalidate(再フェッチ) は UX 退化 + 通信往復2回の二重コストになるため避ける
 ref: src/components/README.md
 
 ## ERROR_HANDLING
@@ -153,7 +211,7 @@ components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: cam
 db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates FK names as `{table}_{column}_{reftable}_{refcolumn}_fk` — long table/column names trigger `42622` NOTICE on db:push and the name gets truncated, which can collide. When adding tables/columns, keep names short enough so generated FK names stay ≤63 chars. If unavoidable, set an explicit shorter FK name via Drizzle's `foreignKey({...}, "shortname_fk")`.
 
 ## PROHIBITED
-- client fetch (use axios)
+- client fetch (use axios) — exception: streaming ClientService (SSE) may use fetch + ReadableStream, see AI_AGENT
 - direct DB in API routes (use ServerService)
 - raw HTML when wrapper exists
 - direct _shadcn imports (use wrappers: button→Form/Button, input→Form/Input/*, skeleton→Skeleton/BaseSkeleton, etc. | no wrapper? → propose creating one)
@@ -170,6 +228,9 @@ db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates
 - unpaginated full-fetch of user-scale data (ユーザーに紐づくデータをbase.search()等でlimit未指定の全件取得するのは禁止。必ずページネーション(page/limit)を使い、UIは無限スクロール等で段階取得すること。base.searchのデフォルトlimit=100は安全策ではなくデータ欠損の原因になる)
 - utility functions in config files (src/config/): config files are values only, place logic in relevant domain utils or lib
 - direct businessConfig.url for runtime base URL (decision: use getAppBaseUrl() from @/lib/url). businessConfig.url is "事業者の正式URL" (mail/SEO等). 実行環境のオリジン (決済コールバック・メールリンク等) は getAppBaseUrl() 経由のみ。リクエストヘッダ (Host/X-Forwarded-Host) からの組み立ては Host Header Injection になるため禁止
+- direct lib/mail.send() for user-facing messages: 管理者→ユーザー向けメッセージ送信は必ず messagingService.send / bulkSend (@/features/messaging) 経由。lib/mail 直接呼び出しはシステムメール (PWリセット、メール認証、登録完了等のテンプレート系) に限定。理由: 受信者単位の audit_logs 記録と本文を保持する message_dispatches 行を漏れなく永続化するため
+- 自前で無限スクロール sentinel / 全画面ローダー early return を組む (use @/components/Widgets/InfiniteScrollList。isLoading 単独で early return すると追加ロード時に既存リストが消える既知の落とし穴を再発させる)
+- アクション完了後の revalidate / resetItems による「最新化のための再フェッチ」(API レスポンスに含まれる処理済み ID で updateItems / removeItems を呼ぶこと。再フェッチは UX 退化 + 通信往復の二重コスト)
 
 ## CORE_FILES (approval required)
 src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css
@@ -184,4 +245,6 @@ db:query "SQL": execute SQL | db:tables: list tables | db:describe \<table\>: sh
 fs: Firestore equivalent of db: commands (fs:collections, fs:count, fs:describe, fs:query, fs:delete). run without args for usage
 
 ## DOCS
+policy: colocation-first — primary docs in README.md next to code | docs/ = legacy, phasing out except !must-read/ (exception: standalone docs allowed when clearly superior)
+stale_README: full rewrite over partial patch when README contradicts actual code
 location: docs/ | structure: !must-read/, concepts/, how-to/, core-specs/, troubleshooting/, reference/, self-evaluation/

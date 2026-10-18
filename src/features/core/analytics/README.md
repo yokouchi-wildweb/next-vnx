@@ -6,8 +6,10 @@
 ## ドメインの位置づけ
 
 - core ドメイン（domain.json なし、手動管理）
-- エンティティ: アップストリームでは持たない。下流で必要に応じて追加
-- データ所有: なし（wallet_histories, purchase_requests 等を参照のみ）
+- エンティティ: `user_daily_activities`（DAU 計測）と `analytics_daily_rollups`（日次事前集計）のみ。下流で必要に応じて追加
+- データ所有: 原則なし（wallet_histories, purchase_requests 等を参照のみ）。例外は上記2テーブル
+  - `user_daily_activities`: **本ドメインが所有する一次記録（source of truth）**。イベント発生時の ingest（useDauTracker → POST /api/activity/dau）でのみ生まれ、他テーブルから再計算**できない**
+  - `analytics_daily_rollups`: ソーステーブルから再計算可能な**派生キャッシュ**（真実のソースではない）
 
 ## ディレクトリ構成
 
@@ -17,15 +19,21 @@ analytics/
 ├── types/
 │   ├── common.ts                 # 集計共通型（DateRangeParams, DailyRecord, UserFilter 等）
 │   └── entities.ts               # エンティティ追加時の基底型（CacheBase, SnapshotBase 等）
-├── entities/                     # アップストリームでは空。下流がテーブル定義を追加する場所
+├── entities/
+│   └── drizzle.ts                # user_daily_activities（DAU）+ analytics_daily_rollups（ロールアップ）
 ├── constants/
-│   └── index.ts                  # デフォルト日数、最大値、デフォルトタイムゾーン等
+│   └── index.ts                  # デフォルト日数、最大値、デフォルトタイムゾーン、キャッシュTTL等
 ├── services/server/
 │   ├── utils/
 │   │   ├── dateRange.ts          # 日付範囲パラメータの解決（TZ対応）
+│   │   ├── analyticsCache.ts     # サーバーサイドレスポンスキャッシュ（確定範囲=長TTL）
 │   │   ├── aggregation.ts        # changeRate等の算術ヘルパー（※JS集計関数は@deprecated）
 │   │   ├── distribution.ts       # 分布共通: parseBoundaries / buildBucketExpr
 │   │   └── userFilter.ts         # ユーザー属性フィルター（roles, excludeDemo）
+│   ├── rollup/                   # 日次ロールアップ（事前集計）フレームワーク
+│   │   ├── types.ts              # RollupMetricConfig / RollupDayContext 等
+│   │   ├── rollupService.ts      # 計算+冪等upsert・日次cron・バックフィル
+│   │   └── readSeries.ts         # readRolledDailySeries（確定日+当日ライブのマージ読み）
 │   ├── walletHistoryAnalytics.ts # [組み込み] walletHistory 集計 + 日次残高
 │   ├── walletStateAnalytics.ts   # [組み込み] wallets テーブルのスナップショット集計
 │   ├── purchaseAnalytics.ts      # [組み込み] purchase 集計
@@ -59,8 +67,10 @@ analytics/
 | GET /api/admin/analytics/wallet/state/ranking | walletStateAnalytics | ウォレット現在保有量のランキング |
 | GET /api/admin/analytics/wallet/state/distribution | walletStateAnalytics | ウォレット現在保有量のレンジ別分布 |
 | GET /api/admin/analytics/referral/summary | referralAnalytics | 紹介経由ユーザー数 + 紹介リワード金額（前期比含む） |
-| GET /api/admin/analytics/dau/daily | dauAnalytics | 日別 DAU（granularity は day のみ） |
-| GET /api/admin/analytics/dau/summary | dauAnalytics | DAU 期間サマリー（granularity は day のみ） |
+| GET /api/admin/analytics/dau/daily | dauAnalytics | バケット別アクティブユーザー数（day=DAU / week=WAU / month=MAU、hour 不可） |
+| GET /api/admin/analytics/dau/summary | dauAnalytics | DAU 期間サマリー（week/month はバケット単位の統計値） |
+| GET /api/admin/analytics/dau/ranking | dauAnalytics | ユーザー別アクティブ日数ランキング（期間内の訪問日数 top-N、ページネーション付き） |
+| GET /api/admin/analytics/dau/active-days-histogram | dauAnalytics | アクティブ日数ヒストグラム（ちょうど N 日アクティブだったユーザー数の分布） |
 | GET /api/admin/analytics/coin-issuance/summary | coinIssuance | コイン創出サマリー（収入・発行・finalProfit を統合、前期比含む。下流で source 追加可） |
 
 ### referral summary 固有のパラメータ
@@ -75,6 +85,7 @@ analytics/
 - `dateTo`: 終了日（YYYY-MM-DD）
 - `timezone`: タイムゾーン（IANA TZ名、デフォルト: `Asia/Tokyo`）
 - `granularity`: 集計粒度。`hour` / `day` / `week` / `month`（デフォルト: `day`）
+- `alignToGranularity`: `true`（または `1`）で dateFrom を粒度のバケット開始境界（week=ISO月曜、month=月初）へ floor する。デフォルト off。先頭の不完全バケットがフロー系メトリクスで過少表示されるのを防ぐ用途
 - dateFrom + dateTo 指定時は days より優先
 
 集計粒度（granularity）の挙動:
@@ -82,7 +93,7 @@ analytics/
 - `history[].date` の書式は粒度で変わる: hour=`YYYY-MM-DDTHH:00`, day=`YYYY-MM-DD`, week=月曜開始日 `YYYY-MM-DD`, month=`YYYY-MM`
 - レスポンスには解決済み `granularity` フィールドが含まれる
 - 期間上限は粒度ごと: hour=31日, day=365日, week=2年, month=10年（バケット数の爆発を防ぐ）
-- DAU は `day` のみサポート。他粒度を指定すると `DomainError`（400）を返す（`UserDailyActivityTable` が date 型のため）
+- DAU は `day` / `week` / `month` をサポート（week/month はバケット内ユニークユーザー = WAU/MAU）。`hour` は `DomainError`（400）（`UserDailyActivityTable` が日次集計済みのため）
 - 期間サマリー API (`*/summary`) では集計に影響しない（期間全体を1つの集計値にする）
 
 ユーザーフィルタ:
@@ -98,10 +109,11 @@ analytics/
 新しい時系列集計サービスを実装する場合:
 - `resolveDateRange(params)` の戻り値から `range.granularity` を読み取る
 - グルーピング SQL は `granularityDateExpr(column, granularity, tz)` ヘルパーで生成する
+- date 型カラム（timestamptz ではない）は `granularityDateExprForDateColumn(column, granularity)` を使う（AT TIME ZONE 変換を挟むとサーバ TZ 依存の境界ズレが起きるため）
 - `generateDateKeys(range)` がそのまま粒度対応のキー配列を返す
 - `formatDateRangeForResponse(range)` がレスポンスの `granularity` フィールドを含む
 
-特定粒度のみサポートするサービス（例: DAU）:
+特定粒度のみサポートするサービス（例: DAU は hour 非対応）:
 - `export const FOO_SUPPORTED_GRANULARITIES = ["day"] as const satisfies readonly Granularity[];`
 - 関数冒頭で `assertGranularitySupported(range.granularity, FOO_SUPPORTED_GRANULARITIES, "Foo 集計")` を呼ぶ
 - 未サポート粒度では `GranularityNotSupportedError`（DomainError 派生、400）が投げられる
@@ -127,6 +139,123 @@ analytics/
 
 `aggregation.ts` のJS集計関数（`groupByDate`, `countUnique`, `groupBy`, `sum`, `median`）は `@deprecated`。
 `changeRate` のみ引き続き利用可能。
+
+## サーバーサイドレスポンスキャッシュ（withAnalyticsCache）
+
+`services/server/utils/analyticsCache.ts` が提供する透過ラッパー。
+「過去日のみで構成される確定済み範囲は長期TTL、当日を含む範囲は短TTL」を `ResolvedDateRange` から自動判定してインスタンス内メモリにキャッシュする。
+
+```typescript
+import { withAnalyticsCache } from "./utils/analyticsCache";
+
+export async function getWalletSummary(params: DateRangeParams & WalletTypeFilter) {
+  const range = resolveDateRange(params);
+  return withAnalyticsCache(
+    // key にはクエリ結果に影響する全パラメータを含めること（range は自動合成される）
+    { key: ["walletHistory.summary", params.walletType ?? ""], range },
+    () => computeWalletSummary(range, params),
+  );
+}
+```
+
+挙動・運用ルール:
+- **確定済み判定**: `range.dateTo` が `range.timezone` 上の「今日」より前なら確定済み（TTL 既定 12時間）。当日を含むなら短TTL（既定 60秒）。TTL は `ttlClosedMs` / `ttlLiveMs` オプション、既定値は `constants/index.ts` で調整可
+- **immutable ではない**: バックフィル・ロールアップ再計算・集計除外の遡及適用で過去バケットも書き換わり得るため、確定済みでも有限TTL。値を書き換えた直後は `invalidateAnalyticsCache(keyPrefix?)` を呼ぶ（同一インスタンスのみ即時。他インスタンスはTTL満了で追随）
+- **in-flight 共有**: 同一キーの同時リクエストは計算を1回に集約する（ダッシュボードの並列取得対策）
+- **例外はキャッシュしない**: fn が reject した場合エントリは破棄される
+- **スコープ**: インスタンス内メモリLRU（最大 `ANALYTICS_CACHE_MAX_ENTRIES` 件）。サーバーレス多インスタンス間では共有されない（許容仕様）
+- **無効化エスケープハッチ**: 環境変数 `ANALYTICS_CACHE=disabled` で全キャッシュ素通し（デバッグ用）
+- **組み込みサービスには未適用**: 鮮度特性の変更を暗黙に持ち込まないため、アップストリーム組み込み API はラップしていない。ダウンストリームが負荷の高いエンドポイント（複合ダッシュボード等）から順に opt-in する
+
+## 日次ロールアップ（事前集計）フレームワーク
+
+`services/server/rollup/` が提供する GA スタイルの事前集計基盤。
+「確定した過去日の値を `analytics_daily_rollups` に日次で焼き込み、読み取りは PK ルックアップ + 当日だけライブ計算」に置き換えることで、
+**サービス運用年数に比例して重くなる集計**（特にランニングバランス系のベースライン全履歴スキャン）を構造的に解消する。
+
+役割分担: **フレームワーク（保存・cron・マージ読み）= upstream、メトリクス定義（compute）= downstream**。
+upstream は組み込みメトリクスを登録しない。
+
+### 採用判断
+
+- 使う: 全履歴スキャンを伴うランニングバランス系列（流通コイン残高・未消化賞品価値等）、期間が長くなるほど重いダッシュボード時系列
+- 使わない: 既に単純な `GROUP BY date` 1クエリで十分軽い集計（まず `withAnalyticsCache` だけで足りないか検討）。ロールアップはテーブル・cron・バックフィル運用を伴うため、キャッシュより導入コストが高い
+- 位置づけ: ロールアップ行は**ソーステーブルから再計算可能な派生キャッシュ**。真実のソースにしない（COUNTING 基盤の userCounter / interactionTracking はイベント発生時の一次記録であり役割が異なる）
+
+### kind の選択（重要）
+
+| kind | 意味 | 週/月集約 | 欠損日 | 例 |
+|---|---|---|---|---|
+| `flow` | 日ごとの発生量 | 日の合計 | 0 | 日次売上、ガチャ収支 |
+| `snapshot` | 日末時点の状態量（クロージング値） | バケット末日の値 | 直前値キャリー | 流通コイン残高、未消化賞品価値 |
+
+`snapshot` は読み取り時に「範囲開始前の直近行」を1行だけベースラインとして先読みするため、
+ランニングバランスでも全履歴スキャンが発生しない。
+
+### メトリクスの登録（downstream）
+
+```typescript
+// 例: src/features/wallet/analytics/rollup/coinClosingBalance.ts
+import { sql } from "drizzle-orm";
+import { db } from "@/lib/drizzle";
+import type { RollupMetricConfig } from "@/features/core/analytics/services/server/rollup";
+
+export const coinClosingBalanceMetric: RollupMetricConfig = {
+  key: "wallet.coin_closing_balance",
+  kind: "snapshot",
+  backfillFrom: "2025-01-01", // ソースデータの開始日
+  async compute({ dateFrom, dateTo, previous }) {
+    // snapshot 推奨パターン: 前日クロージング値があれば「前日値 + 当日差分」の増分計算。
+    // previous 無し（初日・ギャップ）はフル計算にフォールバック。
+    // 集計除外（analytics exclusion 等）の適用はこの関数内部の責務。
+    const baseline = previous?.[0]?.value;
+    if (baseline !== undefined) {
+      const delta = await sumDailyDelta(dateFrom, dateTo); // 当日1日分のみのスキャン
+      return [{ value: baseline + delta }];
+    }
+    const full = await computeBalanceUpTo(dateTo); // フォールバック: 全履歴から算出
+    return [{ value: full }];
+  },
+};
+```
+
+```typescript
+// src/registry/analyticsRollupRegistry.ts に追加
+import { coinClosingBalanceMetric } from "@/features/wallet/analytics/rollup/coinClosingBalance";
+
+export const analyticsRollupMetrics: RollupMetricConfig[] = [
+  coinClosingBalanceMetric,
+];
+```
+
+ディメンション分割が必要な場合は `compute` が `[{ value, dims: { walletType: "coin" } }, ...]` のように複数行を返す
+（dims はフラットなオブジェクトのみ。同一日内で dims の重複は不可）。
+
+### 運用（cron / バックフィル）
+
+- 日次: `pnpm cron analytics-rollup-daily`（推奨 `15 0 * * *`）または `GET /api/cron/analytics-rollup-daily`。昨日を含む直近3日を冪等に再計算し、遅延到着データと実行漏れを自己修復する
+- 新規メトリクス登録時・遡及修正時: `pnpm cron analytics-rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]`（from 省略時 = `backfillFrom`、to 省略時 = 昨日）
+- **集計除外の遡及適用**: 専用機構はない。compute が除外を織り込んでいる前提で、該当期間のバックフィルを再実行すれば整合する（書き込みは日単位 delete → insert の冪等 upsert）
+- 書き込み後は同一インスタンスの `withAnalyticsCache` キャッシュを自動 invalidate する（他インスタンスは TTL 満了で追随）
+
+### 読み取り
+
+```typescript
+import { readRolledDailySeries } from "@/features/core/analytics/services/server/rollup";
+
+const series = await readRolledDailySeries({
+  metricKey: "wallet.coin_closing_balance",
+  range, // resolveDateRange の戻り値
+  // dims: { walletType: "coin" },  // 指定時は完全一致、省略時はディメンション横断で合算
+});
+// → { dateFrom, dateTo, granularity, history: [{ date, value }], includesLiveBucket }
+```
+
+- 確定日はロールアップ行から、当日は `compute` のライブ実行値をマージ（`includeLive: false` で無効化可）
+- granularity は `day` / `week` / `month`（`hour` は `GranularityNotSupportedError`。日次行が最小単位のため）
+- `range.timezone` はメトリクスの timezone（既定 `Asia/Tokyo`）と一致必須（バケット境界の整合のため）
+- `withAnalyticsCache` と合成可能（キャッシュが手前、ロールアップが奥。当日を含む範囲は短TTL側に自動判定されるため相性が良い）
+- 既存のライブ集計サービスのシグネチャは変更しない。メトリクス単位で読み取りパスをロールアップへ**段階的に**置き換える
 
 ## タイムゾーン対応
 
@@ -436,8 +565,9 @@ upstream で組み込みソースの `key` をリネームした際の移行履�
 
 ## エンティティの追加
 
-アップストリームではエンティティを持たない。
-下流で集計キャッシュ、スナップショット、ダッシュボード設定等が必要になった場合、`entities/` にテーブル定義を追加する。
+アップストリームが持つのは `user_daily_activities`（DAU）と `analytics_daily_rollups`（日次ロールアップ）のみ。
+日次の事前集計が必要なら独自テーブルより先に**ロールアップフレームワークへのメトリクス登録を検討する**こと（上記セクション参照）。
+それ以外の集計キャッシュ、スナップショット、ダッシュボード設定等が必要になった場合、`entities/` にテーブル定義を追加する。
 
 ### 基底型
 
@@ -476,6 +606,47 @@ export const AnalyticsCacheTable = pgTable(
 ### 命名規約
 - テーブル名: `analytics_` プレフィクス（例: `analytics_cache`, `analytics_snapshots`）
 - metric_key / snapshot_key: snake_case（例: `daily_wallet_summary`, `wallet_balance_distribution`）
+
+## DAU（アクティブユーザー）系 API
+
+`user_daily_activities`（1 ユーザー × 1 日 = 1 行、ON CONFLICT DO NOTHING で冪等 ingest）を一次データとする、訪問・アクティブ系の read 群。
+「DAU / WAU / MAU」「ユーザーごとの訪問日数」「最もアクティブなユーザー」の問いは全てここで解く（userCounter のキーで再実装しない — userCounter README の決定ガイド参照）。
+
+| 関数（dauAnalytics） | エンドポイント | 返すもの |
+|---|---|---|
+| `getDauDaily` | GET /api/admin/analytics/dau/daily | バケット別アクティブユーザー数（day=DAU / week=WAU / month=MAU） |
+| `getDauSummary` | GET /api/admin/analytics/dau/summary | 期間サマリー（avg/max/min、前期比） |
+| `getDauRanking` | GET /api/admin/analytics/dau/ranking | ユーザー別アクティブ日数ランキング |
+| `getDauActiveDaysHistogram` | GET /api/admin/analytics/dau/active-days-histogram | アクティブ日数ヒストグラム（activeDays → userCount 分布） |
+
+### ランキング（getDauRanking）
+
+- パラメータ: 日付範囲共通パラメータ + `limit`（既定 50、最大 200）/ `page`（1 始まり） + ユーザーフィルタ（roles / excludeDemo） + 最終アクティブ日フィルタ（`lastActiveDateFrom` / `lastActiveDateTo`、YYYY-MM-DD・TZ ローカル日付キー、任意）
+- レスポンス: `RankingResponse`（`items: [{ rank, userId, displayName, activeDays, lastActiveDate }]` + `total`）
+- 並び順: activeDays DESC → lastActiveDate DESC → userId ASC（ページングが安定するよう決定的）
+- `(user_id, activity_date)` ユニークのため `COUNT(*)` = 期間内アクティブ日数。`activity_date` index のレンジスキャン + GROUP BY で解決
+- 最終アクティブ日フィルタ: 期間内の `MAX(activity_date)` に対する HAVING 絞り込み。`total` も同じ条件のサブクエリで数えるためページネーションは常に整合。集計後の条件のためサーバー側でのみ解決できる（下流でのページ全走査・クエリ複製は不要）
+  - チャーンリスク抽出（「期間中は高アクティブだが直近 N 日訪問なし」）: `lastActiveDateTo = 今日 − N 日` を渡す。カットオフ日数（3/7/14 等）の決定は下流ポリシー
+  - 復帰・リテンション分析（「X 日以降に戻ってきたユーザー」）: `lastActiveDateFrom = X`
+
+### アクティブ日数ヒストグラム（getDauActiveDaysHistogram）
+
+- パラメータ: 日付範囲共通パラメータ + ユーザーフィルタ（roles / excludeDemo）。ページネーション不要（行数は期間日数で有界）
+- レスポンス: `{ dateFrom, dateTo, totalUsers, histogram: [{ activeDays, users }] }`（users > 0 の行のみ、activeDays ASC。`totalUsers` = 期間内に 1 日以上アクティブだった DISTINCT ユーザー数 = users 合計）
+- SQL 形: ユーザーごとのアクティブ日数を集計するサブクエリ → その日数で再 GROUP BY（全て DB 側で解決）
+- バケット化（「皆勤 / 80%+ / 50-79% …」等の割合しきい値・ラベル）はプロダクトポリシーのため**下流の責務**。下流はこのヒストグラムをクライアント側で任意の帯にマッピングする（境界変更のたびに upstream 変更が不要になる切り分け）
+
+### ユーザー単位ドリルダウン（userId パラメータ）
+
+daily / summary は `userId` で単一ユーザーに絞り込める（他ドメインの分析 API と同じ共通パラメータ）:
+
+- `dau/summary?userId=X` → `totalActiveRecords` = そのユーザーの期間内アクティブ日数
+- `dau/daily?userId=X`（day 粒度） → 0/1 の系列（アクティビティカレンダー・ヒートマップ用途）
+
+### クライアント / フック
+
+- 記録（ingest）: `hooks/useDauTracker.ts`（1 日 1 回 `POST /api/activity/dau`）
+- 読み取り: `services/client/dauAnalyticsClient.ts`（fetchDauDaily / fetchDauSummary / fetchDauRanking / fetchDauActiveDaysHistogram）+ `hooks/useDauDaily.ts` / `useDauSummary.ts` / `useDauRanking.ts` / `useDauActiveDaysHistogram.ts`（SWR）。管理画面のダッシュボード・「アクティブユーザー」タブ等はこれらをそのまま利用する（画面 UI は下流の責務）
 
 ## ランキングAPI: ウォレット vs 購入
 

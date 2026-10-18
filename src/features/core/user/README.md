@@ -196,6 +196,98 @@ pending, active, paused, withdrawn
 | `UserUpdateByAdminSchema` | 管理者による更新用 |
 | `UserSelfUpdateSchema` | ユーザー自身による更新用 |
 
+## 表示名 = ユーザー名（バリデーションと一意性）
+
+`users.name` の仕様。マイページ等の UI ラベルでは「ユーザー名」、コード・スキーマ上は「表示名 (display name)」
+と呼んでいるが同一フィールドを指す。「ユーザー名の重複禁止」を検討している場合はこのセクションが該当する。
+
+設定: `src/config/app/user-name.config.ts`（`USER_NAME_CONFIG`）
+
+### バリデーション（常時適用）
+
+共有スキーマ `entities/userName.ts` を全書き込み経路（サインアップ・本登録・マイページ・管理画面）で使用する。
+
+| スキーマ | 用途 |
+|---------|------|
+| `UserNameSchema` | 必須の経路（サインアップ `RegistrationSchema`、本登録 `UserActivationSchema`） |
+| `UserNameNullishSchema` | エンティティ側の任意フィールド（`UserCoreSchema.name`。空文字は null に正規化） |
+| `UserNameFormSchema` | react-hook-form 用（空文字 = クリアを許容、文字列のまま検証） |
+
+ルール: trim + `maxLength`（既定 30、設定で調整）+ 制御文字/改行/ゼロ幅文字の拒否。
+表示名のルールを変える場合は `userName.ts` だけを変更すれば全経路に反映される。
+
+### 一意性（オプトイン、既定は重複許容）
+
+`USER_NAME_CONFIG.unique.enabled: true` で表示名の重複を禁止できる。DB の unique 制約ではなく
+**アプリケーションレイヤ**（`services/server/helpers/nameAvailability.ts`）で検証する。
+
+- 判定スコープ: `deleted_at IS NULL` かつ `is_demo = false`（退会済み・デモユーザーは名前を占有しない）
+- `caseInsensitive: true`（既定）で大文字小文字を同一視。正規化ロジックは
+  `utils/userName.ts` の `normalizeUserNameForComparison` に一元化
+- check→write 間の同時実行レースは `pg_advisory_xact_lock`（正規化名キー）で直列化して排除
+- 検索は expression index `users_name_norm_idx`（`lower(btrim(name))`、unique 制約ではない）が受ける
+- 違反時は `DomainError` 409「この表示名は既に使用されています」
+
+検証が入る書き込みポイント（`withUserNameGuard` / `assertUserNameAvailable`）:
+
+| 経路 | 実装 |
+|------|------|
+| サインアップ本登録・再入会 | `registration/activate.ts` |
+| マイページ・管理画面の更新 | `wrappers/update.ts`（name 変更時のみ） |
+| 管理画面からのユーザー作成 | `creation/console/createGeneralUser.ts` / `createAdmin.ts` |
+| 管理画面からの再登録（名前指定あり） | `creation/console/restore.ts`（衝突時 409） |
+| 汎用 restore（`/api/user/[id]/restore`） | `wrappers/restore.ts`（衝突時はブロックせず「名前_2」等へ自動付替） |
+
+一括判定が必要な場合（候補名リストのフィルタリング等）は `isUserNamesTaken(names[]) => Set<使用中の入力文字列>`
+を使う（単一クエリ + 同一の判定条件。`isUserNameTaken` はこの単発版）。
+
+### 予約名（users テーブル外の名前を一意性チェックに参加させる）
+
+ボット・NPC・合成ランキングエントリなど「実ユーザーの隣に表示される非ユーザー名」や、
+「運営」「admin」等の予約語を実ユーザーに取らせたくない場合は、
+`src/registry/reservedUserNamesRegistry.ts` にプロバイダを登録する（上流は空 = 挙動変化なし）。
+
+```ts
+// 例: 静的な予約語リスト
+export const RESERVED_USER_NAME_PROVIDERS: readonly ReservedUserNameProvider[] = [
+  {
+    key: "static-reserved-words",
+    filterReserved: async (names) => names.filter((n) => ["運営", "admin", "公式"].includes(n)),
+  },
+];
+```
+
+- `filterReserved(normalizedNames, ctx)` は「渡された正規化済み名前のうち予約済みのもの」を返す。
+  比較対象は `normalizeUserNameForComparison` と同じ正規化（trim + caseInsensitive 時は小文字化）で保持すること
+- users スキャンで空きだった名前についてのみ照会される。サフィックス採番
+  （restore 衝突・dedup）も予約名を自動回避する
+- **プロバイダは高速なローカル DB 参照に限る。** advisory lock を保持したトランザクション内で
+  呼ばれるため、遅いプロバイダは同名サインアップの直列化待ちを伸ばす。
+  外部 API 等の遅い I/O は事前にテーブルへ同期しておくこと
+- `ctx.executor` が渡された場合、Drizzle 参照はそれを使う（ガードと同一トランザクションで読むため）
+
+### 有効化手順（運用途中の切り替え）
+
+1. `unique.enabled: true` に変更してデプロイ（以後の新規書き込みから検証開始）
+2. 既存の重複を確認: `pnpm cron user-name-dedup -- --dry-run`
+3. 既存の重複を解消: `pnpm cron user-name-dedup`
+   - 各グループで `createdAt` 最古のユーザーが元の名前を保持し、他は「名前_2」「名前_3」…に自動リネーム
+   - リネームは `base.update` 経由のため audit_logs に記録される
+   - 冪等・one-shot（定期実行しない）
+
+DB 制約を使わないため、既存データに重複があっても有効化がブロックされることはない
+（有効化〜解消完了までの間、既存重複はそのまま残り、新規の書き込みだけが検証される）。
+
+#### 有効化時の注意
+
+- **リネームされたユーザーへの通知は組み込まれていない。** dedup は audit_logs に記録を残すが、
+  本人向けの通知（「表示名が変更されました」等）は行わない。必要なら dry-run の結果
+  （`renamed` の userId 一覧）をもとに `messagingService.send / bulkSend` で通知するのは
+  ダウンストリームの責務
+- **セッション JWT の name クレームは古いまま残る。** リネーム後、DB 参照
+  （`requireCurrentUser` 経由）の画面は即反映されるが、JWT クレームの name を表示に
+  使っている箇所は再ログインまで旧名が見える（実害は表示のみ）
+
 ## ロール追加の手順
 
 1. **JSON ファイル作成**
@@ -305,6 +397,63 @@ const result = await userClient.searchWithProfile("contributor", {
 
 > API エンドポイント: `GET /api/admin/user/search-with-profile?role=contributor&searchQuery=田中&profileWhere={"field":"prefecture","op":"eq","value":"東京都"}`
 > 検索対象のプロフィールフィールドは `profile.json` の `searchFields` で設定する。`profileWhere` の DSL 詳細は `src/features/core/userProfile/README.md` を参照。
+
+## ステータス遷移履歴（user_status_histories）
+
+退会・休会・復帰・BAN 等のステータス遷移を恒久保存するサテライトテーブル。**常時オン**（設定フラグなし）。
+
+### 設計方針
+
+- users テーブルに分析用カラム（withdrawnAt 等）を追加しない方針の実装。関心事ごとのサテライトテーブル（USER_ACQUISITION と同じ前例）
+- audit_logs とは責務が別: 監査ログはコンプライアンス用途で保持期限つき（既定365日で prune）、本テーブルは集計用途で恒久保存
+- 記録は `recordStatusTransition()`（`services/server/statusHistory.ts`）に集約。`fromStatus === toStatus` は no-op
+
+### スキーマ
+
+| カラム | 型 | 説明 |
+|--------|-----|------|
+| `user_id` | uuid FK(users, cascade) | 対象ユーザー |
+| `from_status` | user_status \| null | 遷移前。新規作成（INSERT）は null |
+| `to_status` | user_status | 遷移後 |
+| `trigger` | text | 遷移のきっかけ（語彙: `entities/model.ts` の `UserStatusTransitionTrigger`） |
+| `changed_at` | timestamptz | 遷移日時 |
+
+trigger 語彙: `self_withdraw` / `self_pause` / `self_reactivate` / `signup_pre_register` / `signup_activate` / `admin_change_status` / `admin_soft_delete` / `admin_restore` / `admin_create` / `demo_create` / `security_lockout`
+
+### 集計レシピ
+
+```typescript
+// 日別退会数（本人退会 + 管理者削除）
+import { sql } from "drizzle-orm";
+import { UserStatusHistoryTable } from "@/features/core/user/entities/drizzle";
+
+const rows = await db
+  .select({
+    day: sql<string>`date_trunc('day', ${UserStatusHistoryTable.changedAt})::date`,
+    count: sql<number>`count(*)::int`,
+  })
+  .from(UserStatusHistoryTable)
+  .where(eq(UserStatusHistoryTable.toStatus, "withdrawn"))
+  .groupBy(sql`1`)
+  .orderBy(sql`1`);
+```
+
+- デモユーザー除外は users への JOIN で `is_demo = false` を条件に加える
+- ダッシュボードで重くなったら ANALYTICS_PERF（`withAnalyticsCache` → rollup）に載せる。単純 GROUP BY のうちは cache のみで十分
+
+### 過去分のバックフィル
+
+導入時に1回だけ実行（冪等・再実行安全）:
+
+```bash
+pnpm cron user-status-history-backfill
+```
+
+audit_logs に残っている `user.withdrew` / `user.status.changed` 等から復元する。監査ログの保持期限を過ぎて prune 済みの遷移は復元不可。
+
+### 注意
+
+**`users.status` を書き換える処理を新設したら、必ず `recordStatusTransition()` の呼び出しを追加すること。** 既存の記録箇所は `statusHistory.ts` の docstring を参照。
 
 ## 関連ファイル
 

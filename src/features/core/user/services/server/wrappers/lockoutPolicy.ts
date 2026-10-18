@@ -5,8 +5,10 @@ import { eq } from "drizzle-orm";
 import { AUTH_LOCKOUT_CONFIG } from "@/config/app/auth-lockout.config";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { auditLogger } from "@/features/core/auditLog/services/server";
+import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { db } from "@/lib/drizzle";
 import type { User } from "@/features/core/user/entities";
+import { base } from "../drizzleBase";
 
 /**
  * アカウントロックアウトの方針実装。
@@ -84,6 +86,19 @@ export async function recordFailedLogin(
         updatedAt: now,
       })
       .where(eq(UserTable.id, user.id));
+    base.invalidateRequestMemo();
+
+    // ログイン失敗応答を壊さないよう、監査ログ同様 best-effort で記録する
+    try {
+      await recordStatusTransition({
+        userId: user.id,
+        fromStatus: user.status,
+        toStatus: "security_locked",
+        trigger: "security_lockout",
+      });
+    } catch (error) {
+      console.error("[lockoutPolicy] ステータス遷移履歴の記録に失敗しました", error);
+    }
 
     await auditLogger.record({
       targetType: "user",
@@ -111,6 +126,7 @@ export async function recordFailedLogin(
         updatedAt: now,
       })
       .where(eq(UserTable.id, user.id));
+    base.invalidateRequestMemo();
 
     await auditLogger.record({
       targetType: "user",
@@ -136,6 +152,7 @@ export async function recordFailedLogin(
       updatedAt: now,
     })
     .where(eq(UserTable.id, user.id));
+  base.invalidateRequestMemo();
 
   return { kind: "counted", failedLoginCount: newCount };
 }
@@ -163,6 +180,7 @@ export async function clearLockState(userId: string): Promise<void> {
       updatedAt: new Date(),
     })
     .where(eq(UserTable.id, userId));
+  base.invalidateRequestMemo();
 }
 
 /** 短期ロック中の認証失敗で表示するエラーメッセージ */

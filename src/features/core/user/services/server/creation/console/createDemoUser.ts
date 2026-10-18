@@ -16,8 +16,10 @@ import { getServerAuth } from "@/lib/firebase/server/app";
 import { db } from "@/lib/drizzle";
 import { assertEmailAvailability } from "@/features/core/user/services/server/helpers/assertEmailAvailability";
 import { findSoftDeletedUser } from "@/features/core/user/services/server/finders/findSoftDeletedUser";
+import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
 import type { CreateDemoUserInput } from "../../../types";
+import { base } from "../../drizzleBase";
 import { restoreSoftDeletedUser } from "./restore";
 
 /**
@@ -87,6 +89,14 @@ async function createDemoAdmin(data: CreateDemoUserInput): Promise<User> {
   });
 
   const [user] = await db.insert(UserTable).values(values).returning();
+  base.invalidateRequestMemo();
+
+  await recordStatusTransition({
+    userId: user.id,
+    fromStatus: null,
+    toStatus: "active",
+    trigger: "demo_create",
+  });
 
   return user;
 }
@@ -142,6 +152,14 @@ async function createDemoGeneralUser(data: CreateDemoUserInput): Promise<User> {
   });
 
   const [user] = await db.insert(UserTable).values(values).returning();
+  base.invalidateRequestMemo();
+
+  await recordStatusTransition({
+    userId: user.id,
+    fromStatus: null,
+    toStatus: "active",
+    trigger: "demo_create",
+  });
 
   return user;
 }

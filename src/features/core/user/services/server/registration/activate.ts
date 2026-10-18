@@ -3,6 +3,8 @@
 import type { User } from "@/features/core/user/entities";
 import { UserActivationSchema } from "@/features/core/user/entities/schema";
 import type { UserRoleType } from "@/features/core/user/constants";
+import { withUserNameGuard } from "@/features/core/user/services/server/helpers/nameAvailability";
+import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { base } from "../drizzleBase";
 import { DomainError } from "@/lib/errors";
 
@@ -45,10 +47,25 @@ export async function activate(
     throw new DomainError(message, { status: 400 });
   }
 
-  const user = await base.update(userId, {
-    ...result.data,
-    deletedAt: null,
-  } as Parameters<typeof base.update>[1]);
+  const user = await withUserNameGuard(
+    { name: result.data.name, excludeUserId: userId },
+    (tx) =>
+      base.update(
+        userId,
+        {
+          ...result.data,
+          deletedAt: null,
+        } as Parameters<typeof base.update>[1],
+        tx,
+      ),
+  );
+
+  await recordStatusTransition({
+    userId,
+    fromStatus: current.status,
+    toStatus: "active",
+    trigger: "signup_activate",
+  });
 
   return user;
 }

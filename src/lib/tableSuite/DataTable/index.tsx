@@ -12,6 +12,8 @@ import {
   TableCell,
   CellClickOverlay,
   getCellClickOverlayClassName,
+  renderColumnHeader,
+  FullWidthRowsAt,
 } from "../shared";
 import { cn } from "@/lib/cn";
 import type {
@@ -21,12 +23,14 @@ import type {
   ColumnSortProps,
   PaddingSize,
   CellAction,
+  FullWidthRow,
 } from "../types";
 import {
   resolveColumnTextAlignClass,
   resolveRowClassName,
   ROW_HEIGHT_CLASS,
   resolvePaddingClass,
+  groupFullWidthRowsByIndex,
 } from "../types";
 
 // 後方互換性のため再エクスポート
@@ -34,6 +38,11 @@ export type { CellAction } from "../types";
 
 export type DataTableColumn<T> = {
   header: React.ReactNode;
+  /**
+   * ヘッダーに ?アイコン + ホバー説明を添える（HelpTip に合成される）。
+   * 集計値・派生値など名前だけでは意味が伝わらない列に使用する。
+   */
+  headerHelp?: React.ReactNode;
   render: (item: T) => React.ReactNode;
   align?: TableColumnAlignment;
   /**
@@ -84,6 +93,11 @@ export type DataTableProps<T> = TableStylingProps<T> &
      * @default false
      */
     disableRowHover?: boolean;
+    /**
+     * 全幅の差し込み行（グループの空き枠表示・区切り・注釈など）。
+     * afterIndex 指定でデータ行の間に挿入する。選択・行クリック・ソートの対象外。
+     */
+    fullWidthRows?: FullWidthRow[];
   };
 
 const ROW_CURSOR_CLASS: Record<RowCursor, string> = {
@@ -109,6 +123,7 @@ export default function DataTable<T>({
   cellPaddingX = "sm",
   cellPaddingY = "none",
   disableRowHover = false,
+  fullWidthRows,
   sort,
   onSortChange,
 }: DataTableProps<T>) {
@@ -124,6 +139,11 @@ export default function DataTable<T>({
 
   const resolvedMaxHeight = maxHeight ?? "70vh";
   const rowHeightClass = ROW_HEIGHT_CLASS[rowHeight];
+
+  const fullWidthRowsByIndex = React.useMemo(
+    () => groupFullWidthRowsByIndex(fullWidthRows, items.length),
+    [fullWidthRows, items.length],
+  );
 
   return (
     <div
@@ -143,15 +163,16 @@ export default function DataTable<T>({
                 style={col.width ? { width: col.width } : undefined}
                 className={resolveColumnTextAlignClass(col.align)}
               >
-                {col.header}
+                {renderColumnHeader(col.header, col.headerHelp)}
               </SortableTableHead>
             ))}
           </TableRow>
         </TableHeader>
         <TableBody>
+          <FullWidthRowsAt rowsByIndex={fullWidthRowsByIndex} index={-1} colSpan={columns.length} />
           {items.map((item, index) => (
+            <React.Fragment key={getKey(item, index)}>
             <TableRow
-              key={getKey(item, index)}
               className={cn(
                 "group",
                 rowHeightClass,
@@ -210,6 +231,8 @@ export default function DataTable<T>({
                 </TableCell>
               ))}
             </TableRow>
+            <FullWidthRowsAt rowsByIndex={fullWidthRowsByIndex} index={index} colSpan={columns.length} />
+            </React.Fragment>
           ))}
         </TableBody>
       </Table>

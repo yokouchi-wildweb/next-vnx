@@ -203,6 +203,22 @@ const columns = buildDomainColumns<Sample>({
 { header: "操作", render: (item) => <Button />, width: "80px" }
 ```
 
+### headerHelp（ヘッダーのホバー説明）
+
+全テーブル共通で、カラム定義に `headerHelp?: ReactNode` を指定できる。指定するとヘッダーが「ラベル + ?アイコン + ホバー説明」（`HelpTip`）に合成される。インプレッションや CTR など、名前だけでは意味が伝わらない集計・派生カラムに使用する。
+
+```tsx
+{
+  header: "詳細CTR",
+  headerHelp: "詳細クリック ÷ インプレッション。バナーが表示されたうち詳細が開かれた割合",
+  render: (item) => formatRate(item),
+}
+```
+
+- `header` にカスタムノードを渡している場合も、そのノードがラベルとして HelpTip に合成される
+- デスクトップはホバー、タッチデバイスはタップで説明が開閉する
+- 注意: ソート可能列（`sortKey` / `sortable`）では、タッチ端末でヘルプをタップするとソートも同時に発火する（クリック伝播は止めない仕様）
+
 ### CellAction（セルクリックオーバーレイ）
 
 DataTable / RecordSelectionTable のカラムに `cellAction` を設定すると、ホバー時にクリック領域とインジケーターが表示される。
@@ -230,6 +246,30 @@ cellAction: {
   ),
 }
 ```
+
+### fullWidthRows（全幅差し込み行）
+
+DataTable / RecordSelectionTable に `fullWidthRows` を渡すと、データ行の任意位置に全カラムを結合した情報行を挿入できる。グループの空き枠プレースホルダー・セクション区切り・行間の注釈などに使用する。
+
+```tsx
+import { DataTable, type FullWidthRow } from "@/lib/tableSuite";
+
+const fullWidthRows: FullWidthRow[] = [
+  {
+    key: "empty-stack-42",       // データ行のキーと衝突しない一意値
+    afterIndex: 2,               // index=2 のデータ行の直後に挿入（-1 = 先頭）
+    render: () => <EmptyStackPlaceholder stack={stack} />,
+    className: "border-dashed",  // tr への追加クラス（任意）
+  },
+];
+
+<DataTable items={items} columns={columns} fullWidthRows={fullWidthRows} />
+```
+
+- 挿入行は**選択・行クリック・ソート・一括操作の対象外**（RecordSelectionTable の選択状態・select-all・一括バーに影響しない）
+- `afterIndex` が items の範囲を超える場合は末尾に丸められる。items が空のときはすべて先頭に描画される
+- セルは `p-0` で描画されるため、パディングは `render` 内で自分で付ける
+- **`afterIndex` は現在の items に対する位置**。ソート・ページ変更などで items が変わる際は使用側が再計算する責任を持つ（ページネーション環境ではサーバー側で位置を算出して渡すことを推奨）
 
 ## ディレクトリ構造
 

@@ -20,12 +20,40 @@ Google tag (gtag.js) + Google Ads コンバージョン計測。**すべて `NEX
 
 ## API
 
-- `initGoogleTag(): void` — 冪等。gtag.js loader を 1 回だけ注入し、存在する ID のみ `config()`。既存の `window.gtag` / `dataLayer`（Firebase 等）を再利用
-- `<GoogleTag />` — `"use client"`。mount 時に `initGoogleTag()` を呼ぶ。root layout body に配置済み
+- `initGoogleTag(options?): void` — 冪等。gtag.js loader を 1 回だけ注入し、存在する ID のみ `config()`。既存の `window.gtag` / `dataLayer`（Firebase 等）を再利用。`options.ignoreReferrerPaths?: RegExp[]` でリファラー無視パスを追加可能
+- `<GoogleTag ignoreReferrerPaths? />` — `"use client"`。mount 時に `initGoogleTag()` を呼ぶ。root layout body に配置済み
 - `useGoogleAdsConversion()` → `{ fire }` — named コンバージョンを発火するフック。env 解決・dedup・mount ガードを内包
 - `trackGoogleAdsConversion({ sendTo, value?, currency?, transactionId? })` — 低レベル API（`sendTo` 空 or gtag 不在で no-op）
 - `GOOGLE_ADS_CONVERSIONS` — env から解決した named send_to レジストリ（`signup` / `coinPurchase`）
 - `isGoogleTagEnabled()` — GA4 もしくは Ads の ID が設定済みか
+
+## 外部リダイレクト戻りのリファラー無視（ignore_referrer）
+
+リダイレクト型決済（Stripe / fincode / Square）や Firebase Auth の `signInWithRedirect`（authDomain 既定 = `{project}.firebaseapp.com`）から戻ると、リファラーが中間ドメインになり GA4 がセッション参照元を上書きする（stripe.com は Google の参照元カテゴリで「ショッピングサイト」扱いのため **Organic Shopping** に振り分けられ、広告・検索等の本来の流入元が失われる。firebaseapp.com はソーシャルログインのたびに referral として記録される）。
+
+対策として `initGoogleTag()` は以下のいずれかに該当する場合、GA4 の `config` に `ignore_referrer: true` を付与し、元の流入元セッションを維持する（env 設定不要で全プロジェクトに自動適用）:
+
+1. **パス判定**: ランディング時のパスが `/wallet/{slug}/purchase/{callback|complete|failed}` に一致（リファラーが取れない環境でも決済戻りを拾うフォールバック）
+2. **リファラードメイン判定**: `document.referrer` のドメインが denylist に一致（サブドメイン込み）。既定: `firebaseapp.com` / `stripe.com` / `fincode.jp` / `square.site` / `squareup.com` / `gmopg.jp`（fincode カード決済の 3DS 認証ページ）/ `paypal.com` / `access.line.me`（LINE ログイン認可画面。LINE トーク等からの本物の流入を消さないよう `line.me` 全体は無視しない）。認証戻りは任意のページに着地するためパスでは判定できず、こちらでカバーする
+
+- downstream の追加は root layout で `<GoogleTag ignoreReferrerPaths={[/^\/your\/return\/path/]} ignoreReferrerDomains={["your-psp.example"]} />`
+- GA4 管理画面の「除外する参照のリスト」（管理 → データストリーム → タグ設定を行う）に上記ドメインを登録する対処も併用可（二重設定は無害）。コード側対策はこの lib 経由のタグ計測にのみ効く（Firebase Analytics が先に page_view を送るケースや GTM 直貼りには効かない）ため、管理画面側も設定しておくのが堅い
+- Firebase Auth のリファラー問題の根本対策は authDomain をアプリ自身のドメインにして `/__/auth/*` をプロキシする構成（Google 推奨・ITP 対策も兼ねる）。インフラ構成に依存するため downstream 判断
+- 決済ページ滞在が 30 分を超えた場合のセッション分断はどちらの方法でも防げない（GA4 仕様）
+
+## 招待リンク流入の独自チャンネル分類（campaign_source/medium）
+
+GA4 は utm_* / クリック ID しか流入元判定に使わず、招待リンク（`?invite=CODE`、userAcquisition/referral 参照）の
+独自パラメータは無視される。X 等でシェアされた招待リンクからの流入が「t.co / referral」や「(direct) / (none)」に
+分類されてしまうため、`initGoogleTag()` はランディング URL が **invite のみ**（utm_* もクリック ID も無い）の場合、
+GA4 config に `campaign_source` / `campaign_medium`（既定: `invite` / `invite`、`ACQUISITION_CONFIG.referralParam` の
+語彙を共有）と `ignore_referrer: true` を付与し、独自チャンネルとしてセッションを分類させる。
+
+- 優先順位はサービス側 DB 解析と同一（UTM > クリック ID > invite）。utm 併記リンクでは何もしない（GA 本来の判定を尊重）
+- GA 管理画面の設定は不要。ただしチャンネルグループ表示で「invite」を独自チャンネルにまとめたい場合のみ、
+  source=invite を条件にしたカスタムチャンネルグループを作成する（任意・表示グルーピングの話）
+- GA4 のチャンネルグループルールは独自パラメータを条件にできないため、GA 側設定だけではこの分類は実現できない
+  （このコード側対応が唯一の自動化手段。上記 ignore_referrer と同じく、この lib 経由のタグ計測にのみ効く）
 
 ## 発火ポイント（core）
 

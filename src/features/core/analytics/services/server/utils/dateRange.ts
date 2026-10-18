@@ -39,6 +39,10 @@ import { DomainError } from "@/lib/errors/domainError";
  *
  * granularity 省略時は DEFAULT_GRANULARITY（後方互換のため "day"）。
  * 期間は MAX_GRANULARITY_PERIOD_DAYS[granularity] で上限制限される。
+ *
+ * alignToGranularity: true の場合、dateFrom を granularity のバケット開始境界
+ * （week = ISO 月曜、month = 月初）へ floor する。上限切り詰めはアライメント後に
+ * 適用されるため、上限に達した場合は先頭バケットが再び不完全になることがある。
  */
 export function resolveDateRange(params: DateRangeParams): ResolvedDateRange {
   const tz = params.timezone ?? DEFAULT_TIMEZONE;
@@ -72,6 +76,11 @@ export function resolveDateRange(params: DateRangeParams): ResolvedDateRange {
   // 不正な範囲の場合はdateFromを強制調整
   if (dateFrom > dateTo) {
     dateFrom = startOfDayTz(dateTo, tz);
+  }
+
+  // opt-in: dateFrom をバケット開始境界へ floor（期間は過去方向にのみ伸びる）
+  if (params.alignToGranularity) {
+    dateFrom = GRANULARITY_SPECS[granularity].truncate(dateFrom, tz);
   }
 
   // 上限超過時は dateFrom を引き上げて期間を切り詰める
@@ -119,6 +128,8 @@ export function parseDateRangeParams(searchParams: URLSearchParams): DateRangePa
   const granularity = granularityParam && isGranularity(granularityParam)
     ? granularityParam
     : undefined;
+  const alignParam = searchParams.get("alignToGranularity");
+  const alignToGranularity = alignParam === "true" || alignParam === "1";
 
   return {
     ...(days && { days: Number(days) }),
@@ -126,6 +137,7 @@ export function parseDateRangeParams(searchParams: URLSearchParams): DateRangePa
     ...(dateTo && { dateTo }),
     ...(timezone && { timezone }),
     ...(granularity && { granularity }),
+    ...(alignToGranularity && { alignToGranularity }),
   };
 }
 
@@ -166,6 +178,22 @@ export function formatDateKey(date: Date): string {
 }
 
 /**
+ * YYYY-MM-DD の日付キー + タイムゾーン → その日の開始/終了（UTC Date）を返す。
+ *
+ * 日次ロールアップ等、「特定の1日」を再集計する処理でバケット境界を復元する用途。
+ * dateFrom = 00:00:00.000 / dateTo = 23:59:59.999（いずれも timezone 上のローカル時刻）。
+ */
+export function resolveDayBounds(
+  dateKey: string,
+  timezone: string,
+): { dateFrom: Date; dateTo: Date } {
+  return {
+    dateFrom: tzDateToUtc(dateKey, "00:00:00.000", timezone),
+    dateTo: tzDateToUtc(dateKey, "23:59:59.999", timezone),
+  };
+}
+
+/**
  * ResolvedDateRange → レスポンス用文字列ペア + granularity。
  *
  * dateFrom/dateTo は粒度に関わらず YYYY-MM-DD で返す（範囲の意味的な境界表現）。
@@ -199,6 +227,23 @@ export function granularityDateExpr(
   // truncUnit / sqlFormatPattern は内部で定義した安全なリテラルのみ流れ込むため
   // sql.raw / リテラル埋め込みが安全。timezone のみパラメータバインド。
   return sql<string>`to_char(date_trunc(${sql.raw(`'${spec.truncUnit}'`)}, ${column} AT TIME ZONE ${timezone}), ${sql.raw(`'${spec.sqlFormatPattern}'`)})`;
+}
+
+/**
+ * date 型カラム用の集計 SQL 式を生成する（granularityDateExpr の変種）。
+ *
+ * date 型カラムは既にタイムゾーン上のローカル日付として確定しているため、
+ * AT TIME ZONE 変換を挟まず `col::timestamp` に対して date_trunc する。
+ * （date に AT TIME ZONE を適用すると timestamptz へ再解釈され、
+ * サーバ TZ 依存のバケット境界ズレが起きる）
+ * 出力キー書式は granularityDateExpr / formatDateKeyTz と一致する。
+ */
+export function granularityDateExprForDateColumn(
+  column: AnyColumn | SQL,
+  granularity: Granularity,
+): SQL<string> {
+  const spec = GRANULARITY_SPECS[granularity];
+  return sql<string>`to_char(date_trunc(${sql.raw(`'${spec.truncUnit}'`)}, ${column}::timestamp), ${sql.raw(`'${spec.sqlFormatPattern}'`)})`;
 }
 
 /**

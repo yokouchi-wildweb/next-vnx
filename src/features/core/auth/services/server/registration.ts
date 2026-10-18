@@ -23,8 +23,22 @@ import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
+import { recordSignupAcquisition } from "@/features/core/userAcquisition/services/server";
+import type {
+  AcquisitionExtras,
+  AcquisitionTouch,
+} from "@/features/core/userAcquisition/entities/model";
 
 export type RegistrationInput = z.infer<typeof RegistrationSchema>;
+
+/**
+ * 流入経路（アトリビューション）情報。
+ * クライアント入力ではなく、API ルートがサーバーサイドで cookie から復元して渡す。
+ */
+export type RegistrationAcquisitionInput = {
+  touches: AcquisitionTouch[];
+  extras?: AcquisitionExtras | null;
+};
 
 export type RegistrationResult = {
   user: User;
@@ -36,7 +50,13 @@ export type RegistrationResult = {
   };
 };
 
-export async function register(input: unknown, ip?: string): Promise<RegistrationResult> {
+export async function register(
+  input: unknown,
+  ip?: string,
+  acquisition?: RegistrationAcquisitionInput,
+  /** 招待リンク由来の保留コード（referral 専用 cookie から API ルートが復元して渡す） */
+  pendingInviteCode?: string | null,
+): Promise<RegistrationResult> {
   const parsedResult = RegistrationSchema.safeParse(input);
 
   if (!parsedResult.success) {
@@ -116,10 +136,27 @@ export async function register(input: unknown, ip?: string): Promise<Registratio
     await userProfileService.upsertProfile(user.id, role as UserRoleType, profileData);
   }
 
+  // 流入経路の確定保存（recordSignupAcquisition は bestEffort 仕様のため登録をブロックしない）
+  if (acquisition && acquisition.touches.length > 0) {
+    await recordSignupAcquisition({
+      userId: user.id,
+      touches: acquisition.touches,
+      extras: acquisition.extras,
+    });
+  }
+
   // 招待コード処理（失敗しても登録はブロックしない）
-  if (APP_FEATURES.marketing.referral.enabled && inviteCode) {
+  // inviteCode の意味論:
+  // - 非空: フォームの値を使用（手入力 / プリフィル値）
+  // - "": プリフィルをユーザーが明示的に消した = 拒否（cookie フォールバックもしない）
+  // - undefined: 未指定 → 招待リンク由来（referral 専用 cookie、last-touch 優先）へフォールバック
+  const effectiveInviteCode =
+    inviteCode !== undefined
+      ? inviteCode || undefined
+      : pendingInviteCode ?? undefined;
+  if (APP_FEATURES.marketing.referral.enabled && effectiveInviteCode) {
     try {
-      await couponService.redeemWithEffect(inviteCode, user.id);
+      await couponService.redeemWithEffect(effectiveInviteCode, user.id);
     } catch (error) {
       console.warn("[registration] 招待コード処理に失敗しましたが登録は続行します:", error);
     }
