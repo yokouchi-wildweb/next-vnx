@@ -5,6 +5,14 @@
 ## STACK
 next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: firebase-storage | http: axios (client), fetch (server)
 
+## BACKEND_DOCTRINE
+firestore = realtime delivery channel ONLY (new domains default dbEngine:"Neon"; Firestore only when realtime UX is the essential requirement) | crud firestore adapter FROZEN (no feature additions, current limits = spec) | firebase coupling surface capped at auth/storage/delivery (no business data in Firestore, no logic in Firebase Functions) | auth↔users sync paths = core asset (verify both sides on any change) | hot-path realtime (sustained ~1write/sec+ shared state, 100s+ subscriber fanout, single-TX threshold semantics) = realtimeRoom (SERVERS), NOT Firestore | ref: docs/!must-read/バックエンド構成ドクトリン.md
+
+## SERVERS (Next外側の常駐サーバープログラム区画)
+placement: standalone server programs deployed outside Next/Vercel → servers/\<name\>/ (own package.json, NOT in pnpm workspace) | current: servers/room/ = realtime room authority (Cloudflare Durable Objects, opt-in default OFF, all paths fail-closed)
+rules: servers→src imports = lib/realtimeRoom/protocol + features/*/room ONLY | src→servers forbidden | room reducer = features/\<domain\>/room/ (PURE, lint realtime-room/purity) | economy/authority actions = server dispatch (createRoomClient) ONLY, PG stays authoritative | protocol breaking change → bump ROOM_PROTOCOL_VERSION
+setup/deploy/secret/ops + SDK usage: servers/room/README.md + src/lib/realtimeRoom/README.md (MUST read before touching servers/ or enabling room)
+
 ## CODE_PLACEMENT (3-tier)
 domain: src/features/, all including entities
 library: src/lib/\<name\>/, all except entities
@@ -76,7 +84,7 @@ ref: src/features/core/setting/README.md
 
 ## API_ROUTES
 required: every route uses one of 3 factories (createDomainRoute / createApiRoute / createMeRoute). each enforces authz structurally
-generic: GET|POST / (list|create) | GET|PATCH|DELETE /[id] (get|update|soft-delete) | POST /search, /count, /upsert, /bulk/delete-by-ids, /[id]/duplicate, /[id]/restore | DELETE /[id]/hard-delete
+generic: GET|POST / (list|create) | GET|PATCH|DELETE /[id] (get|update|soft-delete) | POST /search, /search-for-sorting, /count, /upsert, /bulk/delete-by-ids, /bulk/delete-by-query, /bulk/update (per-id {id,data}[] = bulkUpdate, NOT same-payload-only), /bulk/update-by-ids (same data for all ids), /bulk/upsert, /[id]/duplicate, /[id]/restore, /[id]/reorder | DELETE /[id]/hard-delete
 generic_access_control: serviceRegistry entry { service, access } (access TYPE-REQUIRED) → createDomainRoute enforces. access runtime source = registry (domain.json apiAccess is editing source, dc:generate expands it into registry; core domains write access directly in registry) | rules: public | authenticated | none | {roles,roleCategories}, per-op override via operations | not covered → fail-closed (admin only, default: src/config/app/domain-api-access.config.ts) | presets (same file): ADMIN_ONLY | PUBLIC_READ | ADMIN_OR_DEBUGGER (+single-rule ADMIN_OR_DEBUGGER_RULE for createApiRoute access / per-op override) | role check uses DB-synced getSessionUser | ref: docs/how-to/汎用APIアクセス制御ガイド.md
 custom_route_authz: createApiRoute requires `access` (TYPE-REQUIRED, fail-closed by construction): "public"|"authenticated"|{roles,roleCategories}|"custom". non-custom → factory enforces. "custom" → guard in handler yourself (webhook sig etc.) via requireAdmin()/requireAuthenticated() (@/features/core/auth/services/server/requireRole, throws DomainError→401/403, DB-synced getSessionUser) | lint route-authz/require-authz: warns if access:"custom" lacks an in-handler guard
 ownership_routes: user-owned data ("self only") → createMeRoute (/api/me/**). enforces auth, passes DB-synced `user` to handler. scope by user.userId server-side (never trust client-supplied id). generic /api/[domain] canNOT enforce ownership (where user_id is client-controlled) → keep admin-only | ref: docs/how-to/APIルート認可実装ガイド.md
@@ -107,6 +115,7 @@ extension: 1.check base methods → 2.relationWhere for relation filtering → 3
 files: xxxService.ts(import only) | wrappers/(CRUD override) | \<other\>/(domain-specific)
 requestMemo: option requestMemo:true → get(id) request-scoped memoized + all write methods auto-invalidate | enabled: user, setting | Drizzle only
 requestMemo_rule (MANDATORY): raw SQL write to enabled table → base.invalidateRequestMemo() right after | detail: src/lib/requestMemo/README.md
+hiddenColumns (secrets never leave service): defineHiddenColumns(table, props) in entities/drizzle.ts → ALL service returns + other domains' withRelations embeds null the cols (Drizzle only, fail-closed) | business domains: domain.json hiddenColumns key → dc:generate emits declaration | enabled: users.localPassword | internal secret read = dedicated finder (user findByIdWithSecrets) ONLY, never return over HTTP | detail: src/lib/crud/README.md
 firestore_limits: no or | single orderBy | no belongsToMany
 
 ## AUDIT
@@ -128,7 +137,7 @@ emergency_stop: AUDIT_MODE=disabled → all audit no-op
 user_visibility: GET /api/me/audit-logs is fail-closed — returns ONLY actions allow-listed in src/registry/userVisibleAuditActionsRegistry.ts (USER_VISIBLE_AUDIT_ACTIONS, upstream default empty = always empty results). exact name or "prefix.*" | covert admin actions stay invisible to the target user by default | admin routes/AuditTimeline unaffected
 non_http_context: runAsSystem(fn) | runWithAuditContext(ctx, fn)
 ui: \<AuditTimeline targetType targetId /\> | /admin/audit-logs cross-search | registerActionLabels({...}) for i18n
-cron: pnpm cron audit-log-prune (0 3 * * *) | pnpm cron audit-log-recover-dead-letter (0 * * * *)
+cron: pnpm task audit-log-prune (0 3 * * *) | pnpm task audit-log-recover-dead-letter (0 * * * *)
 ref: docs/how-to/監査ログ採用ガイド.md
 
 ## COUNTING (which primitive — check BEFORE building any count/tracking feature)
@@ -151,14 +160,15 @@ config: src/config/app/user-name.config.ts (maxLength + unique.enabled default f
 unique: app-layer check (user/services/server/helpers/nameAvailability.ts), NOT db unique constraint (late-enable + soft-delete + normalization reasons) | scope: deleted_at IS NULL AND is_demo=false | TOCTOU race closed via pg_advisory_xact_lock (withUserNameGuard wraps check+write in one tx, pass tx to base.create/update/restore) | lookup index: users_name_norm_idx lower(btrim(name)) (non-unique, always-on) | violation → DomainError 409 | bulk: isUserNamesTaken(names[]) → Set<taken inputs> (single query, same semantics)
 reserved_names: src/registry/reservedUserNamesRegistry.ts (downstream registers ReservedUserNameProvider, upstream ships empty) — non-user names (bots/NPC/synthetic entries/reserved words like 運営・admin) join the uniqueness check + suffix allocation avoids them | provider contract: filterReserved(normalizedNames)→reserved subset, fast local DB reads ONLY (runs inside advisory-lock tx), normalization = normalizeUserNameForComparison
 write points wired: registration/activate, wrappers/update (name change only), console/createGeneralUser+createAdmin+restore, wrappers/restore (generic /[id]/restore: collision → auto-suffix "name_2", not blocked)
-enable flow: unique.enabled=true deploy → pnpm cron user-name-dedup -- --dry-run → pnpm cron user-name-dedup (one-shot, idempotent, oldest keeps name) | ref: src/features/core/user/README.md
+enable flow: unique.enabled=true deploy → pnpm task user-name-dedup -- --dry-run → pnpm task user-name-dedup (one-shot, idempotent, oldest keeps name) | ref: src/features/core/user/README.md
 
 ## USER_STATUS_HISTORY (withdraw/pause/ban timing aggregation)
-user_status_histories: all users.status transitions, permanent (no prune), always-on | write: recordStatusTransition (user/services/server/statusHistory.ts) — MANDATORY when adding any status-writing code (from===to auto-skips) | agg: withdrawals/day = to_status='withdrawn' GROUP BY changed_at, exclude demo via users JOIN | backfill: pnpm cron user-status-history-backfill (one-shot, idempotent, restores from audit_logs within retention) | audit_logs reuse for aggregation prohibited | ref: src/features/core/user/README.md
+user_status_histories: all users.status transitions, permanent (no prune), always-on | write: recordStatusTransition (user/services/server/statusHistory.ts) — MANDATORY when adding any status-writing code (from===to auto-skips) | agg: withdrawals/day = to_status='withdrawn' GROUP BY changed_at, exclude demo via users JOIN | backfill: pnpm task user-status-history-backfill (one-shot, idempotent, restores from audit_logs within retention) | audit_logs reuse for aggregation prohibited | ref: src/features/core/user/README.md
 
-## CRON_TASKS
-scheduler not built-in: downstream copies vercel.json.example → Vercel auto-runs | new task = wire ALL 4: api/cron route + run.ts TASKS + vercel.json.example + docs/reference/cron-tasks.md
-one-shot migration task (e.g. wallet-lots-init): run.ts only, never scheduled | design: idempotent, batched+SKIP LOCKED, no-op unless opted-in | ref: src/lib/cron/README.md
+## OPS_TASKS (task runner + cron)
+runner: pnpm task \<name\> (scripts/tasks/run.ts) = unified CLI for ALL ops tasks — scheduled (cron) AND one-shot (backfill/migration). one-shot DB ops go HERE, not ad-hoc scripts
+scheduler not built-in: downstream copies vercel.json.example → Vercel auto-runs /api/cron/* | new scheduled task = wire ALL 4: api/cron route + scripts/tasks/run.ts TASKS + vercel.json.example + docs/reference/cron-tasks.md
+one-shot migration task (e.g. wallet-lots-init): TASKS entry only, never scheduled | design: idempotent, batched+SKIP LOCKED, no-op unless opted-in | ref: src/lib/cron/README.md
 
 ## ANALYTICS_PERF (heavy dashboard reads — check BEFORE adding per-domain caching/snapshot tables)
 cache: withAnalyticsCache({key,range}, fn) — closed(past-only) range=12h TTL, includes today=60s, auto-judged | per-instance memory | NOT immutable: call invalidateAnalyticsCache() after rewriting closed buckets | escape: ANALYTICS_CACHE=disabled
@@ -211,7 +221,7 @@ components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: cam
 db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates FK names as `{table}_{column}_{reftable}_{refcolumn}_fk` — long table/column names trigger `42622` NOTICE on db:push and the name gets truncated, which can collide. When adding tables/columns, keep names short enough so generated FK names stay ≤63 chars. If unavoidable, set an explicit shorter FK name via Drizzle's `foreignKey({...}, "shortname_fk")`.
 
 ## PROHIBITED
-- client fetch (use axios) — exception: streaming ClientService (SSE) may use fetch + ReadableStream, see AI_AGENT
+- client fetch (use axios) — exception: streaming ClientService (SSE) may use fetch + ReadableStream (see AI_AGENT) | realtimeRoom useRoomState may use native WebSocket (see SERVERS)
 - direct DB in API routes (use ServerService)
 - raw HTML when wrapper exists
 - direct _shadcn imports (use wrappers: button→Form/Button, input→Form/Input/*, skeleton→Skeleton/BaseSkeleton, etc. | no wrapper? → propose creating one)
@@ -233,7 +243,7 @@ db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates
 - アクション完了後の revalidate / resetItems による「最新化のための再フェッチ」(API レスポンスに含まれる処理済み ID で updateItems / removeItems を呼ぶこと。再フェッチは UX 退化 + 通信往復の二重コスト)
 
 ## CORE_FILES (approval required)
-src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css
+src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css, servers/room/src/core/, servers/room/src/index.ts
 src/config/: value changes OK | structure changes (add/remove keys, type change, rename) require approval
 
 ## TOOLS
@@ -243,6 +253,9 @@ playwright-mcp: available | use only when explicitly instructed by user
 ref: scripts/README.md | claude:test: API connection check (requires ANTHROPIC_API_KEY)
 db:query "SQL": execute SQL | db:tables: list tables | db:describe \<table\>: show structure | db:count [table]: row counts
 fs: Firestore equivalent of db: commands (fs:collections, fs:count, fs:describe, fs:query, fs:delete). run without args for usage
+
+## DOWNSTREAM_NOTICES (上流追随)
+upstream変更の追随通知 = .notices/*.md (変更と同じcommit/PRで出荷、mergeで下流に届く) | 起票: /downreq | 受領・適用: /flux (merge→未適用検出→承認1回→適用・DB・検証・台帳・commitまで完走) | 台帳: .notices/applied/\<fork-id\>.md (forkごと別ファイル) | ref: .notices/README.md
 
 ## DOCS
 policy: colocation-first — primary docs in README.md next to code | docs/ = legacy, phasing out except !must-read/ (exception: standalone docs allowed when clearly superior)

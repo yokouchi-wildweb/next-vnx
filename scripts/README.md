@@ -85,6 +85,41 @@ pnpm storage:setup-cors https://your-app.com https://www.your-app.com
 
 事前設定: `MY_SERVICE_ACCOUNT_KEY`(storage.buckets.update 権限) と `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
 
+### デプロイ (統合)
+
+```bash
+# アプリ(Vercel) + ルームサーバー(Cloudflare) を1コマンドで揃えてデプロイ(手動運用の標準)
+# room 無効フォークでは Worker を skip しアプリのみ。引数は vercel CLI へ透過(無指定なら --prod)
+pnpm deploy:all
+pnpm deploy:all -- --target=preview
+```
+
+※ vercel CLI に `--preview` フラグは無い(`--prod` は `--target=production` の短縮形)。プレビューは `--target=preview` を明示する
+
+### リアルタイムルーム (room)
+
+```bash
+# 有効化セットアップ(wrangler.toml 生成 + 依存インストール + チェックリスト表示。冪等)
+pnpm room:init
+
+# Worker 単体デプロイ(config enabled=false なら skip。既定Worker名 "room-server" は拒否。冪等)
+pnpm room:deploy
+
+# 共有鍵の生成 + Worker への非対話登録 + Next側env行の表示(未デプロイWorkerと登録済み鍵の上書きは拒否)
+pnpm room:secret
+pnpm room:secret --rotate   # 鍵ローテーション(Next側envの差し替えとセットで)
+
+# デプロイ済み Worker の動作確認(疎通・認可・WS配信・永続化の11項目。env から接続先を読む)
+pnpm room:check
+
+# ローカル実行(Cloudflare アカウント不要。wrangler dev)
+pnpm room:dev
+```
+
+用途: ホットパス・リアルタイム基盤 `servers/room` (Cloudflare Durable Objects) の運用コマンド。オプトイン既定無効。手順・env・CI 連携の一次情報:
+
+➡ [servers/room/README.md](../servers/room/README.md)
+
 ## ディレクトリ構成
 
 ```
@@ -95,5 +130,6 @@ scripts/
 │   ├── seed/              # シーダー
 │   └── clear/             # データ削除
 ├── domain-config/         # ドメイン設定生成
-└── mail/                  # メール関連
+├── mail/                  # メール関連
+└── room/                  # リアルタイムルーム基盤の init / deploy
 ```

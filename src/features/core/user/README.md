@@ -156,7 +156,7 @@ pnpm drizzle-kit push
 | `email` | Text | メールアドレス |
 | `name` | Text | 表示名 |
 | `role` | Enum | ロール |
-| `localPassword` | Text | ローカル認証用パスワードハッシュ |
+| `localPassword` | Text | ローカル認証用パスワードハッシュ（**秘匿カラム**、下記参照） |
 | `status` | Enum | ステータス |
 | `isDemo` | Boolean | デモユーザーフラグ |
 | `lastAuthenticatedAt` | Timestamp | 最終認証日時 |
@@ -166,6 +166,8 @@ pnpm drizzle-kit push
 | `createdAt` | Timestamp | 作成日時 |
 | `updatedAt` | Timestamp | 更新日時 |
 
+> **秘匿カラム（localPassword）**: `entities/drizzle.ts` の `defineHiddenColumns(UserTable, ["localPassword"])` 宣言により、`userService`（createCrudService）の全戻り値・他ドメインの `withRelations` 展開で **常に null 化** され、API レスポンスに乗ることはない。サーバー内部でハッシュを読む正規経路は `services/server/finders/findByIdWithSecrets.ts`（ID 指定・削除済み含む）と `findByLocalEmail.ts`（ローカルログイン用）の 2 つの直接 drizzle ファインダーのみ。これらの戻り値を HTTP レスポンスに乗せることは厳禁。仕組みの詳細は `src/lib/crud/README.md` の hiddenColumns 節を参照。
+>
 > **IP データの所在に注意**: ログイン / サインアップの IP は `signupIp` 列・`metadata.loginHistory` (JSONB)・専用テーブル `user_login_events` の **3 箇所に併存** している。同一 IP のアカウント横断検索など IP 集計を行う場合は、JSONB をスキャンせず [`userLoginEvent` ドメイン](../userLoginEvent/README.md) の検索 API (`countDistinctUsersByIp` / `findUsersBySameIp` / `findUsersBySubnet`) を使うこと。併存の理由と移行方針は同 README を参照。
 
 ### Enum 定義
@@ -269,8 +271,8 @@ export const RESERVED_USER_NAME_PROVIDERS: readonly ReservedUserNameProvider[] =
 ### 有効化手順（運用途中の切り替え）
 
 1. `unique.enabled: true` に変更してデプロイ（以後の新規書き込みから検証開始）
-2. 既存の重複を確認: `pnpm cron user-name-dedup -- --dry-run`
-3. 既存の重複を解消: `pnpm cron user-name-dedup`
+2. 既存の重複を確認: `pnpm task user-name-dedup -- --dry-run`
+3. 既存の重複を解消: `pnpm task user-name-dedup`
    - 各グループで `createdAt` 最古のユーザーが元の名前を保持し、他は「名前_2」「名前_3」…に自動リネーム
    - リネームは `base.update` 経由のため audit_logs に記録される
    - 冪等・one-shot（定期実行しない）
@@ -446,7 +448,7 @@ const rows = await db
 導入時に1回だけ実行（冪等・再実行安全）:
 
 ```bash
-pnpm cron user-status-history-backfill
+pnpm task user-status-history-backfill
 ```
 
 audit_logs に残っている `user.withdrew` / `user.status.changed` 等から復元する。監査ログの保持期限を過ぎて prune 済みの遷移は復元不可。

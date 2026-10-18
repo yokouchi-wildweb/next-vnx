@@ -2,12 +2,18 @@
 //
 // 日時入力コンポーネント。
 // - テキスト直入力・ペースト対応（ISO/和文/各種区切りを広く受理）
+// - 直接入力は厳密パースが成立した時点で即 onValueChange（blur を待たない）。
+//   blur は従来どおり表示の正規化と invalid 判定を担う
 // - 右側アイコンクリックで Popover に Calendar + TimeFields を表示
 // - Popover 内フォーカスフロー: 日付クリック → 時（全選択）→ 分 → 確定ボタン
 //   （時/分は数字の連続入力で自動遷移。詳細は TimeFields 参照）
 // - クリア/現在はドラフト操作のみ。値への反映は必ず確定ボタン経由
 //   （外クリック・Escape・キャンセルはドラフト破棄）
-// - 入出力契約: value は DatetimeLike、onValueChange は "YYYY-MM-DD HH:mm" または "" を返す
+// - 入出力契約: value は DatetimeLike、onValueChange は既定で "YYYY-MM-DD HH:mm" または "" を返す
+// - outputFormat="iso" 指定時、onValueChange はブラウザローカルTZのオフセット付き ISO8601
+//   （例: "2026-07-24T11:00:00+09:00"）を返す。サーバーの datetime スキーマ
+//   （nullableDatetime/requiredDatetime）はTZオフセットなしの日時文字列を拒否するため、
+//   RHF Controlled ラッパーを介さず出力を直接 API に送る場合は必ず "iso" を使うこと
 //
 // className プロパティの規約:
 // - className: コンポーネント全体（ラッパー要素）に適用。レイアウト・幅制御
@@ -52,6 +58,12 @@ export type DatetimeInputProps = BaseProps & {
   value?: DatetimeLike;
   defaultValue?: DatetimeLike;
   onValueChange?: (value: string) => void;
+  /**
+   * onValueChange の出力形式
+   * - "display"（既定）: "YYYY-MM-DD HH:mm"（TZナイーブ・表示用）
+   * - "iso": ブラウザローカルTZのオフセット付き ISO8601（API 直送する非RHF用途はこちら）
+   */
+  outputFormat?: "display" | "iso";
   /** 内部 <input> 要素に追加適用するクラス */
   inputClassName?: string;
   /** @deprecated `className` を使用してください（後方互換のためマージされます）*/
@@ -79,6 +91,7 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
       value,
       defaultValue,
       onValueChange,
+      outputFormat = "display",
       containerClassName,
       className,
       inputClassName,
@@ -111,8 +124,13 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
 
     if (hasValueProp && value !== prevExternalValue) {
       setPrevExternalValue(value);
-      setRawInput(formatDatetimeValue(value));
-      setIsInvalid(false);
+      // 入力中テキストと意味的に同値（タイピング中の即コミットが value 経由で
+      // 戻ってきたケース）なら表示を上書きせず、入力継続を妨げない
+      const formatted = formatDatetimeValue(value);
+      if (parseFlexibleDatetime(rawInput) !== formatted) {
+        setRawInput(formatted);
+        setIsInvalid(false);
+      }
     }
 
     const assignRef = useCallback(
@@ -127,6 +145,24 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
       [forwardedRef],
     );
 
+    // 正規化済み表示文字列（"YYYY-MM-DD HH:mm" または ""）を outputFormat に応じて変換して通知。
+    // 内部状態（rawInput）は常に表示形式のまま保持し、変換は出力の瞬間のみ行う
+    const emitValue = useCallback(
+      (normalized: string) => {
+        if (!onValueChange) return;
+        if (!normalized) {
+          onValueChange("");
+          return;
+        }
+        onValueChange(
+          outputFormat === "iso"
+            ? dayjs(normalized, OUTPUT_FORMAT, true).format()
+            : normalized,
+        );
+      },
+      [onValueChange, outputFormat],
+    );
+
     const commit = useCallback(
       (next: string) => {
         const parsed = parseFlexibleDatetime(next);
@@ -136,9 +172,9 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
         }
         setIsInvalid(false);
         setRawInput(parsed);
-        onValueChange?.(parsed);
+        emitValue(parsed);
       },
-      [onValueChange],
+      [emitValue],
     );
 
     const currentDayjs = useMemo(() => {
@@ -156,12 +192,12 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
       if (!draftDatetime) {
         setRawInput("");
         setIsInvalid(false);
-        onValueChange?.("");
+        emitValue("");
       } else {
         const formatted = draftDatetime.format(OUTPUT_FORMAT);
         setRawInput(formatted);
         setIsInvalid(false);
-        onValueChange?.(formatted);
+        emitValue(formatted);
       }
       setPopoverOpen(false);
     };
@@ -178,8 +214,13 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
           aria-invalid={isInvalid || rest["aria-invalid"]}
           onChange={(event) => {
             onChange?.(event);
-            setRawInput(event.target.value);
+            const next = event.target.value;
+            setRawInput(next);
             if (isInvalid) setIsInvalid(false);
+            // 完全な値として厳密パースできた時点で即コミット（クリア "" も含む）。
+            // 表示の正規化は blur に任せ、入力中の rawInput は書き換えない
+            const parsed = parseFlexibleDatetime(next);
+            if (parsed !== null) emitValue(parsed);
           }}
           onBlur={(event) => {
             onBlur?.(event);
