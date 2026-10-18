@@ -7,3 +7,12 @@
 - id:20260914-010639-coupon-redeem-entry-scope | date:2026-10-18T00:00:00+09:00 | commit:c55e30a2 | notes:no downstream redeem entry points / forked signup forms in this fork
 - id:20260930-061740-user-local-password-change-fix | date:2026-10-18T00:00:00+09:00 | commit:c55e30a2 | notes:no downstream newPassword callers; test:user-password-change 4/4 pass
 - id:20260930-121656-bank-transfer-review-opt-in | date:2026-10-18T00:00:00+09:00 | commit:c55e30a2 | notes:fork does not use bank_transfer_inhouse (0 rows); kept upstream default disabled
+- id:20261009-200818-db-unconfigured-startup | date:2026-10-18T00:00:00+09:00 | commit:3b45d81e | notes:no fork-owned layout/proxy reads DB unconditionally (all hits upstream-owned)
+- id:20261009-202450-firebase-unconfigured-startup | date:2026-10-18T00:00:00+09:00 | commit:3b45d81e | notes:no fork-owned root-layout component touches auth; engine/lab have no firebase imports; HTTP-level verify not run
+- id:20261011-112213-crud-search-rank | date:2026-10-18T00:00:00+09:00 | commit:3b45d81e | notes:save regenerated (defaultSearchRank); test:crud-search-rank 14/14; no weight tuning
+- id:20261012-083610-sortable-list-parent-scroll | date:2026-10-18T00:00:00+09:00 | commit:3b45d81e | notes:no action (no fork SortableList usages)
+- id:20261013-134500-drizzle-push-roundtrip-check | date:2026-10-18T00:00:00+09:00 | commit:3b45d81e | notes:patch applied via pnpm install; db:push:check reports zero statements on dev DB
+- id:20261014-101500-drizzle-generator-junction-foreignkey-import | date:2026-10-18T00:00:00+09:00 | commit:3b45d81e | notes:no fork domain with belongsToMany junction; save regenerate clean
+- id:20261014-115300-project-md-scope | date:2026-10-18T00:00:00+09:00 | commit:3b45d81e | notes:scope section inserted verbatim; all existing sections are dateless architecture rules (KEEP); file 149 lines, reduction proposed to user separately
+- id:20261014-132340-async-picker-modal | date:2026-10-18T00:00:00+09:00 | commit:3b45d81e | notes:no action (no fork picker modals)
+- id:20261014-160000-starter-home-switch | date:2026-10-18T00:00:00+09:00 | commit:3b45d81e | notes:(user)/page.tsx was never customized in this fork; upstream switch adopted as-is; no fork /demo pages to register
