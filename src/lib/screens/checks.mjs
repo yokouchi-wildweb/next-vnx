@@ -1,0 +1,343 @@
+// page 層の規律検査(純粋関数、副作用なし)。
+// screens.test.mjs が src/app/**/page.tsx を自動検出してこれらを適用する。
+// fork が独自の検査を書くときもここを import する(screens.test.mjs は import した時点でテストを登録する)。
+// 設計: src/lib/screens/README.md
+
+/**
+ * コメントを除去する(行コメントとブロックコメント)。
+ * 文字列・テンプレートリテラルの中は触らず、行コメント内の「/」+「*」をブロックコメントの開始と誤認しない
+ * (正規表現 2 本の置換だと `// see /api/me/` + `**` の後ろを次の `*` + `/` まで飲み込む)。
+ * 行コメントは改行を残して消す(行番号を保つ)。
+ * 既知の限界: 正規表現リテラルは追跡しない。`//` や引用符・バッククォートを含む正規表現が
+ * page.tsx / Screen / loader にあると、その行以降の判定がずれることがある(検査対象のファイルでは稀)。
+ */
+export function stripComments(src) {
+  let out = "";
+  let i = 0;
+  const n = src.length;
+  while (i < n) {
+    const ch = src[i];
+    const next = src[i + 1];
+    // 文字列・テンプレートリテラル: 終端までそのまま出力
+    if (ch === '"' || ch === "'" || ch === "`") {
+      const quote = ch;
+      out += ch;
+      i += 1;
+      while (i < n) {
+        const c = src[i];
+        out += c;
+        i += 1;
+        if (c === "\\") {
+          if (i < n) {
+            out += src[i];
+            i += 1;
+          }
+          continue;
+        }
+        if (c === quote) break;
+        if (quote !== "`" && c === "\n") break;
+      }
+      continue;
+    }
+    // 行コメント: 改行まで捨てる(改行は残す)
+    if (ch === "/" && next === "/") {
+      while (i < n && src[i] !== "\n") i += 1;
+      continue;
+    }
+    // ブロックコメント: 対応する終端まで捨てる(中の改行は残す)
+    if (ch === "/" && next === "*") {
+      i += 2;
+      while (i < n && !(src[i] === "*" && src[i + 1] === "/")) {
+        if (src[i] === "\n") out += "\n";
+        i += 1;
+      }
+      i += 2;
+      continue;
+    }
+    out += ch;
+    i += 1;
+  }
+  return out;
+}
+
+/** page.tsx が Screen を置けるディレクトリ(既定画面 / 下流の差し替え画面) */
+export const SCREEN_DIRS = ["_screen", "_components"];
+
+/** Next.js が page.tsx で認める設定 export の名前(値は page.tsx 自体に書く。Next が静的解析するため re-export 不可) */
+const PAGE_CONFIG_EXPORTS = [
+  "metadata",
+  "viewport",
+  "dynamic",
+  "revalidate",
+  "dynamicParams",
+  "fetchCache",
+  "runtime",
+  "preferredRegion",
+  "maxDuration",
+];
+
+/** Screen のファイルから default と一緒に re-export してよい名前(Next が実行時に読む値・関数) */
+export const REEXPORTABLE_FROM_SCREEN = ["metadata", "generateMetadata", "viewport", "generateViewport"];
+
+/**
+ * `start` 以降で最初に現れる open と対応する close の位置(括弧の釣り合い)を返す。
+ * 文字列リテラル・テンプレートリテラル内の括弧は数えない。見つからなければ -1
+ */
+function findBalancedEnd(src, start, open, close) {
+  let depth = 0;
+  let quote = null;
+  for (let i = start; i < src.length; i += 1) {
+    const ch = src[i];
+    if (quote) {
+      if (ch === "\\") i += 1;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      quote = ch;
+      continue;
+    }
+    if (ch === open) depth += 1;
+    else if (ch === close) {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/** `export const metadata = {...};` / `export const dynamic = "force-dynamic";` などの設定 export を 1 つ取り除く */
+function stripConfigExport(src) {
+  const re = new RegExp(`export\\s+(const|let)\\s+(${PAGE_CONFIG_EXPORTS.join("|")})\\b[^=]*=\\s*`);
+  const m = re.exec(src);
+  if (!m) return null;
+  const valueStart = m.index + m[0].length;
+  let end;
+  if (src[valueStart] === "{" || src[valueStart] === "[") {
+    end = findBalancedEnd(src, valueStart, src[valueStart], src[valueStart] === "{" ? "}" : "]");
+    if (end < 0) return null;
+  } else {
+    // プリミティブ値: 行末または ; まで
+    const rest = src.slice(valueStart);
+    const stop = rest.search(/;|\n/);
+    end = valueStart + (stop < 0 ? rest.length : stop) - 1;
+  }
+  let cut = end + 1;
+  // `{...} satisfies Metadata` / `{...} as const` の後置を一緒に消す
+  const suffix = /^\s*(satisfies|as)\s+[\w.<>]+/.exec(src.slice(cut));
+  if (suffix) cut += suffix[0].length;
+  if (src[cut] === ";") cut += 1;
+  return src.slice(0, m.index) + src.slice(cut);
+}
+
+/** `export async function generateMetadata(...) {...}` / `generateViewport` を 1 つ取り除く */
+function stripGenerateMetadata(src) {
+  const m = /export\s+(async\s+)?function\s+(generateMetadata|generateViewport)\s*\(/.exec(src);
+  if (!m) return null;
+  const parenStart = m.index + m[0].length - 1;
+  const parenEnd = findBalancedEnd(src, parenStart, "(", ")");
+  if (parenEnd < 0) return null;
+  const braceStart = src.indexOf("{", parenEnd);
+  if (braceStart < 0) return null;
+  const braceEnd = findBalancedEnd(src, braceStart, "{", "}");
+  if (braceEnd < 0) return null;
+  return src.slice(0, m.index) + src.slice(braceEnd + 1);
+}
+
+/** import 文を 1 つ取り除き、import 元を返す */
+function stripImport(src) {
+  const m = /import\s+(type\s+)?[\s\S]*?\s+from\s+["']([^"']+)["']\s*;?/.exec(src);
+  if (!m) return null;
+  return { src: src.slice(0, m.index) + src.slice(m.index + m[0].length), source: m[2] };
+}
+
+/** ルート内 loader のファイル名(拡張子なし)。`<route>/_screen/loader.ts`(下流の差し替えなら `_components/loader.ts`) */
+export const ROUTE_LOADER_FILE = "loader";
+
+/**
+ * page.tsx が許される import 元か。
+ * 設定 export(metadata / generateMetadata)に必要なもの: next(型)、lib、config、ルート内 loader、共有 loader。
+ * 画面ロジックに当たるもの(セクションコンテナ・hook・next/navigation 等)は不可
+ */
+function isAllowedImportSource(source) {
+  if (source === "next") return true;
+  if (/^@\/lib\//.test(source)) return true;
+  if (/^@\/config\//.test(source)) return true;
+  if (SCREEN_DIRS.some((dir) => source === `./${dir}/${ROUTE_LOADER_FILE}`)) return true;
+  if (/^@\/features\/[^/]+\/services\/server\/loaders\//.test(source)) return true;
+  if (/^@\/features\/core\/[^/]+\/services\/server\/loaders\//.test(source)) return true;
+  return false;
+}
+
+/**
+ * page.tsx を解析し、スイッチ形かどうかと参照先を返す。
+ * 許されるもの: `./_screen/<X>` または `./_components/<X>` からの `export { <Name> as default[, metadata, generateMetadata] }` 1 つ、
+ * 設定 export(metadata / dynamic 等)、generateMetadata、それらに必要な import。
+ * @param {string} source page.tsx の内容
+ * @returns {{ problems: string[], target: { screenDir: string, file: string, name: string } | null }}
+ *   problems が空ならスイッチ形。target は参照先(screenDir = "_screen" | "_components"、file = import パスの末尾、name = default に束ねた export 名)
+ */
+export function parseSwitchPage(source) {
+  const problems = [];
+  let target = null;
+  let src = stripComments(source);
+
+  // 1. ./_screen/ または ./_components/ からの re-export がちょうど 1 つ(default + 許可された名前のみ)
+  const reexports = [...src.matchAll(/export\s*\{([^}]*)\}\s*from\s*["']\.\/(_screen|_components)\/([\w./-]+?)["']\s*;?/g)];
+  if (reexports.length !== 1) {
+    problems.push(`./_screen/ または ./_components/ からの \`export { X as default }\` が 1 つだけ必要(${reexports.length} 個)`);
+  } else {
+    const [whole, names, screenDir, file] = reexports[0];
+    const specifiers = names.split(",").map((s) => s.trim()).filter(Boolean);
+    const defaultSpec = specifiers.find((s) => /\s+as\s+default$/.test(s));
+    if (!defaultSpec) {
+      problems.push("re-export に `X as default` が無い");
+    } else {
+      const name = defaultSpec.replace(/\s+as\s+default$/, "").trim();
+      target = { screenDir, file: file.replace(/\.tsx?$/, ""), name };
+    }
+    for (const spec of specifiers) {
+      if (spec === defaultSpec) continue;
+      if (REEXPORTABLE_FROM_SCREEN.includes(spec)) continue;
+      if (spec === "default") {
+        problems.push("Screen は default export しない。`export { XScreen as default } from ...` の形で束ねる");
+      } else if (PAGE_CONFIG_EXPORTS.includes(spec)) {
+        problems.push(`\`${spec}\` は Screen から re-export できない(Next が静的解析するため page.tsx 自体に書く)`);
+      } else {
+        problems.push(`Screen から re-export できる名前は default と ${REEXPORTABLE_FROM_SCREEN.join(" / ")} だけ(${spec})`);
+      }
+    }
+    src = src.replace(whole, "");
+  }
+
+  // 2. import は許可された元だけ
+  for (let hit = stripImport(src); hit; hit = stripImport(src)) {
+    src = hit.src;
+    if (!isAllowedImportSource(hit.source)) {
+      problems.push(`page.tsx で import できない: "${hit.source}"(画面ロジックは Screen へ)`);
+    }
+  }
+
+  // 3. 設定 export と generateMetadata は取り除く(中身は検査しない)
+  for (let next = stripConfigExport(src); next !== null; next = stripConfigExport(src)) src = next;
+  for (let next = stripGenerateMetadata(src); next !== null; next = stripGenerateMetadata(src)) src = next;
+
+  // 4. 残りは空でなければならない
+  const remainder = src.replace(/;/g, "").trim();
+  if (remainder) {
+    problems.push(`許可されない記述が残っている: ${remainder.split("\n")[0].trim()}`);
+  }
+  return { problems, target };
+}
+
+/**
+ * page.tsx の検査(互換 API)。問題があれば理由の配列を返す。
+ * @param {string} source page.tsx の内容
+ * @param {string} [screen] 期待する Screen 名(省略時は名前を問わない)。指定時は `./_screen/<screen>` への参照であること
+ */
+export function checkSwitchPage(source, screen) {
+  const { problems, target } = parseSwitchPage(source);
+  if (screen && target) {
+    if (target.screenDir !== "_screen" || target.file !== screen) {
+      problems.push(`import 先が ./_screen/${screen} ではない(./${target.screenDir}/${target.file})`);
+    }
+    if (target.name !== screen) problems.push(`re-export 名が ${screen} ではない(${target.name})`);
+  }
+  return problems;
+}
+
+/**
+ * Screen ファイルの検査。問題があれば理由の配列を返す。
+ * - `<name>` を named export している(関数 / const / barrel の `export { name }` のいずれか)
+ * - default export しない(page.tsx が as default で再 export する)
+ * - `"use client"` を持たない(Screen は Server Component。hook を使う部分はセクションコンテナへ下ろす)
+ * @param {string} source Screen ファイルの内容
+ * @param {string} name 期待する named export 名
+ */
+export function checkScreenFile(source, name) {
+  const problems = [];
+  const src = stripComments(source);
+  const declared = new RegExp(`export\\s+(async\\s+)?(function|const)\\s+${name}\\b`).test(src);
+  const barrel = new RegExp(`export\\s*\\{[^}]*\\b${name}\\b[^}]*\\}`).test(src);
+  if (!declared && !barrel) {
+    problems.push(`\`export function ${name}\` を持たない`);
+  }
+  if (/export\s+default/.test(src)) {
+    problems.push("default export しない(page.tsx が as default で再 export する)");
+  }
+  if (/^\s*["']use client["']/m.test(src)) {
+    problems.push('"use client" を持つ(Screen は Server Component。hook を使う部分はセクションコンテナへ下ろす)');
+  }
+  return problems;
+}
+
+/**
+ * Screen ファイルが barrel(`export { X } from "./Y"`)なら、実体のファイル名(拡張子なし)を返す。そうでなければ null
+ */
+export function barrelTarget(source, name) {
+  const src = stripComments(source);
+  const m = new RegExp(`export\\s*\\{[^}]*\\b${name}\\b[^}]*\\}\\s*from\\s*["']\\./([\\w./-]+?)["']`).exec(src);
+  return m ? m[1].replace(/\.tsx?$/, "") : null;
+}
+
+/**
+ * 再 export しか持たないファイルか(barrel / 旧パス互換の shim)。
+ * 全ての export 文が `from` 句付き(`export { X } from` / `export type { X } from` / `export * from` / `export * as ns from`)なら true。
+ * 宣言や `export { local }`(from 無し)が 1 つでもあれば false。loader の検査対象から外すために使う(本体は別の場所にある)
+ */
+export function isReexportOnlyFile(source) {
+  const src = stripComments(source);
+  if (!/\bexport\b/.test(src)) return false;
+  const rest = src.replace(/export\s+(type\s+)?(\*(\s+as\s+[\w$]+)?|\{[^}]*\})\s*from\s*["'][^"']+["']\s*;?/g, "");
+  return !/\bexport\b/.test(rest);
+}
+
+/** 相対 import(`./x` / `../x`)を from ファイルの位置から解決する(node:path に依存しない。`/` 区切り、`\` は `/` に正規化) */
+function resolveRelative(fromFile, source) {
+  const segments = fromFile.replace(/\\/g, "/").split("/").slice(0, -1);
+  for (const seg of source.split("/")) {
+    if (seg === "..") segments.pop();
+    else if (seg !== ".") segments.push(seg);
+  }
+  return segments.join("/");
+}
+
+/**
+ * loader が import してはいけない相手: `_components/`(契約外の部品)と Screen ファイル。型だけの import も不可(契約の型を契約外が決める逆転になる)。
+ * 相対 import は loader の場所(path)から解決して判定する(`_components/loader.ts` からの `./Part` は `_components/` 内を指す)。
+ * Screen 名の判定は相対 import か `_screen/` / `_components/` 配下に限る(`features/<domain>/types/XScreen` のような型ファイルを誤検出しない)
+ */
+function isInvertedLoaderImport(source, loaderPath) {
+  const resolved = /^\.\.?\//.test(source) && loaderPath ? resolveRelative(loaderPath, source) : source;
+  if (/(^|\/)_components(\/|$)/.test(resolved)) return true;
+  const screenLike = /(^\.\.?\/|\/_screen\/|\/_components\/)/.test(source);
+  return screenLike && /(^|\/)[A-Z]\w*Screen(\.tsx?|\/index(\.tsx?)?)?$/.test(source);
+}
+
+/**
+ * loader ファイルの検査。問題があれば理由の配列を返す
+ * - `import "server-only"` / React の `cache()` / `load<Xxx>` の export
+ * - `cache()` は中身が純粋(URL 解釈だけ・redirect だけ)でも必須。一律にして「後から取得を足したときの付け忘れ」を無くす
+ * - DTO 型は loader が所有する: `_components/` や Screen からの import(type 含む)は不可
+ * - `(protected)` 配下の loader は `requireCurrentUser` のみ。`getSessionUser`(nullable)の import は不可
+ *   (layout の authGuard が未ログインを弾いた後なので null 分岐は到達しない。公開ルートの任意パーソナライズ専用)
+ * @param {string} source loader の内容
+ * @param {{ path?: string }} [options] path = repo 相対パス(protected 判定に使う。省略時はその検査を行わない)
+ */
+export function checkLoaderFile(source, options) {
+  const { path = "" } = options ?? {};
+  const problems = [];
+  const src = stripComments(source);
+  if (!/import\s+["']server-only["']/.test(src)) problems.push('import "server-only" が無い');
+  if (!/\bcache\(/.test(src)) problems.push("React の cache() で包まれていない");
+  if (!/export\s+(const|async\s+function|function)\s+load[A-Z]\w*/.test(src)) problems.push("load<Name> を export していない");
+  for (const m of src.matchAll(/\b(?:import|export)\b[^"'`;]*?\bfrom\s*["']([^"']+)["']/g)) {
+    if (isInvertedLoaderImport(m[1], path)) problems.push(`${m[1]} を import している(DTO 型は loader が定義し、部品・Screen 側が loader から import する)`);
+  }
+  const importsGetSessionUser =
+    /import\s*(type\s*)?\{[^}]*\bgetSessionUser\b[^}]*\}\s*from/.test(src) || /\bfrom\s*["'][^"']*\/getSessionUser["']/.test(src);
+  if (/\(protected\)/.test(path) && importsGetSessionUser) {
+    problems.push("(protected) 配下の loader が getSessionUser を import している(requireCurrentUser({ behavior: \"redirect\", redirectTo }) を使う。redirectTo は layout の authGuard と同じ)");
+  }
+  return problems;
+}

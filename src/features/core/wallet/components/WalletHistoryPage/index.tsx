@@ -1,4 +1,6 @@
 // src/features/core/wallet/components/WalletHistoryPage/index.tsx
+// セクションコンテナ(履歴一覧)。page 層ではない(名前の *Page は歴史的なもの)。
+// 部品の import は絶対パス: 下流がこのファイルを _components/ に複製しても import を直さずに動く
 
 "use client";
 
@@ -9,14 +11,14 @@ import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
-import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
-import { walletHistoryBatchClient } from "@/features/core/walletHistory/services/client/walletHistoryBatchClient";
-import type { WalletHistoryBatchSummarySerialized } from "@/features/core/walletHistory/types/batch";
-import type { WalletType } from "@/config/app/currency.config";
+import { useMyWalletHistoryBatches } from "@/features/core/walletHistory/hooks/useMyWalletHistoryBatches";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
-import { HistoryListItem } from "./HistoryListItem";
+import { HistoryListItem } from "@/features/core/wallet/components/WalletHistoryPage/HistoryListItem";
 
-type WalletHistoryPageProps = {
+// 部品の barrel export: 下流が複製するときはここから import する
+export { HistoryListItem };
+
+export type WalletHistoryPageProps = {
   /** URLスラッグ */
   slug: string;
 };
@@ -25,21 +27,6 @@ const HISTORY_PAGE_SIZE = 20;
 
 export function WalletHistoryPage({ slug }: WalletHistoryPageProps) {
   const config = getCurrencyConfigBySlug(slug);
-
-  const fetcher = useCallback(
-    async ({ page, limit }: { page: number; limit: number }) => {
-      const result = await walletHistoryBatchClient.list({ page, limit });
-      // 該当のウォレットタイプでフィルタリング
-      const filtered = result.results.filter(
-        (item) => item.type === config?.walletType
-      );
-      return {
-        results: filtered,
-        total: filtered.length,
-      };
-    },
-    [config?.walletType]
-  );
 
   const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
   const handleScrollContainerRef = useCallback((node: HTMLDivElement | null) => {
@@ -63,10 +50,9 @@ export function WalletHistoryPage({ slug }: WalletHistoryPageProps) {
     error,
     hasMore,
     sentinelRef,
-  } = useInfiniteScrollQuery<WalletHistoryBatchSummarySerialized>({
-    fetcher,
+  } = useMyWalletHistoryBatches({
+    walletType: config?.walletType,
     limit: HISTORY_PAGE_SIZE,
-    deps: [config?.walletType],
     observerOptions,
   });
 
@@ -81,7 +67,7 @@ export function WalletHistoryPage({ slug }: WalletHistoryPageProps) {
   if (!config) {
     return (
       <Block padding="lg">
-        <Para tone="danger" align="center">
+        <Para tone="destructive" align="center">
           無効な通貨タイプです。
         </Para>
       </Block>
@@ -100,8 +86,8 @@ export function WalletHistoryPage({ slug }: WalletHistoryPageProps) {
       </Flex>
 
       {errorMessage ? (
-        <Block padding="lg" className="rounded-lg border border-red-200 bg-red-50">
-          <Para tone="danger" align="center">
+        <Block padding="lg" className="rounded-lg border border-destructive/30 bg-destructive/10">
+          <Para tone="destructive" align="center">
             {errorMessage}
           </Para>
         </Block>
@@ -139,7 +125,7 @@ export function WalletHistoryPage({ slug }: WalletHistoryPageProps) {
           </Flex>
         </div>
       ) : (
-        <Block padding="lg" className="rounded-lg border border-dashed border-gray-300">
+        <Block padding="lg" className="rounded-lg border border-dashed border-border">
           <Para tone="muted" align="center">
             履歴はまだありません
           </Para>

@@ -3,6 +3,7 @@ import nextConfig from "eslint-config-next";
 import auditPlugin from "./eslint-rules/audit-action-naming.mjs";
 import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
 import routeAuthzPlugin from "./eslint-rules/route-authz.mjs";
+import styleTokensPlugin from "./eslint-rules/style-tokens.mjs";
 
 export default [
   ...nextConfig,
@@ -37,6 +38,45 @@ export default [
     plugins: { "route-authz": routeAuthzPlugin },
     rules: {
       "route-authz/require-authz": "warn",
+    },
+  },
+  // 生パレット色(bg-slate-900 / text-white / bg-[#fff] 等)の禁止。色はテーマトークンで書く
+  // (詳細: eslint-rules/style-tokens.mjs, src/styles/README.md)。
+  // upstream 所有の UI(共有 UI・core ドメイン・ドメイン雛形)は error。下流固有 UI(features/<business>, app/)は対象外
+  // (下流が同じ規律を敷きたい場合は files にパスを足す)。
+  // 除外: _shadcn(vendored。見た目はラッパー側が上書きする) / Three(3D 演出) / gradient(トークン生成元)。
+  // ブランドロゴ色・ユーザーが選ぶ固定パレットなど正当な例外は理由付き eslint-disable で明示する。
+  {
+    files: [
+      "src/components/**/*.{ts,tsx}",
+      "src/lib/**/*.{ts,tsx}",
+      "src/features/core/**/*.{ts,tsx}",
+      "src/features/_template/**/*.{ts,tsx}",
+    ],
+    ignores: ["src/components/_shadcn/**", "src/components/Three/**", "src/lib/gradient/**"],
+    plugins: { "style-tokens": styleTokensPlugin },
+    rules: {
+      "style-tokens/no-raw-palette": "error",
+    },
+  },
+  // _shadcn の直接 import 禁止(CLAUDE.md PROHIBITED)。ラッパーは src/components に置く。
+  // 許可: src/components(ラッパー本体) / src/lib/tableSuite(table の指定ラッパー。セルエディタも primitive 層)。
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/components/**", "src/lib/tableSuite/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/components/_shadcn/*"],
+              message:
+                "_shadcn を直接 import しない。ラッパーを使う(対応表: src/components/_shadcn/README.md。無ければ src/components にラッパーを作る)",
+            },
+          ],
+        },
+      ],
     },
   },
   // ルームロジック (servers/room にバンドルされる) の純度制約。

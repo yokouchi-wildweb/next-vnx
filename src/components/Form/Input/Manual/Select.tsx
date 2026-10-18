@@ -35,6 +35,14 @@ export type SelectInputProps = {
    */
   showPlaceholderOption?: boolean;
   /**
+   * トリガーの高さ。`default` はフォーム用(内容に合わせて高くなる)、`sm` は一覧のフィルタ・並び替えなど
+   * ツールバー向けのコンパクトな高さ(h-8)。
+   * @default "default"
+   */
+  size?: "default" | "sm";
+  /** トリガー要素の id(外部 Label の htmlFor 用) */
+  id?: string;
+  /**
    * SelectTrigger に適用するクラス名。
    */
   className?: string;
@@ -65,6 +73,8 @@ export function SelectInput({
   includeNullOption = false,
   nullOptionLabel = "未選択（null）",
   showPlaceholderOption = true,
+  size = "default",
+  id,
   className,
   contentClassName,
   disabled,
@@ -103,7 +113,11 @@ export function SelectInput({
       disabled={disabled}
       {...rest}
     >
-      <SelectTrigger className={cn("!h-auto border-muted-foreground/50 py-3", className)}>
+      <SelectTrigger
+        id={id}
+        size={size}
+        className={cn(size === "default" && "!h-auto border-muted-foreground/50 py-3", className)}
+      >
         <SelectValue placeholder={placeholder ?? "選択してください"} />
       </SelectTrigger>
       <SelectContent className={cn("surface-ui-layer", contentClassName)}>

@@ -1,4 +1,6 @@
 // src/features/core/wallet/components/WalletPurchasePage/index.tsx
+// セクションコンテナ(購入・決済方法選択)。page 層ではない(名前の *Page は歴史的なもの)。
+// 部品の import は絶対パス: 下流がこのファイルを _components/ に複製しても import を直さずに動く
 
 "use client";
 
@@ -15,10 +17,13 @@ import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/co
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 import { ActiveTransferBanner } from "@/features/core/bankTransferReview/components/ActiveTransferBanner";
 
-import { PurchaseSuspended } from "../common/PurchaseSuspended";
-import { CurrencyPurchase } from "./CurrencyPurchase";
+import { PurchaseSuspended } from "@/features/core/wallet/components/common/PurchaseSuspended";
+import { CurrencyPurchase } from "@/features/core/wallet/components/WalletPurchasePage/CurrencyPurchase";
 
-type WalletPurchasePageProps = {
+// 部品の barrel export: 下流が Screen やセクションコンテナを複製するときはここから import する
+export { CurrencyPurchase };
+
+export type WalletPurchasePageProps = {
   /** URLスラッグ */
   slug: string;
 };
@@ -36,7 +41,7 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
   if (!config) {
     return (
       <Block padding="lg">
-        <Para tone="danger" align="center">
+        <Para tone="destructive" align="center">
           無効な通貨タイプです。
         </Para>
       </Block>
@@ -49,7 +54,7 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
   if (!amountParam || !priceParam) {
     return (
       <Stack space={8}>
-        <Para tone="danger" align="center">
+        <Para tone="destructive" align="center">
           購入情報が指定されていません。
         </Para>
         <Flex justify="center">
@@ -68,7 +73,7 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
   if (isNaN(purchaseAmount) || isNaN(paymentAmount) || purchaseAmount <= 0 || paymentAmount <= 0) {
     return (
       <Stack space={8}>
-        <Para tone="danger" align="center">
+        <Para tone="destructive" align="center">
           無効な購入情報です。
         </Para>
         <Flex justify="center">
@@ -93,7 +98,7 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
   if (error) {
     return (
       <Block padding="lg">
-        <Para tone="danger" align="center">
+        <Para tone="destructive" align="center">
           残高情報の取得に失敗しました。
         </Para>
       </Block>

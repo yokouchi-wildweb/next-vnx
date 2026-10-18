@@ -1,0 +1,20 @@
+// src/app/admin/(protected)/sample-tags/new/_screen/AdminSampleTagCreateScreen.tsx
+// このファイルは dc:generate が生成する(再生成で上書きされるため手で編集しない)。
+// 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
+
+import AdminSampleTagCreate from "@/features/sampleTag/components/AdminSampleTagCreate";
+import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+
+export const metadata = {
+  title: "サンプルタグ追加",
+};
+
+export function AdminSampleTagCreateScreen() {
+  return (
+    <AdminPage>
+      <PageTitle placement="header">サンプルタグ追加</PageTitle>
+      <AdminSampleTagCreate redirectPath="/admin/sample-tags" />
+    </AdminPage>
+  );
+}

@@ -369,7 +369,7 @@ import DetailModal from "@/components/Overlays/DetailModal";
   open={isOpen}
   onOpenChange={setIsOpen}
   title="商品詳細"
-  badge={{ text: "公開中", colorClass: "bg-green-500" }}
+  badge={{ text: "公開中", variant: "success" }}
   media={{ type: "image", url: "/product.jpg", alt: "商品画像" }}
   rows={[
     { label: "商品名", value: "サンプル商品" },
@@ -387,7 +387,7 @@ import DetailModal from "@/components/Overlays/DetailModal";
 | `onOpenChange` | `(open: boolean) => void` | - | 状態変更コールバック |
 | `title` | `string` | - | タイトル |
 | `titleSrOnly` | `boolean` | - | タイトルをスクリーンリーダー専用にする |
-| `badge` | `{ text: string; colorClass?: string }` | `colorClass: "bg-green-500"` | タイトル横に表示するバッジ |
+| `badge` | `{ text: string; variant?: BadgeVariant; colorClass?: string }` | `variant: "success"` | タイトル横に表示するバッジ(`SolidBadge`)。`colorClass` は @deprecated(className として渡される。生パレット色の `bg-*` を書くと文字色がテーマに追従しない) |
 | `media` | `{ type?: "image" \| "video"; url: string; alt?: string; poster?: string }` | `type: "image"` | メディアプレビュー |
 | `rows` | `DetailModalRow[]` | - | `{ label, value }` の配列、または `ReactNode[]` によるカスタム行 |
 | `footer` | `ReactNode` | - | テーブル下に任意のフッターを配置 |
@@ -518,6 +518,16 @@ import {
 **DialogContent の主な追加 props**
 - `showCloseButton`（デフォルト `true`）: 右上の Close ボタンの表示有無
 - `maxWidth` / `minHeight` / `maxHeight` / `height`: サイズ調整。数値は `px` として解釈。
+
+### CommandPrimitives
+
+コマンドパレット（入力 + 候補リスト）を自前で組むための低レベル部品。`_shadcn/command` のプロジェクト向け入口で、`src/components` 外からは必ずここを経由する（直接 import は ESLint が止める）。
+
+```tsx
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/Overlays/CommandPrimitives";
+```
+
+フォームの選択入力には使わない。検索付き選択は `Form/Input/Manual` の `ComboboxInput` / `AsyncComboboxInput` / `MultiSelectInput`、大量マスタからの選択は `AsyncPickerModal`。実例: `src/features/core/adminCommand`。
 
 ---
 
