@@ -34,3 +34,4 @@
 - id:20261018-220000-screens-public-routes | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:top page never replaced in fork (StarterHome switch kept); no fork edits to the 6 public routes
 - id:20261018-230000-screens-auth-routes | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:auth routes never edited in fork
 - id:20261019-000000-ui-layers-vocabulary | date:2026-10-18T20:30:00+09:00 | commit:75cf713c | notes:docs-only; no fork edits to the touched docs; fork has no feature containers yet (engine/ is outside the SCREENS contract)
+- id:20261019-010000-ui-layers-rename | date:2026-10-19T00:05:00+09:00 | commit:60abb541 | notes:merge only; fork had no old-path imports and no _components copies (steps 2-4 no-op); browser manual checks left to human
