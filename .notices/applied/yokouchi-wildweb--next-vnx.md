@@ -16,3 +16,20 @@
 - id:20261014-115300-project-md-scope | date:2026-10-18T00:00:00+09:00 | commit:3b45d81e | notes:scope section inserted verbatim; all existing sections are dateless architecture rules (KEEP); file 149 lines, reduction proposed to user separately
 - id:20261014-132340-async-picker-modal | date:2026-10-18T00:00:00+09:00 | commit:3b45d81e | notes:no action (no fork picker modals)
 - id:20261014-160000-starter-home-switch | date:2026-10-18T00:00:00+09:00 | commit:3b45d81e | notes:(user)/page.tsx was never customized in this fork; upstream switch adopted as-is; no fork /demo pages to register
+- id:20261016-010000-site-theme-and-style-ownership | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:fork never edited theme.css/layout.tsx; mail:generate-colors produced no diff; tests site-theme/style-tokens/cn pass
+- id:20261016-020000-fonts-config | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:no fork webfont loading; default config kept; test:fonts pass
+- id:20261017-010000-semantic-tokens-variant-overrides-lint | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:fork-owned HudFrame (src/components/Widgets) had 32 raw-palette hits → replaced with HUD tokens defined in src/styles/custom/hud.css; 0 eslint-disable
+- id:20261017-020000-core-ui-color-sweep-and-shadcn-import-lint | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:no _shadcn imports outside components/lib; no copied core screens
+- id:20261017-030000-wallet-history-pagination-by-type | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:no fork copies of WalletHistoryPage
+- id:20261017-040000-screen-switch-wallet-pilot | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:wallet page.tsx never edited in fork
+- id:20261017-050000-screens-fork-route-registry | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:leaf fork; superseded by auto-discovery
+- id:20261017-060000-dc-generate-admin-screen-structure | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:save domain regenerated (no admin routes enabled → no change); sample domains regenerated upstream
+- id:20261017-070000-screens-auto-discovery-and-default-rule | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:fork route (user)/draft migrated to _screen/DraftScreen.tsx; src/app/lab registered in FORK_SCAN_EXCLUDES (experiment area); test:screens 148/148
+- id:20261018-160000-screens-route-local-loader | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:no fork loaders under features/**/loaders
+- id:20261018-170000-screens-loader-dto-and-session-rule | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:no fork loaders
+- id:20261018-180000-screens-fork-scan-roots | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:FORK_SCAN_EXCLUDES=["src/app/lab"]; (play)/(studio) groups have no page.tsx yet
+- id:20261018-190000-screens-purchase-routes | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:purchase routes never edited in fork
+- id:20261018-200000-screens-mypage-routes | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:mypage routes never edited in fork
+- id:20261018-210000-admin-relation-options-prefetch | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:no hand-written admin _screen files; test:relation-options 3/3
+- id:20261018-220000-screens-public-routes | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:top page never replaced in fork (StarterHome switch kept); no fork edits to the 6 public routes
+- id:20261018-230000-screens-auth-routes | date:2026-10-18T00:00:00+09:00 | commit:a4b1dcd5 | notes:auth routes never edited in fork
