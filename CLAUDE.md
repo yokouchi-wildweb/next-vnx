@@ -1,9 +1,13 @@
 # CLAUDE.md
 
 > **FORMAT_RULE**: AI agent optimized. No tables, no verbose prose. Use key:value, inline separators (|, ,), bullet points. Keep additions in this style.
+> **ROLE**: this file = upstream core contract index (how to use shared capabilities), NOT a project log. fork-specific architecture/map/rules → .claude/rules/project.md (its `scope` section defines what belongs there and what never does). dated records → docs/journal/
 
 ## STACK
 next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: firebase-storage | http: axios (client), fetch (server)
+
+## UNCONFIGURED_BACKENDS (env:init 直後 = DATABASE_URL / MY_SERVICE_ACCOUNT_KEY / NEXT_PUBLIC_FIREBASE_* 空でも起動する契約)
+detect: isDatabaseConfigured (@/lib/drizzle) | isFirebaseClientConfigured (@/lib/firebase/client/app) | isFirebaseServerConfigured (@/lib/firebase/server/app) — 判定は「未設定」のみ、設定済み接続不能は従来どおり例外 (障害を隠さない) | 未設定アクセス = DatabaseNotConfiguredError / FirebaseNotConfiguredError で即 fail-fast (接続待ちしない) | 常時マウント経路 (proxy / root layout / settingService.getGlobalSetting / createCrudService 構築) は未設定でも落ちない = 契約、新規追加時は同じガード | ref: src/lib/firebase/README.md 未設定モード
 
 ## BACKEND_DOCTRINE
 firestore = realtime delivery channel ONLY (new domains default dbEngine:"Neon"; Firestore only when realtime UX is the essential requirement) | crud firestore adapter FROZEN (no feature additions, current limits = spec) | firebase coupling surface capped at auth/storage/delivery (no business data in Firestore, no logic in Firebase Functions) | auth↔users sync paths = core asset (verify both sides on any change) | hot-path realtime (sustained ~1write/sec+ shared state, 100s+ subscriber fanout, single-TX threshold semantics) = realtimeRoom (SERVERS), NOT Firestore | ref: docs/!must-read/バックエンド構成ドクトリン.md
@@ -73,6 +77,7 @@ core: src/features/core/, no domain.json, manual. examples: auth, user, wallet, 
 business: src/features/, has domain.json, dc:generate. examples: sample, sampleCategory, sampleTag
 path_alias: tsconfig paths maps @/features/\<coreDomain\>/* → @/features/core/\<coreDomain\>/*. omit core/ in imports (preferred)
 schema_registry (MANDATORY): src/registry/schemaRegistry.ts = sole drizzle-kit push entry. business domains auto-registered by dc:generate | core domain with new entities/drizzle.ts → add `export *` to CORE DOMAINS block by hand + run `pnpm test:schema-registry` (fails on any unregistered core drizzle.ts) + ship .notices with [user-run] db:push. unregistered = table never created, bestEffort writes fail silently (precedent: userLoginEvent)
+push_roundtrip (MANDATORY when adding/changing an index): `pnpm db:push` → `pnpm db:push:check` must report zero statements (read-only dry-run, APP_ENV-aware). non-round-trip index = DROP+CREATE on EVERY push = write lock on large prod tables | never `sql\`${col} DESC\`` (use .desc()), never mix plain columns + sql expressions in one index (all-expression or none) | drizzle-kit patched via pnpm patchedDependencies (pushSchema params, empty-array/jsonb default normalization) | ops doctrine: push may lock tables → choose timing (maintenance/low traffic), no per-push judgment | ref: scripts/registry/README.md
 
 commands: dc:init | dc:generate -- \<Domain\> | dc:generate:all | dc:delete -- \<Domain\> | dc:add -- \<Domain\>
 config_utils: src/lib/domain/ | getDomainConfig(domain), extractFields(config), getRelations(domain) | client: index.ts, server: server.ts
@@ -110,6 +115,7 @@ hook-only: use\<Domain\>ViewModal(useDetailModal)
 relationWhere: search/searchWithDeleted/searchForSorting/count accept `relationWhere?: RelationFilter[]` for filtering by relations (Drizzle only). Two variants: BelongsToManyFilter(targetIds+mode:any|all|none) for M2M | BelongsToFilter(where:WhereExpr) for belongsTo. Discriminated by targetIds vs where. Type: RelationFilter from @/lib/crud/types
 extraWhere: search/searchWithDeleted/searchForSorting/count accept `extraWhere?: SQL` (Drizzle only) for conditions beyond WhereExpr DSL (subqueries, EXISTS, JSONB, etc.). Type: ExtraWhereOption from @/lib/crud/drizzle
 extraOrderBy: search/searchWithDeleted accept `extraOrderBy?: SQL[]` (Drizzle only) for SQL-expression ordering (COALESCE/CASE etc.) beyond column-name OrderBySpec. Takes precedence over orderBy (orderBy becomes tiebreak). Type: ExtraOrderByOption from @/lib/crud/drizzle
+searchRank (relevance ranking, Drizzle only): search/searchWithDeleted accept `searchRank?: boolean | {fields:[{field,weight}]}` → ORDER BY head = sum of per-field CASE (exact 100 > prefix 60 > word-start 40 > substring 20) × weight, then orderBy, id. WHERE/count unchanged. `true` = service `defaultSearchRank` (domain.json `searchRank` key for business domains) else searchFields equal weight. fields fail-closed to searchFields ∩ columns. AsyncComboboxInput/AsyncMultiSelectInput send `searchRank:true` by default (prop override) — every picker ranked, lists untouched. legacy searchPriorityFields/prioritizeSearchHits = @deprecated, still work. wrappers reuse buildSearchWhere/buildSearchRankOrderBy from @/lib/crud/drizzle, never re-implement CASE. `%q%` scan cost unchanged → pg_trgm recipe in src/lib/crud/README.md | test: pnpm test:crud-search-rank
 withRelations: `withRelations?: boolean | number`. true/1 = 1 level, 2+ = recursive nested relation fetch (requires nested config on relation definition, max depth=3). Expands belongsTo(FK→object), belongsToMany(IDs→objects), hasMany(parent→child array). use\<Domain\>/use\<Domain\>List hooks do NOT accept WithOptions — use useSearch\<Domain\> (search hook) which passes WithOptions through params
 hasManyLimit: `hasManyLimit?: number` in WithOptions. Per-parent child record limit for hasMany expansion (default: 100). Passed via query param from client→API→service
 extension: 1.check base methods → 2.relationWhere for relation filtering → 3.extraWhere for SQL injection → 4.base.query()+wrappers → 5.custom service
@@ -201,10 +207,12 @@ core_domain_ui_boundary: core domains (this upstream) ship DATA LAYER ONLY (enti
 
 wrappers (raw HTML NG): div→Layout/{Block,Flex,Grid,Stack} | main→Layout/Main or UserPage | section→Layout/Section | button→Form/Button | input→Form/Input | p→TextBlocks/Para | h2→TextBlocks/SecTitle | skeleton→Skeleton/BaseSkeleton | img→Media/AppImage (direct next/image NG too; encapsulates fill/sizes/fallback + unregistered-host crash guard, ref: src/components/Media/AppImage/README.md)
 
-overlays (direct _shadcn/dialog or self-built overlay NG — pick from here): modal-confirm→Overlays/Dialog | generic modal→Overlays/Modal | tabbed modal→Overlays/TabbedModal | media+rows detail→Overlays/DetailModal | inline confirm→Overlays/Popover/ConfirmPopover | text/number prompt→Overlays/Popover/PromptPopover | action menu→Overlays/Popover/ActionPopover | multi-select list→Overlays/Popover/ChecklistPopover | help/info bubble(click)→Overlays/Popover/InfoPopover | label+?icon hover help→Overlays/Tooltip/HelpTip | generic popover→Overlays/Popover | hover hint→Overlays/Tooltip (shared TooltipProvider mounted in app/layout.tsx — per-instance skipDelayDuration falls back to local Provider) | hover preview card→Overlays/HoverCard | image zoom→Overlays/ImageViewer | loading overlay→Overlays/Loading/ScreenLoader | toast→@/lib/toast (GlobalToast+useToast) | low-level only→Overlays/DialogPrimitives
+overlays (direct _shadcn/dialog or self-built overlay NG — pick from here): modal-confirm→Overlays/Dialog | generic modal→Overlays/Modal | tabbed modal→Overlays/TabbedModal | media+rows detail→Overlays/DetailModal | pick N records from large master (search+infinite scroll, action-button entry)→Overlays/AsyncPickerModal (NOT Modal wrapping AsyncMultiSelectInput) | inline confirm→Overlays/Popover/ConfirmPopover | text/number prompt→Overlays/Popover/PromptPopover | action menu→Overlays/Popover/ActionPopover | multi-select list→Overlays/Popover/ChecklistPopover | help/info bubble(click)→Overlays/Popover/InfoPopover | label+?icon hover help→Overlays/Tooltip/HelpTip | generic popover→Overlays/Popover | hover hint→Overlays/Tooltip (shared TooltipProvider mounted in app/layout.tsx — per-instance skipDelayDuration falls back to local Provider) | hover preview card→Overlays/HoverCard | image zoom→Overlays/ImageViewer | loading overlay→Overlays/Loading/ScreenLoader | toast→@/lib/toast (GlobalToast+useToast) | low-level only→Overlays/DialogPrimitives
 ref: src/components/Overlays/README.md
 
 UserPage: Main alias, wraps \<main\> with containerType, h1 not included
+kiosk (non-scrolling 1-screen pages outside UserLayout/AdminLayout): KioskFrame (AppFrames/Kiosk, viewport-fixed h-[--viewport-height] overflow-clip flex-col, children `flex-1 min-h-0`, safeArea/wakeLock) | fit-scale: ScaledStage (Layout, logical WxH → transform:scale contain/width/height, letterbox) + useFitScale(containerRef,{logicalWidth,logicalHeight,fit,minScale=0,maxScale=∞}) src/hooks | fluid: text-fluid-xs..5xl (theme.css clamp vmin, TextBlocks size fluidXs..fluidXxxl) + Tailwind builtin portrait:/landscape: + short: | inside layouts use UserPage fill / AdminPage fill instead | ref: src/components/AppFrames/Kiosk/README.md
+cn_class_groups (MANDATORY): new `--text-*` token in theme.css → register in src/lib/cn FLUID_TEXT_SIZES (tailwind-merge treats unknown text-* as COLOR and drops the sibling text color) | test: pnpm test:cn (parses theme.css, fails on drift)
 
 ui_layers:
 - page: SSR entry, minimal tags, no hooks
@@ -218,7 +226,8 @@ FieldRenderer: baseFields, fieldPatches, insertBefore/insertAfter, fieldGroups, 
 FormInputType: textInput, numberInput, textarea, select, multiSelect, combobox, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, colorInput, mediaUploader, mediaUploaderMulti, hidden, custom, none
 mediaUploaderMulti: 複数枚アップロード(string[])。validationRule.maxItems(既定10)/minItems、reorderable(既定true)、画像/動画両対応(mediaTypePreset). DBは text[] NOT NULL DEFAULT [] (Neon)
 programmatic_value: hidden(in schema, no UI, value submitted) or custom(in schema, own UI) | none = excluded from schema entirely, NOT for programmatic use
-async_select: AsyncComboboxInput(single), AsyncMultiSelectInput(multi) — async search+select. User-specific: UserAsyncCombobox/UserAsyncMultiSelect (features/core/user/components/common/) — props: role, where, initialId(s), formatLabel
+async_select: AsyncComboboxInput(single), AsyncMultiSelectInput(multi) — async search+select. engine = Form/Input/Manual/AsyncOptionSource (useAsyncOptionSource + AsyncOptionList/states), shared with Overlays/AsyncPickerModal — new async picker MUST consume it, never re-implement browse/search paging. User-specific: UserAsyncCombobox/UserAsyncMultiSelect (features/core/user/components/common/) — props: role, where, initialId(s), formatLabel
+device_hooks (src/hooks/, domain-free, SSR-safe, unsupported→supported:false never throw): useWakeLock(enabled) screen sleep suppress | useFullscreen(ref?) Fullscreen API toggle+state | useViewportOrientation() landscape/portrait + isShortHeight(max-height 500px, matchMedia = same judgment as CSS `short:` variant in theme.css, keep threshold in sync) | useMediaQuery(query) generic
 async_guard: useAsyncAction(src/hooks/) — useRefベースの排他ロックで非同期アクションの二重発火を防止。Dialog/ConfirmPopoverはonConfirmがPromiseを返すと自動でloading管理+ロック
 async_feedback (MUST): client-side background通信(mutation/送信/同期)中は必ずローディング状態を可視化 — ボタン内スピナー/ScreenLoader(local)/persistent toast(variant:loading)のいずれか。無反応UI禁止。Dialog/ConfirmPopoverのPromise自動loading・useAsyncActionのpending活用を優先 | 例外: fire-and-forget計測(trackInteraction等)
 infinite_scroll: 無限スクロール画面は @/components/Widgets/InfiniteScrollList を使う (sentinel/初回ローダー/空表示/追加スピナー/完了メッセージを内包)。データ取得は @/hooks/useInfiniteScrollQuery 派生フックで、isInitialLoading / isFetchingMore / hasMore / updateItems / removeItems / revalidate を返却する
@@ -257,6 +266,7 @@ db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates
 ## CORE_FILES (approval required)
 src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css, servers/room/src/core/, servers/room/src/index.ts
 src/config/: value changes OK | structure changes (add/remove keys, type change, rename) require approval
+.claude/rules/ (project.md etc.): always-loaded → edit ONLY on explicit user instruction to add/change a rule or map entry. never append work records as part of finishing a task (scope: .claude/rules/project.md `scope` section)
 
 ## TOOLS
 playwright-mcp: available | use only when explicitly instructed by user
@@ -268,8 +278,10 @@ fs: Firestore equivalent of db: commands (fs:collections, fs:count, fs:describe,
 
 ## DOWNSTREAM_NOTICES (上流追随)
 upstream変更の追随通知 = .notices/*.md (変更と同じcommit/PRで出荷、mergeで下流に届く) | 起票: /downreq | 受領・適用: /flux (merge→未適用検出→承認1回→適用・DB・検証・台帳・commitまで完走) | 台帳: .notices/applied/\<fork-id\>.md (forkごと別ファイル) | ref: .notices/README.md
+fork_bootstrap: 新規fork初期設定 = /fork-init (clone直後のリポ内で実行、承認1回でリポ作成〜初期commit/push) | spec(手順の正): docs/how-to/initial-setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md
 
 ## DOCS
 policy: colocation-first — primary docs in README.md next to code | docs/ = legacy, phasing out except !must-read/ (exception: standalone docs allowed when clearly superior)
 stale_README: full rewrite over partial patch when README contradicts actual code
-location: docs/ | structure: !must-read/, concepts/, how-to/, core-specs/, troubleshooting/, reference/, self-evaluation/
+dated_records (incident narrative / verification log / decision history / "記録して"): docs/journal/<YYYY-MM-DD>-<slug>.md — not auto-loaded, never .claude/rules/ or CLAUDE.md. distilled rule (1 line) may go to project.md if fork-specific
+location: docs/ | structure: !must-read/, concepts/, how-to/, core-specs/, troubleshooting/, reference/, self-evaluation/, journal/

@@ -1,12 +1,28 @@
 # project
 
-## meta
-type: visual_novel_engine_saas
-name: next-vnx
-base: next-starter fork
-goal: "Next.js of VN engines"
+## scope (keep this section; it defines what this file is)
+purpose: per-fork delta from upstream CLAUDE.md. loaded every session → every line costs context every time
+write: (1) architecture where this fork differs from upstream conventions (2) map: domains + where key files/docs live (3) decision rules not derivable from code (feature-addition criteria, external constraints, business intent)
+never: implementation details of a change, per-screen UI/style changes, verification results, incident narratives, dated status/progress, ideas under consideration
+instead: change details → commit body | feature spec/lesson → README next to code | dated record (incident, verification, decision history) → docs/journal/<YYYY-MM-DD>-<slug>.md (not auto-loaded)
+distill: incident → 1 rule line here only if fork-specific; the story → journal | lesson about upstream core component → /upreq, not here
+budget: ~100 lines. over budget → re-ask "needed every session?" and move content out
+edit: only when the user asks to add/change a rule or map entry. never append as part of finishing a task
 
-<<<<<<< HEAD
+## overview
+- name: next-vnx
+- type: visual_novel_engine_saas — "Next.js of VN engines" (engine + studio ecosystem)
+- repo: git@github.com:yokouchi-wildweb/next-vnx.git (origin) | upstream: git@github.com:yokouchi-wildweb/next-starter.git
+- vision: docs/concepts/VNXプロジェクトのビジョンと構想.md | overview (former README): docs/concepts/VNXプロジェクト概要.md
+
+## TIER (multi-tier hierarchy)
+this_repo: Tier2 (direct fork of next-starter = Tier1). no Tier3 downstream planned for now
+rule: generic/foundational capabilities (domain-independent infra, UI primitives, CRUD base, auth) live in Tier1. do NOT hardcode them here — file /upreq instead. VN engine / studio features live HERE
+request_protocol (shared mailbox: ~/.team/upstream-requests/):
+- file a generic-capability request with /upreq
+- track own requests with /wen
+- receive upstream notices with /flux (ledger: .notices/applied/yokouchi-wildweb--next-vnx.md)
+
 ## stack
 rendering: PixiJS, pixi-live2d-display
 state: Zustand
@@ -126,14 +142,6 @@ type Archetype = {
 | Composer | - | ✓ | - | - |
 | Executor | - | - | write | ✓ |
 | Feature | - | ✓ | read/write | - |
-
-## TIER (multi-tier hierarchy)
-this_repo: Tier2 (downstream fork of next-starter = Tier1). Hierarchy: Tier1 → Tier2 → Tier3.
-upstream_remote: upstream (git@github.com:yokouchi-wildweb/next-starter.git)
-rule: generic/foundational capabilities belong to Tier1; do not hardcode them here — escalate with /upreq instead. VN engine / studio features are this repo's own scope.
-request_protocol (shared mailbox: ~/.team/upstream-requests/ — NOT under ~/.claude/: Claude Code hard-gates Write/Edit there as "sensitive files"; moved 2026-07-12):
-- file a generic-capability request with /upreq (writes a structured ticket to the mailbox)
-- track status of own filed requests with /wen (open vs resolved)
 
 ## Tone and personality
 

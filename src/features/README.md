@@ -23,6 +23,7 @@
 | fields | Field[] | 🟢 Yes | フィールド定義 |
 | fieldGroups | FieldGroup[] | ⚪ No | 管理画面フォームのセクション分け（後述） |
 | searchFields | string[] | ⚪ No | 検索対象フィールド名の配列 |
+| searchRank | `{ fields: (string \| { field: string; weight?: number })[] }` | ⚪ No | 関連度ランキング（`searchRank: true` 時のフィールド重み、Neon のみ）。未宣言なら `searchFields` 等重みで「完全 > 前置 > 語頭 > 部分」一致順になる。例: `{ "fields": [{ "field": "name", "weight": 3 }, "email"] }`。詳細: `src/lib/crud/README.md` の searchRank 節 |
 | defaultOrderBy | [string, "ASC" \| "DESC"][] | ⚪ No | デフォルトソート順 |
 | tableFields | string[] | ⚪ No | 管理画面テーブルに表示するフィールド |
 | useDetailModal | boolean | ⚪ No | 詳細モーダルの有無 |
@@ -408,7 +409,7 @@ mimeType, src, durationSec, durationFormatted
 
 | プロパティ | 型 | 必須 | 説明 |
 |---|---|---|---|
-| fields | string[] | 🟢 Yes | インデックス対象カラム（先頭から複合キー）。TS プロパティ名で指定 |
+| fields | string[] | 🟢 Yes | インデックス対象カラム（先頭から複合キー）。生成後の `entities/drizzle.ts` に現れるプロパティ名で指定する。業務フィールドは domain.json の `name` そのまま（例: `name_kana`。`nameKana` は存在せず型エラー）、システム列は `createdAt` / `updatedAt` / `deletedAt` |
 | where | string | ⚪ No | 部分インデックスの WHERE 句（SQL リテラル）。例: `"deleted_at IS NULL"` |
 | name | string | ⚪ No | インデックス名のオーバーライド。省略時は `{テーブル名}_{col1}_{col2}_..._idx` で自動命名 |
 
@@ -435,6 +436,12 @@ npx drizzle-kit push
 ```
 
 詳細手順は [Neon マイグレーション実行手順](../../docs/how-to/implementation/Neonのマイグレーション実行手順.md) を参照。push を忘れると、コード上は index 定義があってもクエリは全表スキャンのままで、本機能の目的 (検索/集計の高速化) を達成できない。
+
+#### ⚠️ push round-trip の確認（index を書いたら必須）
+
+drizzle-kit は特定の書き方の index を DB から正しく読み戻せず、**DB が既にスキーマどおりでも push のたびに DROP + CREATE する**（本番の大規模テーブルでは書き込みロック）。index を追加・変更したら `pnpm db:push` のあと `pnpm db:push:check` を実行し、差分ゼロを確認してからコミットする。
+
+手書き drizzle.ts での禁止事項: `sql\`${table.col} DESC\``（`.desc()` を使う）、通常列と SQL 式の混在（全列を `sql\`${table.col}\`` にする）。詳細なルールと理由: [scripts/registry/README.md](../../scripts/registry/README.md)
 
 ---
 

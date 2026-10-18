@@ -1,109 +1,18 @@
-# next-vnx
+# このリポジトリについて
 
-Next.jsベースのビジュアルノベルエンジン + エコシステム（SaaS）
+この README は next-starter を基盤とする全リポジトリ(上流・下流を問わず)で**共通の内容**です。プロジェクトごとに書き換えません。プロジェクト固有の情報は次の場所にあります。
 
-> このプロジェクトは [next-starter](https://github.com/nicories/next-starter) からのフォークです
-
----
-
-## ミッション
-
-> **「今の時代だからこそできること」を、誰よりも先に形にする**
-
-> 「Next VNX」 = 「次世代の & NextJS」 + 「Visual Novel Experience」
-
-- Ren'Py、ティラノに並ぶ第三の選択肢「VN界のNext.js」を目指す
-- AI統合とメタ演出（第四の壁破壊）による前衛的な体験設計
-- Web技術ならではの強み（URL即プレイ、ブラウザAPI活用）を最大化
-
----
-
-## アーキテクチャ
-
-### レイヤー分離
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  DDD 8層アーキテクチャ（features/）                       │
-│  → スタジオ機能、データ永続化、認証、API                   │
-│                                                         │
-│  features/project/    # プロジェクトCRUD                  │
-│  features/scenario/   # シナリオデータ管理                 │
-│  features/asset/      # アセット管理                      │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          │ データを渡す
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│  engine/ （DDD外、純粋なゲーム実行エンジン）                │
-│  → DBアクセスなし、APIなし、受け取ったデータを再生するだけ   │
-│                                                         │
-│  engine/renderer/     # PixiJS, Live2D                   │
-│  engine/audio/        # Howler.js                        │
-│  engine/executor/     # シーン実行                        │
-└─────────────────────────────────────────────────────────┘
-```
-
-### ディレクトリ構造
-
-```
-next-vnx/
-├── src/
-│   ├── app/
-│   │   ├── lab/              # 実験場（画面モック）
-│   │   └── play/[projectId]/ # ゲーム実行
-│   ├── engine/               # VNエンジン（DDD外）
-│   └── features/             # DDD層（スタジオ機能）
-├── game/                     # サンプルゲームデータ
-│   ├── config.json
-│   ├── characters/
-│   ├── scenes/
-│   └── assets/
-└── docs/
-```
-
----
-
-## 開発アプローチ
-
-**ボトムアップ・プロトタイピング**
-
-```
-画面モック（ハードコード）
-        │
-        ▼
-「これを再現するには何が必要？」
-        │
-        ▼
-設定ファイル + 汎用ロジックに分離
-        │
-        ▼
-エンジン層が自然に形成される
-```
-
-1. `/lab/001-xxx/` で画面モックを作る（ハードコード OK）
-2. 動いたら「何を設定ファイルにすべきか」を考える
-3. `engine/` に切り出す
-4. 次のモックへ
-
----
-
-## 技術スタック
-
-| カテゴリ | 技術 |
-|---------|------|
-| フレームワーク | Next.js 16 (React 19, App Router) |
-| レンダリング | PixiJS, pixi-live2d-display |
-| 状態管理 | Zustand |
-| オーディオ | Howler.js |
-| AI | Claude/OpenAI SDK |
-| TTS | ElevenLabs, Web Speech API |
-| DB | Drizzle (PostgreSQL), Firestore |
-| 認証 | Firebase Auth + JWT |
+| 知りたいこと | 場所 |
+|---|---|
+| このプロジェクトは何か・方針・Tier・予定ドメイン | [`.claude/rules/project.md`](.claude/rules/project.md) |
+| プロジェクト名(GitHub 上の一覧向け) | リポジトリの description 欄 |
+| サービス名・運営者情報 | `src/config/business.config.ts` |
 
 ---
 
 ## 開発ドキュメント
+
+開発を開始する前に、以下の必読ドキュメントを参照してください。
 
 ➡️ **[docs/!must-read/](docs/!must-read/README.md)**
 
@@ -112,3 +21,28 @@ next-vnx/
 - ディレクトリ構造
 - コンポーネント設計ガイドライン
 - エラーハンドリング戦略
+- その他開発に必要な情報
+
+---
+
+## 新規プロジェクトを作る(フォーク)
+
+このリポジトリをフォークして新しいプロジェクトを立ち上げる手順です。Tier1 から Tier2 へ、Tier2 から Tier3 へ、どの段でも同じ手順です。
+
+1. GitHub に空の private リポジトリを作り、description 欄にプロジェクト名と一言説明を入れる
+2. このリポジトリを全履歴ごと clone し、`origin` を新リポ、`upstream` をフォーク元に設定する
+3. `claude` を起動して `/fork-init <name>` を実行する(project.md / 追随台帳 / package 名 / business.config / .env.development の書き換えから初期コミット・push まで承認1回で完走)
+
+詳細と手動で進める場合の手順:
+
+➡️ **[新規プロジェクトの立ち上げ: フォークからデプロイまで](docs/how-to/initial-setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md)**
+
+---
+
+## 上流の変更を取り込む
+
+- `/flux` : upstream を fetch / merge し、追随作業が必要な変更(DOWNSTREAM NOTICE)を検出して適用・記録まで行う
+- `/flux status` : 状態確認のみ
+- 汎用機能が必要になったら自前実装せず `/upreq` で上流に依頼し、`/wen` で状況を追う
+
+仕組み: [`.notices/README.md`](.notices/README.md)

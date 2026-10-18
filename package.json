@@ -8,11 +8,15 @@
     "start": "next start",
     "lint": "eslint .",
     "test:crud-hooks": "node --test src/lib/crud/hooks/internal/*.test.mjs",
+    "test:crud-search-rank": "node --test src/lib/crud/drizzle/query/searchRank.test.mjs",
     "test:schema-registry": "node --test scripts/registry/check-schema-registry.test.mjs",
+    "test:popover-dismiss": "node --test src/components/Overlays/Popover/isDialogFocusRestoration.test.mjs",
+    "test:cn": "node --test src/lib/cn/cn.test.mjs",
     "test:wallet-lot-planning": "npx tsx --test src/features/core/wallet/utils/lotPlanning.test.ts",
     "test:user-password-change": "npx tsx --test src/features/core/user/services/server/helpers/passwordChange.test.ts",
     "db:generate": "cross-env APP_ENV=.env.development drizzle-kit generate",
     "db:push": "cross-env APP_ENV=.env.development drizzle-kit push",
+    "db:push:check": "npx tsx scripts/registry/check-schema-roundtrip.ts",
     "db:seed": "cross-env APP_ENV=.env.development npx tsx scripts/db/seed/run.ts",
     "db:seed:all": "cross-env APP_ENV=.env.development npx tsx scripts/db/seed/run.ts --all",
     "db:clear": "cross-env APP_ENV=.env.development npx tsx scripts/db/clear/run.ts",
@@ -52,6 +56,7 @@
     "asset:alias": "npx tsx scripts/add-asset-alias.ts",
     "storage:setup-cors": "cross-env APP_ENV=.env.development npx tsx scripts/storage/setup-cors.ts",
     "task": "cross-env APP_ENV=.env.development npx tsx scripts/tasks/run.ts",
+    "env:init": "npx tsx scripts/env/init.ts",
     "deploy:all": "npx tsx scripts/deploy.ts",
     "room:init": "npx tsx scripts/room/init.ts",
     "room:deploy": "npx tsx scripts/room/deploy.ts",
@@ -72,7 +77,10 @@
       "protobufjs",
       "sharp",
       "unrs-resolver"
-    ]
+    ],
+    "patchedDependencies": {
+      "drizzle-kit@0.31.8": "patches/drizzle-kit@0.31.8.patch"
+    }
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
