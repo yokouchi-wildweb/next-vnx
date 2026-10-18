@@ -604,11 +604,37 @@ audit_logs に載せるのは **「介入」操作のみ**。「業務」操作�
    ```typescript
    regular_coin: { expirationDays: 180, sweepEnabled: true },
    ```
-2. デプロイ後**すぐに**初期化を1回実行（既存残高を「実行日取得扱い」の初期ロット1本に変換）:
+2. デプロイ後**すぐに**初期化を1回実行する。方式は2つあり、**どちらか一方だけ**を実行する:
+
+   | 方式 | タスク | 既存残高の扱い | 導入直後の失効 |
+   |---|---|---|---|
+   | 導入日から数える | `wallet-lots-init` | 全額を「実行日取得扱い」の初期ロット1本に変換 | expirationDays の間は何も失効しない |
+   | 実際の付与日から数える | `wallet-lots-init-from-history` | 付与履歴（`wallet_histories`）からロットを復元 | 既に expirationDays を超えて残っている分は次回スイープで没収される |
+
    ```bash
+   # 導入日から数える
    pnpm task wallet-lots-init
+
+   # 実際の付与日から数える（先に dry-run で対象件数と没収見込み額を確認する）
+   pnpm task wallet-lots-init-from-history -- --dry-run
+   pnpm task wallet-lots-init-from-history
    ```
-   **注意**: config 有効化から初期化完了までの間、対象通貨の消費はロット不整合エラー（500）になる。低トラフィック帯に実施するか、メンテナンスモードを併用すること。
+   **注意**: config 有効化から初期化完了までの間、対象通貨の消費はロット不整合エラー（500）になる（どちらの方式でも同じ）。低トラフィック帯に実施するか、メンテナンスモードを併用すること。
+
+   `wallet-lots-init-from-history` を選ぶ場合の前提と注意:
+   - **直近 expirationDays ぶんの `wallet_histories` が欠けていないこと**。履歴を残さない残高変更
+     （`adjustBalance` の `skipHistory: true`、DB の直接更新など）があると、その分だけ復元結果がずれる
+     （履歴に無い付与は「期限を過ぎた分」として扱われる）
+   - 復元の規則: 消費は FIFO なので残高は新しい付与の側に残る。履歴を新しい順に辿り、残高を使い切るまで
+     付与額を割り当てる。SET はその時点で残り全額を取得した扱いにする（通常の SET と同じ解釈）。
+     `created_at` が NULL の履歴行は読み飛ばす
+   - 期限を過ぎた分は「実行開始時刻に失効するロット」1本になる。**初期化そのものは没収しない**。
+     没収は通常の失効スイープ（`wallet-expire-lots`）が行うため、履歴・audit・通知の経路は通常と同じ
+   - **`sweepEnabled: true` とセットで使うこと**。期限を過ぎたロットは失効間近の照会（`getExpiringLots` など）に
+     出ないため、`sweepEnabled: false` のままだと没収もされず画面にも出ない状態で残る
+   - **期限を過ぎた分には失効予告が届かない**（予告を送る猶予が無い）。本通知は、通知の cron が
+     スイープより前に1回以上動いていれば届く。規約の告知などで事前に周知しておくこと
+   - dry-run の `overdueAmount` は没収見込み額の上限。実際の没収額は locked_balance 保護によりこれ以下になる
 3. 失効スイープと prune のスケジュール登録を確認:
    ```
    30 4 * * *  → GET /api/cron/wallet-expire-lots （失効の没収）
@@ -619,6 +645,10 @@ audit_logs に載せるのは **「介入」操作のみ**。「業務」操作�
    古い `vercel.json` を使っている場合は2行を追記する。Vercel 以外は任意のスケジューラから登録
    （`docs/reference/cron-tasks.md` 参照）。
 
+   失効通知を送る場合は `wallet-expiration-notice`（毎時）も必要。設定は「失効通知」節を参照。
+   **通知の cron は最初の失効日より前に1回以上動かしておくこと**（本通知は初回実行で開始位置を記録するだけで、
+   それより前に没収された分には送られない）。
+
    wallet-lots-prune は remaining = 0 になったロット行の物理削除。付与のたびに行が増えるため、
    **付与頻度が高いプロジェクトでは必須**（回さないと wallet_lots が単調増加する）。
    保持日数は `WALLET_LOT_PRUNE_RETENTION_DAYS`（デフォルト30日）で調整可能。
@@ -626,7 +656,10 @@ audit_logs に載せるのは **「介入」操作のみ**。「業務」操作�
 ### 運用ルール
 
 - **wallet-lots-init の再実行は失効カウントをリセットする**。導入時の1回だけ実行し、再実行は障害復旧時に限る
-- **無効化→再有効化**: 無効化中は消費がロットに反映されないため、再有効化時は必ず `wallet-lots-init` を再実行して re-baseline すること
+- **wallet-lots-init-from-history の再実行は、その時点の残高と履歴からロットを作り直す**。既に没収された分は
+  残高から引かれているので二重に没収されることはない。導入時と違う方式で再実行すると失効日が変わる点に注意
+- **無効化→再有効化**: 無効化中は消費がロットに反映されないため、再有効化時は必ず初期化
+  （`wallet-lots-init` / `wallet-lots-init-from-history` のどちらか）を再実行して re-baseline すること
 - **sweepEnabled: false**: ロット記録と失効間近照会だけ先行させ、没収は行わない（規約告知期間などに使用）
 - **locked_balance 保護**: 失効額は利用可能残高（`balance - locked_balance`）が上限。予約中の分は失効せず次回スイープに持ち越し
 - 規約側の文言は「失効は取得が古い順に充当（FIFO）」前提になっているか確認すること
@@ -649,14 +682,154 @@ const { data } = useMyExpiringLots(userId, "regular_coin", 30);
 
 UI レシピ例（ダウンストリームで実装）:
 - 残高ページに「うち ○○ コインが ○月○日 に失効します」バナー → `useMyExpiringLots` の `lots[0]`
-- 失効7日前のメール通知バッチ → `getExpiringSummaryByUsers(userIds, type, 7)` で対象抽出
+- 失効前・失効後のユーザー通知 → 次節「失効通知」（設定だけで送れる）
+
+### 失効通知（失効予告・失効時の本通知）
+
+`sweepEnabled: true` にするとスイープは残高を没収するが、**通知を設定しない限りユーザーには何も知らされない**
+（履歴行が残るだけ）。通貨ごとに「予告を送るか」「本通知を送るか」「どのチャネルで送るか」を設定できる。
+**デフォルトはどちらも送らない**。
+
+#### 設定（`src/config/app/wallet-expiration.config.ts` の1ファイルで完結）
+
+```typescript
+regular_coin: {
+  expirationDays: 180,
+  sweepEnabled: true,
+  notice: {
+    // 失効予告: 段の配列。空配列 = 予告なし
+    preExpiry: [
+      { daysBefore: 30, channels: ["email"], copy: WALLET_PRE_EXPIRY_NOTICE_COPY },
+      { daysBefore: 7, channels: ["email", "inApp"], copy: WALLET_PRE_EXPIRY_NOTICE_COPY },
+    ],
+    // 失効時の本通知: null = 本通知なし
+    expired: { channels: ["inApp"], copy: WALLET_EXPIRED_NOTICE_COPY },
+  },
+},
+```
+
+- `notice` は省略可（省略 = 何も送らない）。`enabled` フラグは無く、空配列 / `null` が OFF を表す
+- `channels`: `"email"` / `"inApp"` のどちらか、または両方。段ごと・通知ごとに選べる
+- **文言の編集**: 同じファイル上部の `WALLET_PRE_EXPIRY_NOTICE_COPY` / `WALLET_EXPIRED_NOTICE_COPY` の文字列を書き換えるだけ。
+  `{{currencyLabel}}` などのプレースホルダが送信時に差し込まれる（使える名前は同ファイルのコメント参照）。
+  段ごと・通貨ごとに文面を変えたい場合は、同じ形の定数を増やして `copy` に指定する
+- 全体設定 `WALLET_EXPIRATION_NOTICE_SETTINGS`: `targetStatuses`（送信対象のユーザーステータス。既定 active / inactive）、
+  `sendConcurrency`（同時送信数。既定 5）、`dateTimeZone`（文面の日付と予告の日境界。既定 Asia/Tokyo）
+- スケジューラに `wallet-expiration-notice` を登録する（`vercel.json.example` に登録済み。推奨: 毎時）。
+  メールを送る時間帯を絞りたい場合は cron のスケジュール側で制限する
+
+| sweepEnabled | preExpiry | expired | 挙動 |
+|---|---|---|---|
+| false | 任意 | 任意 | 何も送らない（予告は抑止。失効履歴が生まれないので本通知も発生しない） |
+| true | `[]` | `null` | 通知なしで没収 |
+| true | 段あり | `null` | 予告のみ |
+| true | `[]` | 設定あり | 本通知のみ |
+| true | 段あり | 設定あり | 両方 |
+
+予告は `sweepEnabled: true` の通貨にしか送られない。没収しない通貨（告知期間モード）に「○日に失効します」と
+告げると虚偽の通知になるため。
+
+#### 挙動の決めごと
+
+- **スイープとは別の cron で送る**。送信は外部通信で時間がかかるため、没収の実行時間とウォレット行ロックに影響させない。
+  失効の per-user 記録は同一TXで `wallet_histories` に書かれており、通知はそれを後から読む（取りこぼさず、再実行できる）
+- **同じ対象には1回しか届かない**（`message_dispatches` の冪等性キー）。cron の実行が重なっても、途中で中断して
+  やり直しても二重送信にならない
+- **本通知を後から有効化しても、過去の失効分はさかのぼって送らない**（初回実行は開始位置を記録するだけ）
+- **予告は暦日単位**。同じ日に失効するロットはその日の合計額として1通にまとまる。cron が止まっていた日があっても、
+  次回実行が止まっていた分をまとめて回収する
+- **予告の段を追加・有効化した初回**は、各段が自分の帯だけを担当する。例: 30日前と7日前の段があり3日後に失効する
+  ロットがある場合、届くのは7日前の段の通知だけ（有効化当日に全段ぶんが一斉に届くことはない）
+- **送らない相手**: `targetStatuses` に無いステータス（退会・停止・仮登録など）/ demo ユーザー。
+  メール未登録のユーザーには `inApp` が指定されていればそれだけ送り、送れるチャネルが無ければスキップする
+- **送信に失敗した通知は再実行しても再送されない**（冪等性キーの行が送信前に作られるため）。
+  `message_dispatches` に失敗として残るので運用で確認する。メール基盤の障害で失敗が連続した場合は、
+  その実行を打ち切って損失を抑える（cron のレスポンスが `aborted: true` になる）
+- 通知は失効履歴1行につき1通。同じ夜に2通貨が失効すれば2通届く（まとめない）
+
+#### 送信量の目安
+
+実測値（下流のテスト環境、ローカル → Neon + SendGrid。**`sendConcurrency: 5` で 8 件・2 スライスのみの小標本。参考値として扱うこと**）:
+
+- 接続が温まった状態の1件あたり **約 0.65〜0.7 秒**（メール + サービス内通知、サービス内通知のみのどちらも同程度）
+- 5 件のスライス1回の周期は約 1.7 秒（送信 約 0.7 秒 + スライス間 約 1 秒。スライス間の内訳は未特定）
+- 実行の最初のスライスには DB 接続の確立で約 1.3 秒が上乗せされる（1回の実行につき1度だけ）
+- 並列送信の動作は確認済み（送信 8 件 / 失敗 0 件 / 重複なし。チェックポイントを巻き戻して再実行しても二重送信なし）
+
+1件の送信は「送信記録の作成 → メール基盤への通信 → 通知レコード作成 → 記録の確定 → 監査ログ」を順に行うため、
+件数あたりの時間はこれ以上短くならない。本番（DB と同一リージョン）ではこれより速い見込みだが未計測。
+3 スライス以上での伸び方も未計測のため、下の表は規模が大きいほど誤差が出る前提で読むこと。
+
+> 以前ここに載せていた「1ユーザーあたり 1.7〜3.9 秒」は 3 件だけの計測で、DB 接続の確立時間を含んだ過大な値だった。
+
+1回の実行の時間予算は 240 秒。上の実測からの推定値:
+
+| sendConcurrency | 1回の実行 | 毎時実行 | 15分ごと |
+|---|---|---|---|
+| 1（計算値・未計測） | 約 140〜340 件 | 約 3,400〜8,200 件/日 | 約 13,000〜33,000 件/日 |
+| 5（既定） | 約 700 件 | 約 17,000 件/日 | 約 67,000 件/日 |
+
+- 5 の行はスライス周期 約 1.7 秒からの推定（240 秒 ÷ 1.7 秒 × 5 件）
+- 1 の行は実測が無い。1件 約 0.7 秒に、スライス間の約 1 秒が毎回かかる場合を下限、かからない場合を上限とした計算値
+
+- 調整は `sendConcurrency` と cron の実行間隔の2つで行う（cron を予告用と本通知用に分けても処理量は変わらない）。
+  `sendConcurrency` はメール基盤の流量制限と DB の同時接続数に収まる範囲で上げる
+- **`wallet-lots-init` の直後は既存の全残高が同じ日に失効するロットになる**ため、最初の失効日（init から
+  expirationDays 日後）に通知が全ユーザーぶん集中する。ユーザー数が数万規模なら、既定値のままでは送りきるのに
+  数日かかる。**失効日を迎える前に `sendConcurrency` の引き上げと実行間隔の短縮を済ませておくこと**
+- 本通知は数日かけて送りきっても実害は小さいが、予告は段の日数が猶予の上限になる（1日前の段は1日で送りきる必要がある）
+- 1日に数十万件を超える規模はこの仕組みの対象外。外部のキューや一括送信 API が必要
+
+#### 独自の通知を組みたい場合（データレイヤ）
+
+文面やチャネルの設定で足りない場合（独自チャネル、まとめ通知など）は、組み込みの通知を設定せず、
+以下の読み取り API から自前のバッチを組める。
+
+```typescript
+// 指定窓内に失効するロットを持つユーザー（userId の keyset ページング）
+const { items, nextCursor } = await walletService.findUsersWithExpiringLots({
+  walletType: "regular_coin",
+  expiresFrom, // 窓の下限（含む）
+  expiresTo,   // 窓の上限（含まない）
+  cursor,      // 前ページの nextCursor
+  limit: 500,
+});
+// items: [{ userId, totalExpiring, earliestExpiresAt }]
+
+// スイープのユーザー単位の結果（(失効処理日時, historyId) の keyset ページング）
+const { items, nextCursor } = await walletService.listExpirationResults({
+  walletType: "regular_coin",
+  createdFrom, // 失効処理日時の下限（含む）
+  cursor,
+  limit: 500,
+});
+// items: [{ historyId, userId, walletType, expiredAmount, balanceBefore, balanceAfter, requestBatchId, expiredAt }]
+```
+
+- **窓は絶対時刻で渡す**。`NOW()` 起点の相対日数はページをまたぐたびに窓がずれ、境界のユーザーが欠落・重複する。
+  1回の実行の最初に窓を確定し、全ページで同じ値を渡すこと
+- `findUsersWithExpiringLots` は1ページごとに窓内のロット数ぶんの走査コストがかかる。窓は狭く取る
+- `listExpirationResults` は `createdUntil` 省略時に直近5分の行を読まない（commit 前の行を追い越して
+  取りこぼすのを防ぐ安全ラグ）。`requestBatchId` 指定時はラグなし
+  （`sweepExpiredWalletLots` の戻り値 `requestBatchId` でその実行分だけを読む用途）
+- cursor はどちらも不透明な文字列として扱う（中身を組み立てない）
+- 進捗は `cron_checkpoints`、二重送信防止は `messagingService.send` の `idempotencyKey` で足りる。
+  実装例は組み込みの通知（`services/server/notification/sendExpiredNotices.ts` / `sendPreExpiryNotices.ts`）を参照
+- 予告と本通知を別々の cron に分けたい場合も、上記2つの関数をそれぞれ呼ぶルートを自前で用意すればよい
+- ユーザー向け送信は必ず `messagingService` 経由（`lib/mail` 直呼び禁止）。新しい cron は OPS_TASKS の4点配線に従う
 
 ### 実装ファイル
 
 - ロット会計（全経路から呼ばれる）: `services/server/lots/lotAccounting.ts`
 - 失効スイープ: `services/server/lots/sweepExpiredLots.ts`
-- 初期化: `services/server/lots/initWalletLots.ts`
+- 初期化（導入日から数える）: `services/server/lots/initWalletLots.ts`
+- 初期化（実際の付与日から数える）: `services/server/lots/initWalletLotsFromHistory.ts`
+  （復元ロジックの純粋関数: `utils/lotPlanning.ts` / テスト: `pnpm test:wallet-lot-planning`）
 - 照会: `services/server/lots/getExpiringLots.ts`
+- 失効通知の cron 本体: `services/server/notification/sendWalletExpirationNotices.ts`
+  （予告: `sendPreExpiryNotices.ts` / 本通知: `sendExpiredNotices.ts` / 共通の送信処理: `expirationNoticeSender.ts`）
+- 通知用の対象抽出: `services/server/lots/findUsersWithExpiringLots.ts`
+- 通知用のスイープ結果照会: `services/server/lots/listExpirationResults.ts`
 - 消費済みロットの prune: `services/server/lots/pruneConsumedLots.ts`
 - 設定: `src/config/app/wallet-expiration.config.ts`
 

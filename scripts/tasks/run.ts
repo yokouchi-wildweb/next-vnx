@@ -48,6 +48,18 @@ const TASKS: Record<string, TaskFn> = {
     );
     return await pruneExpiredUserLoginEvents();
   },
+  "device-fingerprint-prune": async () => {
+    const { pruneExpiredDeviceFingerprints } = await import(
+      "@/features/core/deviceFingerprint/services/server"
+    );
+    return await pruneExpiredDeviceFingerprints();
+  },
+  "fingerprint-challenge-access-prune": async () => {
+    const { pruneExpiredChallengeAccessEvents } = await import(
+      "@/features/core/fingerprintChallenge/services/server"
+    );
+    return await pruneExpiredChallengeAccessEvents();
+  },
   "user-daily-counter-prune": async () => {
     const { pruneExpiredUserDailyCounters } = await import(
       "@/features/core/userCounter/services/server/pruning"
@@ -102,6 +114,12 @@ const TASKS: Record<string, TaskFn> = {
     );
     return await sweepExpiredWalletLots();
   },
+  "wallet-expiration-notice": async () => {
+    const { sendWalletExpirationNotices } = await import(
+      "@/features/core/wallet/services/server/notification/sendWalletExpirationNotices"
+    );
+    return await sendWalletExpirationNotices();
+  },
   "wallet-lots-prune": async () => {
     const { pruneConsumedWalletLots } = await import(
       "@/features/core/wallet/services/server/lots/pruneConsumedLots"
@@ -114,6 +132,16 @@ const TASKS: Record<string, TaskFn> = {
       "@/features/core/wallet/services/server/lots/initWalletLots"
     );
     return await initWalletLots();
+  },
+  // 導入時1回だけの初期化（定期実行しない。wallet-lots-init の代替でどちらか一方だけ実行する）:
+  // 付与履歴からロットを復元し、既に期限を過ぎた分を次回スイープの没収対象にする
+  // 使い方: pnpm task wallet-lots-init-from-history -- --dry-run で対象確認 → dry-run なしで実行
+  "wallet-lots-init-from-history": async () => {
+    const { initWalletLotsFromHistory } = await import(
+      "@/features/core/wallet/services/server/lots/initWalletLotsFromHistory"
+    );
+    const args = process.argv.slice(3);
+    return await initWalletLotsFromHistory({ dryRun: args.includes("--dry-run") });
   },
   // 導入時1回だけの過去分復元（定期実行しない。冪等なので再実行は安全）
   "user-status-history-backfill": async () => {

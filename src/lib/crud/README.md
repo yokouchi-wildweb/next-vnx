@@ -14,6 +14,7 @@ src/lib/crud/
 ├── client/                   # クライアント層（createApiClient, イベント）
 ├── components/               # CRUD 用 UI ボタン群
 ├── hooks/                    # 汎用フック（dc:generate で各ドメインに展開）
+│   └── internal/             # mutation 共通実装（useDomainMutation / concurrentMutation + テスト）
 ├── presenters/               # カラムメタデータ・フォーマッタ
 ├── storageIntegration/       # ストレージ連携（ファイル削除・複製）
 ├── utils/                    # パス・スキーマユーティリティ
@@ -217,7 +218,48 @@ defineHiddenColumns(UserTable, ["localPassword"]);
 | `bulkDeleteByIds(ids, tx?)` | string[] | void | ソフト/ハード自動判定 |
 | `bulkHardDeleteByIds(ids, tx?)` | string[] | void | 物理削除 |
 | `bulkDeleteByQuery(where, tx?)` | WhereExpr | void | 条件一致を削除 |
+| `replaceByQuery(where, records, options?, tx?)` | WhereExpr, Insert[], ReplaceByQueryOptions | Select[] | 条件一致行の全削除 + records 挿入を単一 tx で（詳細は下記） |
 | `duplicate(id, options?, tx?)` | string, DuplicateOptions | Select | `options.name` 指定時はそれを採用、未指定時は name に「_コピー」付与 |
+
+### replaceByQuery（条件一致行のアトミック全置換）
+
+「親スコープ配下の子リストを丸ごと入れ替える」ためのメソッド（Drizzle 専用）。
+`bulkDeleteByQuery(where)` → `insert(records)` を **単一トランザクション**で合成するため、
+並行リーダー（READ COMMITTED）からは常に旧セットか新セットのどちらかが見え、
+「削除済み・挿入前」の空状態は観測されない。失敗時は削除ごと巻き戻る。
+
+```ts
+// gacha_machine_id = X 配下の景品リストを丸ごと置換
+const inserted = await service.replaceByQuery(
+  { field: "gacha_machine_id", op: "eq", value: machineId },
+  records, // parseCreate（Zod）経路を通る。挿入行を入力順で返す
+);
+```
+
+- **records 空 = 削除のみ**: `records: []` は許可され、条件一致行を削除して `[]` を返す。
+- **スコープガード（fail-closed）**: where の `eq` 句（`and` 直下含む。`or` 分岐内は対象外）を
+  スコープ制約とみなす。record 側の該当カラムが未指定なら where の値で自動補完し
+  （Zod スキーマ外で strip された場合も復元）、parse 後の値が食い違う record が
+  1 件でもあれば **422** で全体を拒否する。records がスコープ外の親に逃げることはない。
+  `eq` 句を 1 つも含まない where はガード対象外（削除条件としては機能する）。
+- **`options.sortOrderFromIndex`**: `sortOrderColumn` 設定済みサービスで `true` を渡すと、
+  records の**配列順**に fractional sort key を自動採番する（records 内の明示値より優先）。
+  `sortOrderColumn` 未設定で指定すると throw（fail-fast）。未指定時は sort_order 無加工
+  （NULL は searchForSorting の自動初期化に委ねる）。
+- **削除フェーズ**: `bulkDeleteByQuery` と同じ分岐。`useSoftDelete` テーブルはソフトマーク
+  （旧行が残るため、同一 id を records で再送すると PK 衝突する点に注意）、物理削除は
+  制約エラー変換 + Storage クリーンアップ（コミット後 best-effort）を行う。
+- **belongsToMany 非対応**: records の M2M フィールドに**非空の値**が入っている場合は throw。
+  空配列 / 未指定は Zod default（`[]`）由来のケースがあるため黙って無視する（M2M 同期は行わない）。
+  リレーション同期が必要な場合は `create()` を個別に使う。
+- **audit**: aggregate = `<prefix>.bulk_replaced` 1 行（`deletedCount` / `insertedCount` /
+  `criteria` / sample ID）、detail = 削除行ごとの deleted + 挿入行ごとの created、off = 記録なし。
+- **ロックなし**: 親行のロックは取得しない（アトミックコミットで読者には十分。
+  排他が必要な場合は呼び出し側で tx + ロックを張り、`tx` 引数で合流させる）。
+- **HTTP/hook**: `POST /api/[domain]/bulk/replace-by-query`（body `{ where, records, options? }`）、
+  クライアント `apiClient.replaceByQuery(where, records, options?)`、
+  生成フック `useReplaceByQuery<Domain>`（Drizzle ドメインのみ生成）。
+  アクセス制御は operations キー `replaceByQuery`（未宣言時は write ルールにフォールバック）。
 
 ### ソフトデリート専用
 
@@ -242,6 +284,27 @@ defineHiddenColumns(UserTable, ["localPassword"]);
 | `truncateAll()` | TRUNCATE CASCADE（中間テーブル含む） |
 | `getTruncateAffectedTables()` | 影響テーブル名のみ取得 |
 | `getTableName()` | テーブル名を返す |
+
+---
+
+## 汎用フック（hooks/）の mutation 契約
+
+`useCreateDomain` / `useUpdateDomain` / `useDeleteDomain` / `useUpsertDomain` / `useBulk*Domain` / `useDuplicateDomain` / `useRestoreDomain` / `useHardDeleteDomain` / `useReorderDomain` / `useReplaceByQueryDomain` は全て `hooks/internal/useDomainMutation.ts` の薄いラッパー。戻り値は `{ trigger, isMutating, isLoading, error }`（bulkUpdate 系は `data` も）。
+
+**同一インスタンスでの並列 trigger は安全**（`Promise.all(rows.map((r) => update.trigger(...)))` のような一括保存を想定）:
+
+- 失敗した trigger は必ずその error で reject する（並列数に依存しない）
+- 成功した trigger は必ず結果 T で resolve する（undefined は返さない）
+- `isMutating` は 1 件でも in-flight がある間 true、全件 settle で false
+- `error` / `data` は「直近に settle した trigger の結果」（逐次利用なら useSWRMutation と同じ）
+- 成功した trigger ごとに `revalidateRelatedCaches(revalidateKey)` を await してから resolve する。再検証自体の失敗は書き込み成功を reject に変えない（握って `console.error`）
+- `mutate(key, promise, { populateCache: false, throwOnError: true })` 経由なので、完了後の `key` 自身の再検証と SWR の mutation ウィンドウ（競合する revalidate の破棄）は従来どおり
+
+**useSWRMutation を使わない理由**: swr/mutation は「最後に開始した trigger」以外の結果を捨てる（`ditchMutationsUntilRef`）。並列時に先行分が成功でも失敗でも state 更新・onSuccess・throw を行わず undefined で resolve するため、一括保存の途中失敗が「全件成功」に見える無言のデータ欠損を起こす（tier3 本番で発生）。
+
+**テスト**: `pnpm test:crud-hooks`（node:test + Node 組み込みの TypeScript type stripping、追加依存なし）。React 非依存の中核 `concurrentMutation.ts` を検証する。
+
+**独自 mutation フックの作り方**: `useDomainMutation(key, fn, revalidateKey?)` を `@/lib/crud/hooks` から import して包む（core の useChangeUserRole / useAdjustWallet / useProfileUpsert / useAdminSetup 等が実例）。`useSWRMutation` の直接利用は禁止（同じ握りつぶしを再発させる）。
 
 ---
 
@@ -505,6 +568,7 @@ afterItemId = "xxx" → xxx の直後に配置（generateSortKey(xxx.sort_order,
 | searchPriorityFields | 対応 | 非対応 |
 | ページネーション | LIMIT/OFFSET + COUNT(*) | page*limit 件取得 → slice |
 | withRelations / withCount | 対応 | 非対応 |
+| replaceByQuery | 対応 | 非対応 |
 | 並び替え | Fractional Indexing | 非対応 |
 | バッチ制限 | なし | 500 件/バッチ |
 

@@ -32,6 +32,12 @@ export * from "@/features/notification/entities/notificationReadState";
 export * from "@/features/notificationTemplate/entities/drizzle";
 export * from "@/features/batchJob/entities/drizzle";
 export * from "@/features/messaging/entities/drizzle";
+export * from "@/features/deviceFingerprint/entities/drizzle";
+export * from "@/features/fingerprintChallenge/entities/drizzle";
+export * from "@/features/cronCheckpoint/entities/drizzle";
+export * from "@/features/couponAttributionReward/entities/drizzle";
+export * from "@/features/couponIssuerGrant/entities/drizzle";
+export * from "@/features/core/userLoginEvent/entities/drizzle";
 
 // --- AUTO-GENERATED-START ---
 export * from "@/features/sample/entities/drizzle";

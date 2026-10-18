@@ -8,6 +8,7 @@ export * from "./useBulkDeleteByIdsDomain";
 export * from "./useBulkDeleteByQueryDomain";
 export * from "./useUpsertDomain";
 export * from "./useBulkUpsertDomain";
+export * from "./useReplaceByQueryDomain";
 export * from "./useBulkUpdateDomain";
 export * from "./useBulkUpdateByIdsDomain";
 export * from "./useDuplicateDomain";
@@ -16,3 +17,5 @@ export * from "./useHardDeleteDomain";
 export * from "./useReorderDomain";
 export * from "./useSearchForSortingDomain";
 export * from "./useCountDomain";
+// mutation 系フックの共通実装（独自 mutation フックはこれを土台にする。useSWRMutation 直接利用は禁止）
+export { useDomainMutation } from "./internal/useDomainMutation";

@@ -56,7 +56,13 @@
       "@/features/chatRoom/*": ["./src/features/core/chatRoom/*"],
       "@/features/walletHistory/*": ["./src/features/core/walletHistory/*"],
       "@/features/batchJob/*": ["./src/features/core/batchJob/*"],
-      "@/features/messaging/*": ["./src/features/core/messaging/*"]
+      "@/features/messaging/*": ["./src/features/core/messaging/*"],
+      "@/features/deviceFingerprint/*": ["./src/features/core/deviceFingerprint/*"],
+      "@/features/fingerprintChallenge/*": ["./src/features/core/fingerprintChallenge/*"],
+      "@/features/cronCheckpoint/*": ["./src/features/core/cronCheckpoint/*"],
+      "@/features/incrementalRefresh/*": ["./src/features/core/incrementalRefresh/*"],
+      "@/features/couponAttributionReward/*": ["./src/features/core/couponAttributionReward/*"],
+      "@/features/couponIssuerGrant/*": ["./src/features/core/couponIssuerGrant/*"]
     }
   },
   "include": [

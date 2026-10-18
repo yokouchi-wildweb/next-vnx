@@ -11,6 +11,8 @@
 - ログ: stdout に JSON 構造化ログ
 
 新しいタスクを追加する手順は `src/lib/cron/README.md` を参照。
+無制限に増えるデータを走査するタスクは、maxDuration で途中 kill されないよう時間予算 + チェックポイントで組む
+（`runBudgetedBatches` / `@/features/cronCheckpoint` / `@/features/incrementalRefresh`。同 README 参照）。
 
 ---
 
@@ -57,6 +59,28 @@
 - **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
 - **レスポンス例**: `{ "ok": true, "deletedCount": 1500, "iterations": 2, "truncated": false }`
 
+### `device-fingerprint-prune`
+
+`device_fingerprints` テーブルの retention_days を超過した行をバッチ削除する。ブラウザフィンガープリントは IP 同様に個人へ紐づく識別情報のため、無期限保持にせず日次プルーニングする。機能未使用（`FINGERPRINT_CONFIG` 無効）なら削除対象が存在せず no-op。
+
+- **API**: `GET /api/cron/device-fingerprint-prune`
+- **CLI**: `pnpm task device-fingerprint-prune`
+- **推奨スケジュール**: `15 4 * * *` （日次・深夜帯。他の prune 系と時刻を被らせない）
+- **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
+- **レスポンス例**: `{ "ok": true, "deletedCount": 1200, "iterations": 2, "truncated": false }`
+- **詳細**: `src/features/core/deviceFingerprint/README.md`
+
+### `fingerprint-challenge-access-prune`
+
+`fingerprint_challenge_access_events` テーブル（本人がチャレンジを開いた日時 + IP + UA）の retention_days を超過した行をバッチ削除する。IP を含むため無期限保持にしない。親行の閲覧カウンタ（first/last_viewed_at / view_count）は集計値として残る。`FINGERPRINT_CONFIG.challenge.accessLog.enabled`（既定 false）を有効化していない環境では対象が存在せず no-op。
+
+- **API**: `GET /api/cron/fingerprint-challenge-access-prune`
+- **CLI**: `pnpm task fingerprint-challenge-access-prune`
+- **推奨スケジュール**: `20 4 * * *` （日次・深夜帯。他の prune 系と時刻を被らせない）
+- **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
+- **レスポンス例**: `{ "ok": true, "deletedCount": 300, "iterations": 1, "truncated": false }`
+- **詳細**: `src/features/core/fingerprintChallenge/README.md`
+
 ### `wallet-expire-lots`
 
 有効期限切れウォレットロットの残額を没収（残高減算 + wallet_histories 記録）する。
@@ -82,8 +106,28 @@
 - **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
 - **レスポンス例**: `{ "ok": true, "deletedCount": 8000, "iterations": 8, "truncated": false }`
 
+### `wallet-expiration-notice`
+
+ウォレットの失効通知（失効予告 + 失効時の本通知）をメール / サービス内通知で送る。
+`wallet-expiration.config.ts` の通貨ごとの `notice` を設定した場合のみ動作し、未設定（デフォルト）なら
+クエリを発行せず即終了の no-op。登録したままでも害はない。冪等（同じ対象には1回しか届かない）。
+時間予算（240秒）内で送りきれなかった分は次回実行が続きから処理する。
+
+- **API**: `GET /api/cron/wallet-expiration-notice`
+- **CLI**: `pnpm task wallet-expiration-notice`
+- **推奨スケジュール**: `10 * * * *` （毎時。送信量が多ければ頻度を上げる。メールを送る時間帯を絞るならスケジュール側で制限）
+- **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
+- **レスポンス例**: `{ "ok": true, "skipped": false, "preExpiry": { "sent": 40, "alreadySent": 0, "failed": 0, "exhausted": true, ... }, "expired": { "sent": 120, ... }, "aborted": false }`
+- **監視**: `aborted: true` は送信の連続失敗による打ち切り（メール基盤の障害など）。`failed` が増えている場合は `message_dispatches` を確認
+- **詳細**: `src/features/core/wallet/README.md` の「失効通知」
+
 > **Note**: `pnpm task wallet-lots-init` はタスクランナーに登録されているが**定期実行してはいけない**
 > （ウォレット有効期限の導入時に1回だけ手動実行するデータ移行。再実行は全ユーザーの失効カウントをリセットする）。
+
+> **Note**: `pnpm task wallet-lots-init-from-history` も one-shot タスクで**定期実行しない**
+> （`wallet-lots-init` の代替で、導入時に**どちらか一方だけ**を1回実行する。付与履歴から実際の付与日でロットを復元し、
+> 既に期限を過ぎている分は次回の `wallet-expire-lots` で没収される。`-- --dry-run` で対象件数と没収見込み額の事前確認が可能。
+> 詳細: `src/features/core/wallet/README.md` の「導入手順」）。
 
 > **Note**: `pnpm task user-name-dedup` も one-shot タスクで**定期実行しない**
 > （表示名の一意性 `USER_NAME_CONFIG.unique` を有効化する際に1回だけ実行し、既存の重複表示名へ
@@ -105,8 +149,11 @@
     { "path": "/api/cron/audit-log-prune",               "schedule": "0 3 * * *" },
     { "path": "/api/cron/audit-log-recover-dead-letter", "schedule": "0 * * * *" },
     { "path": "/api/cron/user-login-event-prune",        "schedule": "0 4 * * *" },
+    { "path": "/api/cron/device-fingerprint-prune",      "schedule": "15 4 * * *" },
+    { "path": "/api/cron/fingerprint-challenge-access-prune", "schedule": "20 4 * * *" },
     { "path": "/api/cron/wallet-expire-lots",            "schedule": "30 4 * * *" },
-    { "path": "/api/cron/wallet-lots-prune",             "schedule": "45 4 * * *" }
+    { "path": "/api/cron/wallet-lots-prune",             "schedule": "45 4 * * *" },
+    { "path": "/api/cron/wallet-expiration-notice",      "schedule": "10 * * * *" }
   ]
 }
 ```
