@@ -36,3 +36,4 @@
 - id:20261019-000000-ui-layers-vocabulary | date:2026-10-18T20:30:00+09:00 | commit:75cf713c | notes:docs-only; no fork edits to the touched docs; fork has no feature containers yet (engine/ is outside the SCREENS contract)
 - id:20261019-010000-ui-layers-rename | date:2026-10-19T00:05:00+09:00 | commit:60abb541 | notes:merge only; fork had no old-path imports and no _components copies (steps 2-4 no-op); browser manual checks left to human
 - id:20261019-020000-screens-import-check-container-dirs | date:2026-10-19T00:37:00+09:00 | commit:59814b90 | notes:-
+- id:20261019-030000-ui-layers-shim-removal | date:2026-10-19T01:38:00+09:00 | commit:8ffdeeda | notes:merge only; tsc still has 1 pre-existing fork-owned error (src/app/lab/002-ai-dialogue missing sonner), unrelated to this notice
