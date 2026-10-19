@@ -42,3 +42,4 @@
 - id:20261019-060000-admin-screens | date:2026-10-19T02:20:00+09:00 | commit:2ad1be46 | notes:merge only; no fork admin pages, FORK_SCAN_ROOTS empty, no CouponSectionTabs import
 - id:20261019-070000-coupon-section-tabs-shim-removal | date:2026-10-19T04:08:00+09:00 | commit:7ac46b81 | notes:merge only
 - id:20261019-080000-deprecated-aliases-removal | date:2026-10-19T04:40:00+09:00 | commit:ecfbefc2 | notes:merge only; no fork usages of removed aliases
+- id:20261019-122551-fork-core-edit-compat-rule | date:2026-10-19T12:55:00+09:00 | commit:7e4c3ce4 | notes:merge only; optional audit: no fork edits under core paths
