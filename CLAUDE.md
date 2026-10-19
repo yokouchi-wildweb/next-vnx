@@ -286,6 +286,7 @@ db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates
 ## CORE_FILES (approval required)
 src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/*.css (except custom/), src/app/**/_screen/** (upstream routes, see SCREENS), servers/room/src/core/, servers/room/src/index.ts
 downstream_owned (upstream never edits after creation, see STYLE_OWNERSHIP / SCREENS): src/styles/custom/**, src/config/ui/*.config.ts, src/app/**/page.tsx of switched routes (1-line switch; upstream never edits after creation), src/app/**/_components/** of upstream routes, src/registry/screenRoutesRegistry.ts (FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES / FORK_LEGACY_ROUTES)
+fork_core_edit_compat (downstream, when a fork edits core paths at all — default is don't, see SCREENS): stay backward compatible with upstream callers | props/args a fork adds to a core component/hook/service = optional with an empty default | never delete core code the fork does not use (leave it unused) | signature change = add a new name, keep the old | why: upstream default `_screen/*` Screens and other upstream callers stay in the fork's tsc scope even when its page.tsx points to `_components/` → a non-compatible core edit fails tsc at the next upstream merge | fix side = the fork's core edit, never the upstream Screen | ref: src/lib/screens/README.md §7
 src/config/: value changes OK | structure changes (add/remove keys, type change, rename) require approval
 .claude/rules/ (project.md etc.): always-loaded → edit ONLY on explicit user instruction to add/change a rule or map entry. never append work records as part of finishing a task (scope: .claude/rules/project.md `scope` section)
 
@@ -306,4 +307,4 @@ fork_bootstrap: 新規fork初期設定 = /fork-init (clone直後のリポ内で�
 policy: colocation-first — primary docs in README.md next to code | docs/ = legacy, phasing out except !must-read/ (exception: standalone docs allowed when clearly superior)
 stale_README: full rewrite over partial patch when README contradicts actual code
 dated_records (incident narrative / verification log / decision history / "記録して"): docs/journal/<YYYY-MM-DD>-<slug>.md — not auto-loaded, never .claude/rules/ or CLAUDE.md. distilled rule (1 line) may go to project.md if fork-specific
-location: docs/ | structure: !must-read/, concepts/, how-to/, core-specs/, troubleshooting/, reference/, self-evaluation/, journal/
+location: docs/ | structure: !must-read/, concepts/, how-to/, core-specs/, troubleshooting/, reference/, journal/
