@@ -1,0 +1,236 @@
+/*
+ * src/styles/custom/animations.css — fork 固有のアニメーショントークン(下流所有)
+ *
+ * 上流の src/styles/animations.css と同じ書き方で、@theme に --animate-* と @keyframes を登録する。
+ * custom/index.css から読み込まれ、Tailwind の animate-* ユーティリティとして使える。
+ * 利用先: src/app/(user)/draft/**, src/app/lab/001-basic-scene, src/engine/features/dialogue
+ */
+
+@theme {
+
+  /* シマーアニメーション: 光沢が横に流れる */
+  --animate-shimmer: shimmer 1.5s infinite;
+
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  /* パネル浮遊アニメーション: 分裂パネルがゆらゆら動く */
+  --animate-panel-float: panel-float 4s ease-in-out infinite;
+
+  @keyframes panel-float {
+    0%, 100% {
+      transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) rotate(var(--tw-rotate, 0));
+    }
+    25% {
+      transform: translate(calc(var(--tw-translate-x, 0) + 3px), calc(var(--tw-translate-y, 0) - 5px)) rotate(calc(var(--tw-rotate, 0) + 0.5deg));
+    }
+    50% {
+      transform: translate(calc(var(--tw-translate-x, 0) - 2px), calc(var(--tw-translate-y, 0) + 3px)) rotate(calc(var(--tw-rotate, 0) - 0.3deg));
+    }
+    75% {
+      transform: translate(calc(var(--tw-translate-x, 0) + 4px), calc(var(--tw-translate-y, 0) - 2px)) rotate(calc(var(--tw-rotate, 0) + 0.4deg));
+    }
+  }
+
+  /* グリッチフラッシュ: ランダムな光の走査 */
+  --animate-glitch-flash: glitch-flash 3s ease-in-out infinite;
+
+  @keyframes glitch-flash {
+    0%, 90%, 100% {
+      opacity: 0;
+      transform: translateX(-100%);
+    }
+    92% {
+      opacity: 0.6;
+      transform: translateX(0%);
+    }
+    95% {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+  }
+
+  /* 浮遊パーティクル */
+  --animate-float-particle: float-particle 3s ease-in-out infinite;
+
+  @keyframes float-particle {
+    0%, 100% {
+      transform: translateY(0) translateX(0);
+      opacity: 0.4;
+    }
+    50% {
+      transform: translateY(-20px) translateX(10px);
+      opacity: 0.8;
+    }
+  }
+
+  /* グリッド走査線 */
+  --animate-grid-scan: grid-scan 4s ease-in-out infinite;
+
+  @keyframes grid-scan {
+    0% {
+      top: 30%;
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.8;
+    }
+    90% {
+      opacity: 0.8;
+    }
+    100% {
+      top: 100%;
+      opacity: 0;
+    }
+  }
+
+  /* キーワード浮遊 */
+  --animate-keyword-float: keyword-float 6s ease-in-out infinite;
+
+  @keyframes keyword-float {
+    0%, 100% {
+      transform: translateY(0) translateX(0);
+      opacity: 0.3;
+    }
+    25% {
+      transform: translateY(-15px) translateX(8px);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translateY(-5px) translateX(-5px);
+      opacity: 0.4;
+    }
+    75% {
+      transform: translateY(-20px) translateX(3px);
+      opacity: 0.6;
+    }
+  }
+
+  /* ゆっくりパルス */
+  --animate-pulse-slow: pulse-slow 3s ease-in-out infinite;
+
+  @keyframes pulse-slow {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.05);
+    }
+  }
+
+  /* ボーダーパルス */
+  --animate-border-pulse: border-pulse 2s linear infinite;
+
+  @keyframes border-pulse {
+    0% {
+      background-position: 0% 0%, 100% 100%, 0% 100%, 100% 0%;
+    }
+    100% {
+      background-position: 200% 0%, -100% 100%, 0% -100%, 100% 200%;
+    }
+  }
+
+  /* ステータスバープログレス */
+  --animate-status-progress: status-progress 3s ease-in-out infinite;
+
+  @keyframes status-progress {
+    0%, 100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* ステータスバースキャン */
+  --animate-status-scan: status-scan 2s linear infinite;
+
+  @keyframes status-scan {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(400%);
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     GlitchText アニメーション
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* グリッチスキュー: 本体の歪み */
+  --animate-glitch-skew: glitch-skew 0.2s ease-in-out;
+
+  @keyframes glitch-skew {
+    0% { transform: skewX(0deg); }
+    20% { transform: skewX(-2deg); }
+    40% { transform: skewX(2deg); }
+    60% { transform: skewX(-1deg); }
+    80% { transform: skewX(1deg); }
+    100% { transform: skewX(0deg); }
+  }
+
+  /* グリッチ1: 上半分のRGBずれ（マゼンタ） */
+  --animate-glitch-1: glitch-1 0.2s ease-in-out;
+
+  @keyframes glitch-1 {
+    0% { transform: translate(0); }
+    20% { transform: translate(-3px, 1px); }
+    40% { transform: translate(3px, -1px); }
+    60% { transform: translate(-2px, 2px); }
+    80% { transform: translate(2px, -2px); }
+    100% { transform: translate(0); }
+  }
+
+  /* グリッチ2: 下半分のRGBずれ（シアン） */
+  --animate-glitch-2: glitch-2 0.2s ease-in-out;
+
+  @keyframes glitch-2 {
+    0% { transform: translate(0); }
+    20% { transform: translate(3px, -1px); }
+    40% { transform: translate(-3px, 1px); }
+    60% { transform: translate(2px, -2px); }
+    80% { transform: translate(-2px, 2px); }
+    100% { transform: translate(0); }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     TypingText アニメーション
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* キャレット点滅 */
+  --animate-caret-blink: caret-blink 1s infinite;
+
+  @keyframes caret-blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     アイコンアニメーション
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* アイコンスケール: 拡大縮小 */
+  --animate-icon-scale: icon-scale 2s ease-in-out infinite;
+
+  @keyframes icon-scale {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+
+  /* アイコンスパークル: 明滅 */
+  --animate-icon-sparkle: icon-sparkle 3s ease-in-out infinite;
+
+  @keyframes icon-sparkle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+}

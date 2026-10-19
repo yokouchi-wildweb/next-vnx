@@ -1,6 +1,6 @@
 "use client";
 
-import { HudFrame } from "@/components/Widgets/HudFrame";
+import { HudFrame } from "../_components/HudFrame";
 import { Stack } from "@/components/Layout/Stack";
 
 type HudFrameSectionProps = {

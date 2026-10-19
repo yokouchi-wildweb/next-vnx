@@ -14,7 +14,7 @@
 
 import { useEffect, useState, useMemo } from "react"
 import { useSearchSave } from "@/features/save/hooks/useSearchSave"
-import { useGetScenario } from "@/features/core/dummy"  // 本番: features/scenario/hooks
+import { useGetScenario } from "./useGetScenario"  // 本番: features/scenario/hooks
 import { useGameStateStore } from "@/engine/stores/gameState"
 import { useScenarioDataStore } from "@/engine/stores/scenarioData"
 import type { Playhead } from "@/engine/stores/gameState"

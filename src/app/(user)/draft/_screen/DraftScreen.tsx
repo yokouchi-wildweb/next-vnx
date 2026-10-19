@@ -2,7 +2,7 @@
 // トップページ案(ドラフト)の Screen。page.tsx は 1 行スイッチでここを参照する。
 
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
-import { TunnelBackground } from "@/components/Background";
+import { TunnelBackground } from "../_components/TunnelBackground";
 import { HeroSection } from "../HeroSection";
 import { ServiceAboutSection } from "../ServiceAboutSection";
 import { HudFrameSection } from "../HudFrameSection";

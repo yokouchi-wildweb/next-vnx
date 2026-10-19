@@ -1,18 +1,19 @@
-// src/features/core/dummy/useGetScenario.ts
+// src/app/lab/003-save-load/useGetScenario.ts
 /**
- * ダミー: シナリオ取得フック
+ * ダミー: シナリオ取得フック(lab 専用)
  *
+ * public/game/ の静的 JSON を読むだけのモック。
  * 本番では features/scenario/hooks/useGetScenario に置き換え
  * インターフェースは汎用 CRUD の useGet と同じ
  */
 "use client"
 
+import axios from "axios"
 import useSWR from "swr"
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Scenario = any
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+const fetcher = (url: string) => axios.get<Scenario>(url).then((res) => res.data)
 
 export function useGetScenario(id: string | null) {
   const { data, error, isLoading } = useSWR<Scenario>(

@@ -1,7 +1,7 @@
 "use client";
 
 import { Sparkles, Play } from "lucide-react";
-import { HudFrame } from "@/components/Widgets/HudFrame";
+import { HudFrame } from "../_components/HudFrame";
 import { Button } from "@/components/Form/Button/Button";
 import { Stack } from "@/components/Layout/Stack";
 import { TypingText } from "./TypingText";

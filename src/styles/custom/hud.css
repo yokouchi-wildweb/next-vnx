@@ -1,7 +1,7 @@
 /*
  * src/styles/custom/hud.css — HudFrame(サイバー HUD 風フレーム)専用の色トークン(下流所有)
  *
- * 対象: src/components/Widgets/HudFrame/
+ * 対象: src/app/(user)/draft/_components/HudFrame/
  * 背景: 共有 UI(src/components)では生パレット色クラス(bg-slate-900 / text-white / bg-[rgb(...)] 等)が
  *       ESLint(style-tokens/no-raw-palette)で禁止されるため、HudFrame が使う色をトークン化している。
  *       値は従来の見た目(Tailwind v4 の slate / purple / pink パレット)と同じ oklch 値。
