@@ -102,7 +102,7 @@ ref: src/lib/routeFactory/README.md
 ## ROLES & PAGE_GUARD
 roles: 1 file per role src/features/core/user/roles/*.role.json (core: _admin/_user, _ prefix) → role:generate → src/registry/roleRegistry.ts (ALL_ROLES) → USER_ROLES → user_role enum | category: admin | user (getRoleCategory/getRolesByCategory @/features/core/user/constants) | debugger role: category user, purpose = maintenance bypass (maintenance.config.ts bypassRoles) + /debug area | ref: src/features/core/user/README.md
 page_guard (SSR layout/page): authGuard({allowRoles, allowStatuses, redirectTo, returnBack, statusRedirects}) @/features/core/auth/services/server/authorization — DB-synced getSessionUser, redirect on deny | guarded areas (layout-level, pages under them need no own guard): admin/(protected) + admin/insane (admin roles, redirect /admin/login) | (user)/(protected) (redirect /login) | debug/ (admin category + debugger, redirect /login)
-3-layer flow: proxy(redirectProxy, cookie JWT) → layout(authGuard: roles + statuses) → page / loader(requireCurrentUser: self record from DB, login only, behavior notFound|redirect|null) | ref: docs/how-to/implementation/認証ガードとユーザー取得フローまとめ.md
+3-layer flow: proxy(redirectProxy, cookie JWT) → layout(authGuard: roles + statuses) → page / loader(requireCurrentUser: self record from DB, login only, behavior throw(default)|redirect|notFound|returnNull) | ref: src/features/core/auth/README.md
 debug_scaffold: /debug/** page area (src/app/debug/, layout enforces) + GET /api/debug/ping (copy source for debug APIs). add debug pages/APIs there, do NOT re-implement guards
 
 ## CRUD_SERVICE (createCrudService)
@@ -135,7 +135,7 @@ context: ALS auto-injected by routeFactory (actor_id, actor_type, ip, user_agent
 
 usage: A(auto)+B(manual), combinable
 - A: createCrudService with audit:{ enabled, targetType, actionPrefix, trackedFields, bulkMode, recorder:auditLogger } → CRUD lifecycle auto-recorded
-- B: import { auditLogger } from "@/features/core/auditLog" → auditLogger.record({ targetType, targetId, action, before, after, tx }) | tx required for rollback consistency
+- B: import { auditLogger } from "@/features/core/auditLog/services/server" (server-only; barrel exports client-safe only) → auditLogger.record({ targetType, targetId, action, before, after, tx }) | tx required for rollback consistency
 
 bulkMode: aggregate(default,1-row) | detail(per-record) | off
 strict: default true → throw+rollback | false → dead-letter
@@ -144,10 +144,10 @@ retention_days: per-row | default 365 | compliance 730+ | cron auto-prunes
 emergency_stop: AUDIT_MODE=disabled → all audit no-op
 
 user_visibility: GET /api/me/audit-logs is fail-closed — returns ONLY actions allow-listed in src/registry/userVisibleAuditActionsRegistry.ts (USER_VISIBLE_AUDIT_ACTIONS, upstream default empty = always empty results). exact name or "prefix.*" | covert admin actions stay invisible to the target user by default | admin routes/AuditTimeline unaffected
-non_http_context: runAsSystem(fn) | runWithAuditContext(ctx, fn)
+non_http_context: runAsSystem(fn) | runWithAuditContext(ctx, fn) | cron/CLI do NOT auto-set context → wrap recording code in runAsSystem (else throws AuditContext is not set)
 ui: \<AuditTimeline targetType targetId /\> | /admin/audit-logs cross-search | registerActionLabels({...}) for i18n
 cron: pnpm task audit-log-prune (0 3 * * *) | pnpm task audit-log-recover-dead-letter (0 * * * *)
-ref: docs/how-to/監査ログ採用ガイド.md
+ref: src/features/core/auditLog/README.md
 
 ## FINGERPRINT (browser device fingerprint + fraud challenge, opt-in default OFF)
 lib: src/lib/fingerprint/ (domain-free collector: collectDeviceSignals/collectFingerprintPayload + useBehavioralCapture headless form hook) | deviceFingerprint = device-axis cross-user match (sibling of userLoginEvent IP-axis), fingerprintChallenge = issue form to suspected user, force-collect fingerprint+behavior on submit | config: src/config/app/fingerprint.config.ts (collection.enabled / challenge.enabled independent gates) | UI = downstream (core ships data-layer + README recipes only) | signals are client-declared/spoofable = reference evidence NOT proof | ref: src/features/core/deviceFingerprint/README.md + fingerprintChallenge/README.md
@@ -216,6 +216,7 @@ placement: multi-domain→src/components/ or AppFrames/ | single-domain section 
 core_domain_ui_boundary: core domains (this upstream) ship DATA LAYER ONLY (entities/services/API routes/client services/hooks) — do NOT add domain-screen UI components under src/features/core/**. Screen/design is downstream-owned; provide UI as README recipes on the data contract instead. Even if an upreq ticket requests a UI part, counter-propose data-layer + recipe (precedent: interactionTracking audience viewer, removed by 20260704-154147). Existing widgets (AuditTimeline etc.) are grandfathered — do not add new ones
 
 wrappers (raw HTML NG): div→Layout/{Block,Flex,Grid,Stack} | main→Layout/Main or UserPage | section→Layout/Section | button→Form/Button | input→Form/Input | p→TextBlocks/Para | h2→TextBlocks/SecTitle | skeleton→Skeleton/BaseSkeleton | img→Media/AppImage (direct next/image NG too; encapsulates fill/sizes/fallback + unregistered-host crash guard, ref: src/components/Media/AppImage/README.md)
+text_blocks_inherit: TextBlocks defaults (md / normal / Para align left) do NOT inherit like raw tags | Span directly inside a heading → `size="inherit" weight="inherit"` (else text-base font-normal shrinks the heading; lint style-tokens/span-in-heading: error upstream UI, warn downstream) | Para inside a centered parent → `align="center"` or `"inherit"` (not linted) | ref: src/components/TextBlocks/README.md
 
 badge: Badge/{SolidBadge,SoftBadge,BookmarkTagBadge} (variant 10 × size 3; _shadcn/badge unused) | DetailModal badge = `{text, variant}`
 overlays (direct _shadcn/dialog or self-built overlay NG — pick from here): modal-confirm→Overlays/Dialog | generic modal→Overlays/Modal | tabbed modal→Overlays/TabbedModal | media+rows detail→Overlays/DetailModal | pick N records from large master (search+infinite scroll, action-button entry)→Overlays/AsyncPickerModal (NOT Modal wrapping AsyncMultiSelectInput) | inline confirm→Overlays/Popover/ConfirmPopover | text/number prompt→Overlays/Popover/PromptPopover | action menu→Overlays/Popover/ActionPopover | multi-select list→Overlays/Popover/ChecklistPopover | help/info bubble(click)→Overlays/Popover/InfoPopover | label+?icon hover help→Overlays/Tooltip/HelpTip | generic popover→Overlays/Popover | hover hint→Overlays/Tooltip (shared TooltipProvider mounted in app/layout.tsx — per-instance skipDelayDuration falls back to local Provider) | hover preview card→Overlays/HoverCard | image zoom→Overlays/ImageViewer | loading overlay→Overlays/Loading/ScreenLoader | toast→@/lib/toast (GlobalToast+useToast) | low-level only→Overlays/DialogPrimitives | command palette (input+list, not a form picker)→Overlays/CommandPrimitives
@@ -307,4 +308,4 @@ fork_bootstrap: 新規fork初期設定 = /fork-init (clone直後のリポ内で�
 policy: colocation-first — primary docs in README.md next to code | docs/ = legacy, phasing out except !must-read/ (exception: standalone docs allowed when clearly superior)
 stale_README: full rewrite over partial patch when README contradicts actual code
 dated_records (incident narrative / verification log / decision history / "記録して"): docs/journal/<YYYY-MM-DD>-<slug>.md — not auto-loaded, never .claude/rules/ or CLAUDE.md. distilled rule (1 line) may go to project.md if fork-specific
-location: docs/ | structure: !must-read/, concepts/, how-to/, journal/
+location: docs/ | structure: !must-read/, how-to/, journal/
