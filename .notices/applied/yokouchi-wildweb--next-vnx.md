@@ -41,3 +41,4 @@
 - id:20261019-050000-client-service-boundary | date:2026-10-19T02:15:00+09:00 | commit:b1ad482d | notes:step3 dc:generate not run (interactive prompt); only sort domain is sample, already regenerated upstream and identical (uses useReorderSample)
 - id:20261019-060000-admin-screens | date:2026-10-19T02:20:00+09:00 | commit:2ad1be46 | notes:merge only; no fork admin pages, FORK_SCAN_ROOTS empty, no CouponSectionTabs import
 - id:20261019-070000-coupon-section-tabs-shim-removal | date:2026-10-19T04:08:00+09:00 | commit:7ac46b81 | notes:merge only
+- id:20261019-080000-deprecated-aliases-removal | date:2026-10-19T04:40:00+09:00 | commit:ecfbefc2 | notes:merge only; no fork usages of removed aliases
