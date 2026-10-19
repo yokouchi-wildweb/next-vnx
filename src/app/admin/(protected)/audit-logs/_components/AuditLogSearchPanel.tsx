@@ -3,25 +3,25 @@
 "use client";
 
 import type * as React from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
+import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { Button } from "@/components/Form/Button";
 import { Manual } from "@/components/Form/Input";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
 import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
-import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
 import {
-  auditLogClient,
   formatActionLabel,
   formatActorTypeLabel,
   formatAuditDate,
   type AuditLog,
 } from "@/features/core/auditLog";
 import type { WhereExpr } from "@/lib/crud";
+import { useAuditLogSearch } from "@/features/core/auditLog/hooks/useAuditLogSearch";
 
 import { DiffView } from "@/features/core/auditLog/components/common/AuditTimeline/DiffView";
 
@@ -79,11 +79,7 @@ export function AuditLogSearchPanel() {
   const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
   const [detailLog, setDetailLog] = useState<AuditLog | null>(null);
 
-  const fetcher = useCallback(
-    async ({ page, limit }: { page: number; limit: number }) =>
-      auditLogClient.search({ page, limit, where: buildWhere(applied) }),
-    [applied],
-  );
+  const where = useMemo(() => buildWhere(applied), [applied]);
 
   // ページ全体がスクロールするレイアウト (DataTable maxHeight="none") のため
   // IntersectionObserver の root はビューポートに任せる。
@@ -94,13 +90,8 @@ export function AuditLogSearchPanel() {
     [],
   );
 
-  const { items: logs, total, isLoading, error, hasMore, sentinelRef } =
-    useInfiniteScrollQuery<AuditLog>({
-      fetcher,
-      limit: PAGE_SIZE,
-      deps: [JSON.stringify(applied)],
-      observerOptions,
-    });
+  const { items: logs, total, isInitialLoading, isFetchingMore, error, hasMore, sentinelRef } =
+    useAuditLogSearch({ where, limit: PAGE_SIZE, observerOptions });
 
   const columns: DataTableColumn<AuditLog>[] = [
     { header: "日時", render: (log) => formatAuditDate(log.createdAt) },
@@ -152,8 +143,6 @@ export function AuditLogSearchPanel() {
     setApplied(EMPTY_FILTERS);
   };
 
-  const hasLogs = logs.length > 0;
-
   return (
     <>
       <Stack space={4}>
@@ -198,41 +187,42 @@ export function AuditLogSearchPanel() {
 
         <Para size="xs" tone="muted">{total ? `合計 ${total} 件` : "履歴 0 件"}</Para>
 
-        {error ? (
-          <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-destructive/40 bg-destructive/5">
-            <Para tone="destructive">履歴の取得に失敗しました</Para>
-          </div>
-        ) : isLoading && !hasLogs ? (
-          <div className="flex min-h-[160px] items-center justify-center">
-            <Para tone="muted">読込中...</Para>
-          </div>
-        ) : hasLogs ? (
-          <>
+        <InfiniteScrollList
+          items={logs}
+          isInitialLoading={isInitialLoading}
+          isFetchingMore={isFetchingMore}
+          hasMore={hasMore}
+          error={error}
+          sentinelRef={sentinelRef}
+          completedText="すべて読み込み済み"
+          initialLoadingNode={
+            <div className="flex min-h-[160px] items-center justify-center">
+              <Para tone="muted">読込中...</Para>
+            </div>
+          }
+          errorNode={
+            <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-destructive/40 bg-destructive/5">
+              <Para tone="destructive">履歴の取得に失敗しました</Para>
+            </div>
+          }
+          emptyNode={
+            <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-dashed border-border py-6">
+              <Para tone="muted">該当する監査ログはありません</Para>
+            </div>
+          }
+        >
+          {(items) => (
             <DataTable
-              items={logs}
+              items={items}
               columns={columns}
               className="rounded-lg border border-border bg-card"
               maxHeight="none"
               getKey={(item) => item.id}
               emptyValueFallback="-"
               onRowClick={setDetailLog}
-              bottomSentinelRef={(node) => sentinelRef(node)}
             />
-            <div className="mt-2 flex items-center justify-center">
-              {isLoading ? (
-                <Para tone="muted" size="xs">追加の履歴を読込中...</Para>
-              ) : hasMore ? (
-                <Para tone="muted" size="xs">下までスクロールすると自動で読み込みます</Para>
-              ) : (
-                <Para tone="muted" size="xs">すべて読み込み済み</Para>
-              )}
-            </div>
-          </>
-        ) : (
-          <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-dashed border-border py-6">
-            <Para tone="muted">該当する監査ログはありません</Para>
-          </div>
-        )}
+          )}
+        </InfiniteScrollList>
       </Stack>
 
       <DetailModal
