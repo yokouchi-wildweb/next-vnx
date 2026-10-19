@@ -48,3 +48,4 @@
 - id:20261019-124758-docs-colocation-sweep | date:2026-10-19T14:48:00+09:00 | commit:- | notes:no fork edits to moved/deleted docs; no vercel.json (step2 skipped); kept fork-owned docs/concepts/ (VNX vision/overview, referenced by project.md) and docs/engine/; remaining old-path hits at this point = upstream docs/!must-read/README.md (rewritten by must-read-why-docs)
 - id:20261019-134425-flux-relay-covers | date:2026-10-19T14:50:00+09:00 | commit:- | notes:-
 - id:20261019-133730-must-read-why-docs | date:2026-10-19T14:52:00+09:00 | commit:- | notes:no fork edits to moved files; merge only
+- id:20261019-140501-eslint-template-ignores | date:2026-10-19T14:54:00+09:00 | commit:- | notes:-
