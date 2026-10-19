@@ -28,21 +28,20 @@ type Props = {
 export function Background({ filters: filterConfig, zIndex }: Props) {
   const { currentPath } = useBackground()
   const { width: screenWidth, height: screenHeight } = useGameSize()
-  const [texture, setTexture] = useState<Texture | null>(null)
+  const [loadedTexture, setLoadedTexture] = useState<Texture | null>(null)
+  // 背景パスが無いときは非表示。パス切替中は新しい画像のロード完了まで直前の画像を表示し続ける
+  const texture = currentPath ? loadedTexture : null
 
   // 背景画像をロード（完全パスを使用）
   useEffect(() => {
-    if (!currentPath) {
-      setTexture(null)
-      return
-    }
+    if (!currentPath) return
 
     let mounted = true
     const loadTexture = async () => {
       try {
         const tex = await Assets.load(currentPath)
         if (mounted) {
-          setTexture(tex)
+          setLoadedTexture(tex)
         }
       } catch (err) {
         console.warn(`Failed to load background: ${currentPath}`, err)

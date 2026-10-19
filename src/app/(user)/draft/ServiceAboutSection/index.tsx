@@ -1,4 +1,6 @@
 import { Stack } from "@/components/Layout/Stack";
+import { AppImage } from "@/components/Media/AppImage";
+import { imgPath } from "@/utils/assets";
 
 export function ServiceAboutSection() {
   return (
@@ -65,13 +67,14 @@ export function ServiceAboutSection() {
             <div className="mt-3 flex flex-col md:flex-row items-center gap-4 md:gap-0">
               {/* 左：画像（コンテナから飛び出し） */}
               <div className="flex-shrink-0 w-full md:w-[50%] md:-ml-12 lg:-ml-18">
-                <img
-                  src="/assets/imgs/laptop.png"
+                <AppImage
+                  mode="intrinsic"
+                  src={imgPath("laptop.png")}
                   alt="創作スタジオ"
-                  className="w-full h-auto drop-shadow-2xl scale-110 md:scale-125"
-                  style={{
-                    filter: "drop-shadow(0 20px 40px rgba(0, 0, 0, 0.3))",
-                  }}
+                  width={1402}
+                  height={921}
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="w-full h-auto drop-shadow-[0_20px_40px_rgba(0,0,0,0.3)] scale-110 md:scale-125"
                 />
               </div>
 
@@ -93,7 +96,7 @@ export function ServiceAboutSection() {
                 </p>
                 <p className="text-base md:text-lg lg:text-xl leading-relaxed">
                   このサービスは<span className="text-cyan-300">ノベルゲーム</span>や<span className="text-yellow-300">マーダーミステリー</span>といった
-                  "物語体験"を生み出すための 次世代型・創作スタジオです。
+                  &ldquo;物語体験&rdquo;を生み出すための 次世代型・創作スタジオです。
                 </p>
                 <p className="text-base md:text-lg lg:text-xl leading-relaxed">
                   頭の中にあるアイデアや設定 キャラクター 伏線

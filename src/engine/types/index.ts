@@ -74,7 +74,6 @@ export type SceneTypeDefinition = {
 // ============================================================
 
 /** コマンドハンドラー */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type CommandHandler = (data: any) => void
 
 /** コマンド定義 */
@@ -87,15 +86,11 @@ export type FeatureBundle = {
   /** コマンドハンドラー */
   commands: FeatureCommands
   /** PixiJS コンポーネント */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Sprites?: Record<string, React.ComponentType<any>>
   /** HTML コンポーネント（単体、Layer 内で使用） */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Widgets?: Record<string, React.ComponentType<any>>
   /** HTML コンポーネント（グループ、直接配置） */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Layers?: Record<string, React.ComponentType<any>>
   /** 状態フック */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   hooks?: Record<string, any>
 }

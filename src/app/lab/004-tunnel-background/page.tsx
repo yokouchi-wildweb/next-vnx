@@ -13,8 +13,9 @@
  */
 "use client"
 
-import { useState, useMemo, useEffect, useCallback } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { generateTunnelSVG, type TunnelSVGOptions } from "./generateTunnelSVG"
+import { useLocalStorage } from "@/lib/browserStorage"
 import { HeroSection } from "@/app/(user)/draft/HeroSection";
 import { Stack } from "@/components/Layout/Stack";
 
@@ -56,22 +57,19 @@ export default function TunnelBackgroundPage() {
   const [showControls, setShowControls] = useState(true)
 
   // 保存関連の状態
-  const [savedPresets, setSavedPresets] = useState<SavedPreset[]>([])
+  // localStorage の読み書きは共通フックに任せ、ここでは JSON の解釈だけ行う
+  const [storedPresets, setStoredPresets] = useLocalStorage(STORAGE_KEY, "[]")
+  const savedPresets = useMemo<SavedPreset[]>(() => {
+    try {
+      return JSON.parse(storedPresets)
+    } catch {
+      // パースエラーは無視
+      return []
+    }
+  }, [storedPresets])
   const [presetName, setPresetName] = useState("")
   const [showSavePanel, setShowSavePanel] = useState(false)
   const [copyMessage, setCopyMessage] = useState<string | null>(null)
-
-  // localStorageから読み込み
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      try {
-        setSavedPresets(JSON.parse(stored))
-      } catch {
-        // パースエラーは無視
-      }
-    }
-  }, [])
 
   // 設定を保存
   const savePreset = useCallback(() => {
@@ -96,12 +94,11 @@ export default function TunnelBackgroundPage() {
     }
 
     const updated = [...savedPresets, newPreset]
-    setSavedPresets(updated)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+    setStoredPresets(JSON.stringify(updated))
     setPresetName("")
     setCopyMessage("保存しました")
     setTimeout(() => setCopyMessage(null), 2000)
-  }, [presetName, sides, layers, strokeWidth, strokeOpacity, gradientStart, gradientEnd, minScale, maxScale, drawRadialLines, perspectivePower, gradientAngle, savedPresets])
+  }, [presetName, sides, layers, strokeWidth, strokeOpacity, gradientStart, gradientEnd, minScale, maxScale, drawRadialLines, perspectivePower, gradientAngle, savedPresets, setStoredPresets])
 
   // 設定を読み込み
   const loadPreset = useCallback((preset: SavedPreset) => {
@@ -122,9 +119,8 @@ export default function TunnelBackgroundPage() {
   // 設定を削除
   const deletePreset = useCallback((index: number) => {
     const updated = savedPresets.filter((_, i) => i !== index)
-    setSavedPresets(updated)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
-  }, [savedPresets])
+    setStoredPresets(JSON.stringify(updated))
+  }, [savedPresets, setStoredPresets])
 
   // JSONをクリップボードにコピー
   const copyPresetJson = useCallback(async (preset: SavedPreset) => {

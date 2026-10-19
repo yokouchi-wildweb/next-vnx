@@ -5,9 +5,9 @@
  */
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import axios from "axios"
-import { toast } from "sonner"
+import { useToast } from "@/lib/toast"
 import { Stack } from "@/components/Layout/Stack"
 import {
   NPCConfig,
@@ -63,6 +63,7 @@ interface NPCState {
 // =============================================================================
 
 export default function AIDialoguePage() {
+  const { showToast } = useToast()
   // NPC設定
   const [npcConfigs, setNpcConfigs] = useState<Record<NPCId, NPCConfig | null>>({
     grandpa: null,
@@ -105,7 +106,7 @@ export default function AIDialoguePage() {
 
   const activeNpc = npcConfigs[activeNpcId]
   const activeState = npcStates[activeNpcId]
-  const messages = messagesMap[activeNpcId] || []
+  const messages = useMemo(() => messagesMap[activeNpcId] || [], [messagesMap, activeNpcId])
 
   // =========================================================================
   // Load NPC Configs
@@ -177,7 +178,7 @@ export default function AIDialoguePage() {
     setLastBehavior(null)
     // 該当NPCから得た手がかりを削除
     setObtainedClues((prev) => prev.filter((c) => c.npcId !== activeNpcId))
-    toast.info("会話をリセットしました")
+    showToast("会話をリセットしました", "info")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -285,13 +286,13 @@ export default function AIDialoguePage() {
       if (newClues.length > 0) {
         // 手がかり獲得トースト（振る舞いトーストを上書き）
         const clueLabels = newClues.map((c) => c.label).join("、")
-        toast.success(`「${clueLabels}」の情報を獲得！`)
+        showToast(`「${clueLabels}」の情報を獲得！`, "success")
         setObtainedClues((prev) => [...prev, ...newClues])
       } else if (data.behavior?.type) {
         // 振る舞いトースト
         const behaviorToast = activeNpc.behaviors?.[data.behavior.type]?.toast
           || `${activeNpc.name}${BEHAVIOR_TOAST[data.behavior.type] || ""}`
-        toast.info(behaviorToast)
+        showToast(behaviorToast, "info")
       }
 
       // アシスタントメッセージ追加
@@ -307,7 +308,7 @@ export default function AIDialoguePage() {
 
       // 会話終了判定
       if (data.conversation?.should_end) {
-        toast.warning(data.conversation.end_reason || "会話が終了しました")
+        showToast(data.conversation.end_reason || "会話が終了しました", "warning")
       }
     } catch (error) {
       console.error("API Error:", error)

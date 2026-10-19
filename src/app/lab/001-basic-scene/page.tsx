@@ -22,7 +22,7 @@
  */
 "use client"
 
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Application, extend, useApplication } from "@pixi/react"
 import { Container, Sprite, Texture, Assets } from "pixi.js"
@@ -288,7 +288,7 @@ export default function BasicScenePage() {
   }, [executeCommand])
 
   // ダイアログ配列（シーンデータから取得）
-  const dialogues = scene?.dialogues ?? []
+  const dialogues = useMemo(() => scene?.dialogues ?? [], [scene])
   const isLastDialogue = dialogueIndex >= dialogues.length
 
   // PixiJSシーンの準備完了
