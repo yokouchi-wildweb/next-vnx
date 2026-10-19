@@ -45,3 +45,4 @@
 - id:20261019-122551-fork-core-edit-compat-rule | date:2026-10-19T12:55:00+09:00 | commit:7e4c3ce4 | notes:merge only; optional audit: no fork edits under core paths
 - id:20261019-123545-flux-moved-and-conflict-preview | date:2026-10-19T12:58:00+09:00 | commit:f1518630 | notes:merge only
 - id:20261019-124714-text-blocks-inherit | date:2026-10-19T14:45:00+09:00 | commit:- | notes:no span-in-heading findings and no fork-owned <Para> in text-center parents; merge only
+- id:20261019-124758-docs-colocation-sweep | date:2026-10-19T14:48:00+09:00 | commit:- | notes:no fork edits to moved/deleted docs; no vercel.json (step2 skipped); kept fork-owned docs/concepts/ (VNX vision/overview, referenced by project.md) and docs/engine/; remaining old-path hits at this point = upstream docs/!must-read/README.md (rewritten by must-read-why-docs)
