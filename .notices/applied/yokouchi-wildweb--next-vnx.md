@@ -39,3 +39,4 @@
 - id:20261019-030000-ui-layers-shim-removal | date:2026-10-19T01:38:00+09:00 | commit:8ffdeeda | notes:merge only; tsc still has 1 pre-existing fork-owned error (src/app/lab/002-ai-dialogue missing sonner), unrelated to this notice
 - id:20261019-040000-infinite-scroll-list | date:2026-10-19T02:10:00+09:00 | commit:c3f5df06 | notes:merge only
 - id:20261019-050000-client-service-boundary | date:2026-10-19T02:15:00+09:00 | commit:b1ad482d | notes:step3 dc:generate not run (interactive prompt); only sort domain is sample, already regenerated upstream and identical (uses useReorderSample)
+- id:20261019-060000-admin-screens | date:2026-10-19T02:20:00+09:00 | commit:2ad1be46 | notes:merge only; no fork admin pages, FORK_SCAN_ROOTS empty, no CouponSectionTabs import
