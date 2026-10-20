@@ -52,3 +52,4 @@
 - id:20261019-141500-search-wrapper-id-tiebreak | date:2026-10-20T09:12:00+09:00 | commit:- | notes:no fork wrappers using buildOrderBy; merge only
 - id:20261019-152649-lib-catalog | date:2026-10-20T09:15:00+09:00 | commit:- | notes:fork owns no src/lib libraries (engine lives in src/engine) -> no own CATALOG.md section added; merge only
 - id:20261019-153000-journal-owner-naming | date:2026-10-20T10:15:00+09:00 | commit:- | notes:project.md merge conflict resolved by keeping fork side (upstream diff was Tier1-only); scope instead: journal path updated; fork has no own journal records
+- id:20261020-040849-per-project-rules-ownership | date:2026-10-20T10:20:00+09:00 | commit:- | notes:project.md merge conflict resolved by keeping fork side, then scope section removed; no fork-only lines restating scope rules
