@@ -64,3 +64,4 @@
 - id:20261020-161000-purchase-onexpire-all-expire-paths | date:2026-10-20T17:00:00+09:00 | commit:- | notes:merge only; fork defines no onExpire
 - id:20261020-160342-cron-task-override | date:2026-10-20T17:05:00+09:00 | commit:- | notes:merge only; no override.ts added
 - id:20261020-163000-untrack-claude-settings-local | date:2026-10-20T18:20:00+09:00 | commit:- | notes:working copy restored from backup after merge; permissions.defaultMode (acceptEdits) removed locally
+- id:20261020-165234-drizzle-kit-composite-pk-order | date:2026-10-20T18:25:00+09:00 | commit:- | notes:merge + pnpm install; db:push:check no diff
