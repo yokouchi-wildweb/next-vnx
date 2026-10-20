@@ -62,3 +62,4 @@
 - id:20261020-170000-feature-gate-schema-gate | date:2026-10-20T16:45:00+09:00 | commit:- | notes:flags unchanged (payment/wallet/coupon/referral enabled); package.json conflict resolved (fork deps + upstream tsx); behavior.md example switched to pnpm db:push; .claude/settings.local.json drizzle-kit push permission kept; db:push:check zero statements
 - id:20261020-155336-cron-task-folders-free-schedule | date:2026-10-20T16:55:00+09:00 | commit:- | notes:no fork crons/docs (12 core tasks only); vercel.json newly created with --plan hobby (3 sub-daily tasks run daily); superseded 20261020-150229 / 20261020-152703 (done/) not applied
 - id:20261020-161000-purchase-onexpire-all-expire-paths | date:2026-10-20T17:00:00+09:00 | commit:- | notes:merge only; fork defines no onExpire
+- id:20261020-160342-cron-task-override | date:2026-10-20T17:05:00+09:00 | commit:- | notes:merge only; no override.ts added
