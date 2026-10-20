@@ -1,7 +1,8 @@
 # CLAUDE.md
 
 > **FORMAT_RULE**: AI agent optimized. No tables, no verbose prose. Use key:value, inline separators (|, ,), bullet points. Keep additions in this style.
-> **ROLE**: this file = upstream core contract index (how to use shared capabilities), NOT a project log. fork-specific architecture/map/rules → .claude/rules/project.md (its `scope` section defines what belongs there and what never does). dated records → docs/journal/
+> **ROLE**: CLAUDE.md = architecture contract shared by this base and every downstream project. NEVER edit it downstream (gap → /upreq)
+> **PER_PROJECT** (downstream edits freely): .claude/rules/project.md = map / architecture delta / decision rules | .claude/rules/behavior.md = work rules | both always-loaded → standing rules only, no change logs / dates / incident stories (→ commit body / docs/journal/)
 
 ## STACK
 next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: firebase-storage | http: axios (client), fetch (server)
@@ -290,7 +291,6 @@ src/lib/ libraries in upstream sections of src/lib/CATALOG.md (fork-added libs =
 downstream_owned (upstream never edits after creation, see STYLE_OWNERSHIP / SCREENS): src/styles/custom/**, src/config/ui/*.config.ts, src/app/**/page.tsx of switched routes (1-line switch; upstream never edits after creation), src/app/**/_components/** of upstream routes, src/registry/screenRoutesRegistry.ts (FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES / FORK_LEGACY_ROUTES)
 fork_core_edit_compat (downstream, when a fork edits core paths at all — default is don't, see SCREENS): stay backward compatible with upstream callers | props/args a fork adds to a core component/hook/service = optional with an empty default | never delete core code the fork does not use (leave it unused) | signature change = add a new name, keep the old | why: upstream default `_screen/*` Screens and other upstream callers stay in the fork's tsc scope even when its page.tsx points to `_components/` → a non-compatible core edit fails tsc at the next upstream merge | fix side = the fork's core edit, never the upstream Screen | ref: src/lib/screens/README.md §7
 src/config/: value changes OK | structure changes (add/remove keys, type change, rename) require approval
-.claude/rules/ (project.md etc.): always-loaded → edit ONLY on explicit user instruction to add/change a rule or map entry. never append work records as part of finishing a task (scope: .claude/rules/project.md `scope` section)
 
 ## TOOLS
 playwright-mcp: available | use only when explicitly instructed by user
@@ -311,4 +311,6 @@ policy: colocation-first — primary docs in README.md next to code | docs/ = cr
 stale_README: full rewrite over partial patch when README contradicts actual code
 claude_md_additions: CLAUDE.md is loaded every session → per feature max ~2 lines (existence 1 line + mandatory rule not derivable from code) | mechanism / criteria / caveats → colocated README | prefer a line in an existing section over a new section
 dated_records (incident narrative / verification log / decision history / "記録して"): docs/journal/<YYYY-MM-DD>--<owner>--<slug>.md — not auto-loaded, never .claude/rules/ or CLAUDE.md. distilled rule (1 line) may go to project.md if fork-specific
+memory: auto-memory = per-directory, personal, unreviewed → handoff of in-progress work ONLY (state / next step / pointer to drafts / end condition / absolute dates, delete when done), write it freely | never durable rules / knowledge / environment facts
+durable_info: write it to its repo home at that moment with approval (behavior.md / project.md / colocated README / docs/journal; upstream-owned paths in a fork → /upreq) or drop it | corrections are not saved to memory: behavior changes normally come as explicit user instructions to edit behavior.md; offer to record one only when it clearly deserves a rule
 location: docs/ | structure: !must-read/, setup/, journal/
