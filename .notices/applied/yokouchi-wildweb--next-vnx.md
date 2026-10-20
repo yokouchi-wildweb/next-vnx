@@ -66,3 +66,4 @@
 - id:20261020-163000-untrack-claude-settings-local | date:2026-10-20T18:20:00+09:00 | commit:- | notes:working copy restored from backup after merge; permissions.defaultMode (acceptEdits) removed locally
 - id:20261020-165234-drizzle-kit-composite-pk-order | date:2026-10-20T18:25:00+09:00 | commit:- | notes:merge + pnpm install; db:push:check no diff
 - id:20261020-165825-cron-task-override-export | date:2026-10-20T18:30:00+09:00 | commit:- | notes:merge only; no fork override.ts
+- id:20261020-165959-feature-gate-check-disabled-only | date:2026-10-20T18:35:00+09:00 | commit:- | notes:merge only; all gated flags true, no fork rules
