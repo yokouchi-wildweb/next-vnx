@@ -58,3 +58,4 @@
 - id:20261020-045541-claude-md-accuracy-fixes | date:2026-10-20T11:20:00+09:00 | commit:- | notes:project.md conflict resolved keep-fork (upstream diff Tier1-only); step2 verdicts: sample/sampleCategory/sampleTag/save no hand edits to generated files -> generateFiles unchanged; step4 no fork-owned hits (remaining grep hit = upstream scripts/domain-config/README.md explaining not to use --)
 - id:20261020-050516-claude-md-restructure | date:2026-10-20T11:22:00+09:00 | commit:- | notes:merge only (CLAUDE.md / behavior.md not fork-edited, playwright line arrived by merge); no fork refs to removed sections
 - id:20261020-142133-crud-extra-order-by | date:2026-10-20T16:30:00+09:00 | commit:- | notes:merge only; fork had no extraOrderBy edit
+- id:20261020-160000-user-bulk-ops-removed | date:2026-10-20T16:35:00+09:00 | commit:- | notes:merge only; no fork callers; no fork domain with useImportExport:false
