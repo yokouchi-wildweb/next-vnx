@@ -63,3 +63,4 @@
 - id:20261020-155336-cron-task-folders-free-schedule | date:2026-10-20T16:55:00+09:00 | commit:- | notes:no fork crons/docs (12 core tasks only); vercel.json newly created with --plan hobby (3 sub-daily tasks run daily); superseded 20261020-150229 / 20261020-152703 (done/) not applied
 - id:20261020-161000-purchase-onexpire-all-expire-paths | date:2026-10-20T17:00:00+09:00 | commit:- | notes:merge only; fork defines no onExpire
 - id:20261020-160342-cron-task-override | date:2026-10-20T17:05:00+09:00 | commit:- | notes:merge only; no override.ts added
+- id:20261020-163000-untrack-claude-settings-local | date:2026-10-20T18:20:00+09:00 | commit:- | notes:working copy restored from backup after merge; permissions.defaultMode (acceptEdits) removed locally
