@@ -103,6 +103,26 @@ pnpm storage:setup-cors https://your-app.com https://www.your-app.com
 
 事前設定: `MY_SERVICE_ACCOUNT_KEY`(storage.buckets.update 権限) と `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
 
+### 定期タスク (task / cron)
+
+```bash
+# 運用タスクを CLI から実行(定期タスク + ワンショット)
+pnpm task <task-name>
+pnpm task --list               # 一覧(頻度・有効/無効・説明)
+pnpm task --cadence daily      # 頻度区分(15m|hourly|daily|all)の定期タスクを順に全部実行(Vercel 以外のスケジューラ用)
+
+# vercel.json の crons を src/app/api/cron/*/task.ts から生成(crons 以外のキーは保持。タスク増減・プラン変更のたびに実行)
+pnpm cron:generate --plan hobby   # Vercel Hobby: 全タスク 1 日 1 回
+pnpm cron:generate --plan pro     # Vercel Pro: task.ts の cadence どおり
+
+# vercel.json の crons が task.ts と一致するか検査(deploy:all と Vercel 上の pnpm build が先に実行)
+pnpm cron:check
+```
+
+定期タスクは 1 タスク 1 フォルダ `src/app/api/cron/<name>/`(task.ts + route.ts)。一次情報:
+
+➡ [src/lib/cron/README.md](../src/lib/cron/README.md)
+
 ### デプロイ (統合)
 
 ```bash
@@ -111,6 +131,8 @@ pnpm storage:setup-cors https://your-app.com https://www.your-app.com
 pnpm deploy:all
 pnpm deploy:all -- --target=preview
 ```
+
+事前に `pnpm cron:check` を実行し、`vercel.json` の crons が `task.ts` と食い違えば何もデプロイせず止まる。
 
 ※ vercel CLI に `--preview` フラグは無い(`--prod` は `--target=production` の短縮形)。プレビューは `--target=preview` を明示する
 
@@ -147,8 +169,10 @@ scripts/
 ├── db/                    # データベース関連
 │   ├── seed/              # シーダー
 │   └── clear/             # データ削除
+├── cron/                  # vercel.json の cron 生成・検査
 ├── domain-config/         # ドメイン設定生成
 ├── env/                   # .env 初期生成
 ├── mail/                  # メール関連
-└── room/                  # リアルタイムルーム基盤の init / deploy
+├── room/                  # リアルタイムルーム基盤の init / deploy
+└── tasks/                 # 運用タスクの CLI ランナー (pnpm task)
 ```

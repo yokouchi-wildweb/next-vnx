@@ -119,34 +119,34 @@ import { createIncrementalRefresh } from "@/features/incrementalRefresh/services
 export const runUserMetricsRefresh = createIncrementalRefresh({ ...上記... });
 ```
 
-### 4. cron ルート + CLI + スケジュール（`src/lib/cron/README.md` の 4 点セット）
+### 4. cron タスクのフォルダ（`src/lib/cron/README.md`「新しい定期タスクを追加する」）
+
+```ts
+// src/app/api/cron/user-metrics-refresh/task.ts
+import type { CronTaskDefinition } from "@/lib/cron";
+
+export const cronTask: CronTaskDefinition = {
+  name: "user-metrics-refresh",
+  description: "ユーザー指標の read-model を差分更新する",
+  cadence: "15m",
+  run: async () => {
+    const { runUserMetricsRefresh } = await import("@/features/userMetrics/services/server/refresh");
+    return await runUserMetricsRefresh({ budgetMs: 240_000 });
+  },
+};
+```
 
 ```ts
 // src/app/api/cron/user-metrics-refresh/route.ts
-import { createCronRoute } from "@/lib/cron";
-import { runUserMetricsRefresh } from "@/features/userMetrics/services/server/refresh";
+import { createCronTaskRoute } from "@/lib/cron";
+import { cronTask } from "./task";
 
 export const maxDuration = 300;
 
-export const GET = createCronRoute({
-  name: "user-metrics-refresh",
-  handler: () => runUserMetricsRefresh({ budgetMs: 240_000 }),
-});
+export const GET = createCronTaskRoute(cronTask);
 ```
 
-```ts
-// scripts/tasks/run.ts
-"user-metrics-refresh": async () => {
-  const { runUserMetricsRefresh } = await import("@/features/userMetrics/services/server/refresh");
-  return await runUserMetricsRefresh({ budgetMs: 240_000 });
-},
-```
-
-```json
-{ "path": "/api/cron/user-metrics-refresh", "schedule": "*/15 * * * *" }
-```
-
-`vercel.json` の `functions` で該当ルートの `maxDuration` も 300 にする。
+フォルダを足したら `pnpm cron:generate --plan <hobby|pro>` で `vercel.json` を再生成する。`pnpm task user-metrics-refresh` はフォルダを置いた時点で使える。
 
 ### 5. 既存の全件再計算からの移行
 

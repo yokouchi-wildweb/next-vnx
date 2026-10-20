@@ -161,9 +161,9 @@ cleanupOldLedger(retentionDays = 90): Promise<number>
 ```bash
 pnpm task purchase-quota-cleanup
 ```
-- 推奨スケジュール: `0 4 * * *` (audit-log-prune と同様の時間帯)
+- 推奨: 1 日 1 回（深夜帯）
 - 90 日より古い ledger 行を物理削除
-- CLI 専用タスク（`/api/cron/*` ルートと `vercel.json.example` には未登録）。スケジューラの組み方は [cron 基盤 README](../../../lib/cron/README.md#cron-タスクカタログ) を参照
+- CLI 専用タスク（`/api/cron/*` には無い = 定期実行されない）。定期実行したい fork は `src/app/api/cron/<別名>/` に task.ts と route.ts を足す。手順は [cron 基盤 README](../../../lib/cron/README.md#新しい定期タスクを追加する) を参照
 
 ---
 

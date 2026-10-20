@@ -2,17 +2,46 @@
 
 `/api/cron/*` 配下の定期タスク用 API ルートと、CLI からも同じタスクを呼ぶための共通基盤。
 
-CLI 側のランナーは `pnpm task <task-name>`（`scripts/tasks/run.ts`）。この統合ランナーは
-定期実行（cron）タスクだけでなく、バックフィル・データ移行などの**ワンショット運用タスク**も扱う。
-ワンショットタスクは下記手順のうち「2. CLI エントリ」のみを配線し、
-API ルートとスケジュール登録は行わない（定期実行されてはいけないため）。
+**1 タスク = 1 フォルダ** `src/app/api/cron/<name>/`。一覧ファイル（レジストリ）は持たない。
+API ルート・CLI（`pnpm task`）・`vercel.json` の生成は、どれもこのフォルダを走査して同じ定義を読む。
+upstream / fork / さらに下流の Tier も、タスクを足すときはフォルダを 1 つ足すだけで、共有ファイルを編集しない。
+
+CLI 側のランナーは `pnpm task <task-name>`（`scripts/tasks/run.ts`）。定期タスクに加えて、バックフィル・データ移行などの
+**ワンショット運用タスク**も扱う。ワンショットは `scripts/tasks/run.ts` の `ONE_SHOT_TASKS` だけに書き、
+`src/app/api/cron/` には置かない（定期実行されてはいけないため）。
 
 ## 構成
 
+- `types.ts` — タスク定義の型 `CronTaskDefinition` と頻度区分 `CRON_CADENCES`（`15m` / `hourly` / `daily`）
 - `auth.ts` — 共通認証（`CRON_SECRET` の Bearer 検証）
-- `createCronRoute.ts` — API ルート生成ファクトリ
+- `createCronRoute.ts` — API ルート生成ファクトリ（`createCronRoute`、task.ts の定義から作る `createCronTaskRoute`）
+- `vercelCrons.ts` — `vercel.json` の crons の生成・検査（純関数）
 - `runBudgetedBatches.ts` — 時間予算付き・再開可能バッチランナー（下記）
 - `index.ts` — 公開エントリ
+
+周辺: `src/app/api/cron/<name>/{task.ts,route.ts}`（各タスク）/ `src/config/app/cron-schedule.config.ts`（頻度区分ごとの基準時刻）/
+`scripts/cron/`（`discover.ts` = フォルダ走査、`cron:generate` / `cron:check`、`cronWiring.test.mjs` = `pnpm test:cron-wiring`）
+
+## 仕組み
+
+```
+src/app/api/cron/<name>/
+  task.ts   … cronTask = { name, description, cadence, enabled?, run }（run はドメインの関数を動的 import で呼ぶだけ）
+  route.ts  … export const GET = createCronTaskRoute(cronTask)
+
+pnpm cron:generate ── フォルダを走査 ──▶ vercel.json の crons（タスクごとに 1 エントリ）
+Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
+```
+
+- **処理本体はドメインに置く**: task.ts は「どの関数をどの頻度で呼ぶか」の配線だけ。業務ロジックは `features/**/services/server` に置く
+- **頻度区分**: task.ts は `cadence`（`15m` / `hourly` / `daily`）だけを宣言し、時刻は持たない。区分ごとの基準時刻は
+  `src/config/app/cron-schedule.config.ts`（UTC。既定: 15 分ごと / 毎時 10 分 / 毎日 18:00 UTC = 03:00 JST）。
+  生成時に、毎時・毎日のタスクは名前順に 5 分ずつずらして割り振る（同時刻に集中させない）
+- **enabled**: config だけを見る同期関数（DB に触れない）。false のときルートは本体を呼ばず `{ ok: true, skipped: true }` を返す。
+  vercel.json には常に載る（機能を有効にしても再生成は要らない）。個人情報の retention prune は機能を後から無効にしても
+  既存行を消し続ける必要があるため enabled を付けない
+- **配線漏れの防止**: `vercel.json` は人が書かない。タスクの増減で生成結果とずれると、Vercel 上のビルド
+  （`pnpm build` の冒頭で `cron:check --vercel-build`）と `pnpm deploy:all` が止まる。漏れたまま本番が動き続けることはない
 
 ## 時間予算付きバッチ（maxDuration で殺されないために）
 
@@ -31,167 +60,70 @@ serverless では 1 回の実行が maxDuration（Vercel 既定 300s）で途中
 「ソースの `updated_at` から read-model を差分更新する」典型パターンは、これらを合成済みの
 `@/features/incrementalRefresh`（`createIncrementalRefresh`）を使う。
 
-## 新しい cron タスクを追加する
+## 新しい定期タスクを追加する
 
-### 1. API ルート
+フォルダを 1 つ足し、`vercel.json` を再生成する。漏れは `pnpm test:cron-wiring` と Vercel 上のビルドが検出する。
+
+### 1. task.ts
 
 ```ts
-// src/app/api/cron/<task-name>/route.ts
-import { createCronRoute } from "@/lib/cron";
-import { runMyTask } from "@/features/...";
+// src/app/api/cron/my-task/task.ts
+import type { CronTaskDefinition } from "@/lib/cron";
+import { MY_FEATURE_CONFIG } from "@/config/app/my-feature.config";
 
-export const GET = createCronRoute({
-  name: "my-task",
-  handler: async () => {
-    const result = await runMyTask();
-    return { processed: result.count };
+export const cronTask: CronTaskDefinition = {
+  name: "my-task", // フォルダ名と同じ
+  description: "何をするタスクか（pnpm task --list に出る）",
+  cadence: "daily",
+  enabled: () => MY_FEATURE_CONFIG.enabled, // 任意。config だけを見る
+  run: async () => {
+    const { runMyTask } = await import("@/features/myDomain/services/server/myTask");
+    return await runMyTask();
   },
-});
-```
-
-### 2. CLI エントリ
-
-`scripts/tasks/run.ts` の TASKS に追加:
-
-```ts
-const TASKS: Record<string, () => Promise<unknown>> = {
-  "expire-pending-purchases": () => ...,
-  "my-task": () => import("@/features/...").then((m) => m.runMyTask()),
 };
 ```
 
-### 3. vercel.json.example にスケジュール登録
+- `run` は動的 import にする（`cron:generate` や `pnpm task --list` が task.ts を読むだけで DB などの依存を読み込まないため）
+- 長い運用説明は、処理本体があるドメインの README に書く
 
-リポジトリルートの `vercel.json.example` に追記する（**忘れやすいので注意**。
-下流プロジェクトはこれをコピーした `vercel.json` を持ち、Vercel がデプロイ時に自動で cron を稼働させる）:
+### 2. route.ts（1 行）
 
-```json
-{
-  "crons": [{ "path": "/api/cron/my-task", "schedule": "*/15 * * * *" }]
-}
+```ts
+// src/app/api/cron/my-task/route.ts
+import { createCronTaskRoute } from "@/lib/cron";
+import { cronTask } from "./task";
+
+export const maxDuration = 300; // 重い処理のときだけ
+
+export const GET = createCronTaskRoute(cronTask);
 ```
 
-導入時1回だけの手動タスク（データ移行等）は vercel.json.example に**載せない**（定期実行されてはいけないため）。
+### 3. vercel.json を再生成
 
-### 4. カタログに記載
+```bash
+pnpm cron:generate --plan <hobby|pro>
+```
 
-本 README の「[cron タスクカタログ](#cron-タスクカタログ)」にタスクの説明・推奨スケジュール・レスポンス例を追記する。
-下流プロジェクトはこのカタログを見てスケジュール登録を判断する。
+`pnpm task my-task` はフォルダを置いた時点で使える。タスクを消すときもフォルダを消して再生成する。
+upstream でタスクを足す・消すときは、fork 向けに `pnpm cron:generate` を `required_actions` に書いた notice を同じ commit で出す
+（CLAUDE.md `cron_wiring`）。
 
-## cron タスクカタログ
+### `pnpm test:cron-wiring` が検査すること
 
-コアが提供する定期実行タスク。いずれも `GET /api/cron/<task-name>` と `pnpm task <task-name>` の両方から同じ関数を呼ぶ。
-推奨スケジュールは `vercel.json.example` と一致させてある（prune 系は深夜帯で時刻をずらしている）。
-レスポンスは `{ ok: true, ...result }`（下記の例は `...result` 部分の形）。
+- cron のフォルダに `task.ts` と `route.ts` があり、`route.ts` が `./task` の `cronTask` を `createCronTaskRoute` で読む
+- `task.ts` の `name` = フォルダ名・ケバブケース、既知の `cadence`、`description` あり、`enabled` が boolean を返す
+- `vercel.json`（あれば）が task.ts からの生成結果と一致する
 
-### `expire-pending-purchases`
+## タスク一覧
 
-期限切れ（`expires_at` 経過）の pending 購入リクエストを `expired` に遷移する。
-`onExpire` フックを定義した purchase_type では副次テーブルの atomic クリーンアップも同時に実行される。
+`pnpm task --list` が `src/app/api/cron/*/task.ts` から一覧（頻度・有効/無効・説明）を出す。各タスクの詳細と運用上の注意は、
+処理本体があるドメインの README（`src/features/core/{auditLog,userLoginEvent,deviceFingerprint,fingerprintChallenge,interactionTracking,userCounter,analytics,purchaseRequest,wallet}/README.md`）を見る。
 
-- スケジュール: `*/15 * * * *`
-- 結果: `{ expired: 12 }`
-- 注意: onExpire 定義ありの purchase_type は per-row 処理になり件数に比例して時間がかかる。溜まりやすい運用ならスケジュール間隔を短縮する
+## CLI 専用タスク（定期実行しない）
 
-### `audit-log-prune`
+`scripts/tasks/run.ts` の `ONE_SHOT_TASKS` にだけあり、`src/app/api/cron/` にフォルダが無いタスク（vercel.json に載らない = 定期実行されない）。
 
-`audit_logs` の retention_days を超過した行をバッチ削除する。`SKIP LOCKED` でバッチ反復するため書き込み tx を長時間ブロックしない。
-
-- スケジュール: `0 3 * * *`
-- 結果: `{ deletedCount: 3200, iterations: 4, truncated: false }`
-
-### `audit-log-recover-dead-letter`
-
-`audit_logs_failed`（bestEffort 記録の dead-letter）に溜まった行を `audit_logs` へ再投入する。一過性の書き込み失敗（DB 一時障害等）の救済用。
-恒久的に再投入できない行（schema 不整合等）は残るため、件数が長期的に増えるなら手動調査する。
-
-- スケジュール: `0 * * * *`
-- 結果: `{ total: 5, recovered: 5, failed: 0, dryRun: false, errorSamples: [] }`
-
-### `analytics-rollup-daily`
-
-`analyticsRollupRegistry` に登録された全メトリクスについて、昨日を含む直近数日の日次ロールアップ（`analytics_daily_rollups`）を冪等に再計算する。
-遅延到着データと実行漏れを自己修復する。当日の部分バケットは書き込まない（読み取り側がライブ計算でマージ）。
-
-- スケジュール: `15 0 * * *`（日付確定後）
-- 結果: `{ metrics: [...] }`（メトリクスごとの結果）
-- 詳細: `src/features/core/analytics/README.md` の「運用（cron / バックフィル）」
-
-### `interaction-event-prune`
-
-interactionTracking のイベント明細を保持期限経過後に削除する。累計・日次集計は消えない。
-
-- スケジュール: `30 3 * * *`
-- 結果: `{ deletedCount, iterations, truncated }`
-- 詳細: `src/features/core/interactionTracking/README.md` の「cron の配線」
-
-### `user-daily-counter-prune`
-
-userCounter の日次行を保持期限経過後に削除する。累計（`user_counters`）は消えない。
-
-- スケジュール: `45 3 * * *`
-- 結果: `{ deletedCount, iterations, truncated }`
-- 詳細: `src/features/core/userCounter/README.md` の「cron（日次カウンタの prune）」
-
-### `user-login-event-prune`
-
-`user_login_events`（IP 横断検索用の正規化テーブル）の retention_days を超過した行をバッチ削除する。件数増加が早いため日次で回す。
-
-- スケジュール: `0 4 * * *`
-- 結果: `{ deletedCount: 1500, iterations: 2, truncated: false }`
-- 詳細: `src/features/core/userLoginEvent/README.md`
-
-### `device-fingerprint-prune`
-
-`device_fingerprints` の retention_days を超過した行をバッチ削除する。個人に紐づく識別情報のため無期限保持にしない。
-機能未使用（`FINGERPRINT_CONFIG` 無効）なら対象が無く no-op。
-
-- スケジュール: `15 4 * * *`
-- 結果: `{ deletedCount, iterations, truncated }`
-- 詳細: `src/features/core/deviceFingerprint/README.md`
-
-### `fingerprint-challenge-access-prune`
-
-`fingerprint_challenge_access_events`（本人がチャレンジを開いた日時 + IP + UA）の retention_days を超過した行をバッチ削除する。
-親行の閲覧カウンタ（first/last_viewed_at / view_count）は集計値として残る。`FINGERPRINT_CONFIG.challenge.accessLog.enabled`（既定 false）が無効なら no-op。
-
-- スケジュール: `20 4 * * *`
-- 結果: `{ deletedCount, iterations, truncated }`
-- 詳細: `src/features/core/fingerprintChallenge/README.md`
-
-### `wallet-expire-lots`
-
-有効期限切れウォレットロットの残額を没収する（残高減算 + wallet_histories 記録）。冪等・再実行安全。
-`wallet-expiration.config.ts` で `expirationDays` + `sweepEnabled` を設定した通貨のみが対象で、未設定（デフォルト）なら即終了の no-op（登録したままでも害はない）。
-
-- スケジュール: `30 4 * * *`
-- 結果: `{ sweptWallets: 120, expiredAmount: 45000, iterations: 1, truncated: false, requestBatchId: "..." }`
-- 詳細: `src/features/core/wallet/README.md` の「有効期限（ロット管理）」
-
-### `wallet-lots-prune`
-
-消費し尽くしたウォレットロット（remaining = 0）を保持期間（デフォルト 30 日）経過後に物理削除する。
-有効期限を有効化した（特に付与頻度が高い）プロジェクトでは `wallet_lots` の肥大化を防ぐため必須。機能未使用なら no-op。
-
-- スケジュール: `45 4 * * *`（`wallet-expire-lots` の後）
-- 結果: `{ deletedCount: 8000, iterations: 8, truncated: false }`
-
-### `wallet-expiration-notice`
-
-ウォレットの失効通知（失効予告 + 失効時の本通知）をメール / サービス内通知で送る。冪等（同じ対象には 1 回しか届かない）。
-`wallet-expiration.config.ts` の通貨ごとの `notice` を設定した場合のみ動作し、未設定ならクエリを発行せず `skipped: true` で即終了。
-時間予算（240 秒、ルートは `maxDuration = 300`）内で送りきれなかった分は次回実行が続きから処理する。
-
-- スケジュール: `10 * * * *`（送信量が多ければ頻度を上げる。メール送信の時間帯を絞るならスケジュール側で制限）
-- 結果: `{ skipped: false, preExpiry: { sent, alreadySent, failed, exhausted, ... }, expired: { ... }, aborted: false }`
-- 監視: `aborted: true` は送信の連続失敗による打ち切り（メール基盤の障害など）。`failed` が増えている場合は `message_dispatches` を確認
-- 詳細: `src/features/core/wallet/README.md` の「失効通知（失効予告・失効時の本通知）」
-
-### CLI 専用タスク（API ルートなし）
-
-`scripts/tasks/run.ts` の TASKS にのみ登録され、`/api/cron/*` と `vercel.json.example` には載っていないタスク。
-
-- `purchase-quota-cleanup` — 90 日より古い購入クォータ台帳を物理削除する定期メンテナンス（任意）。Vercel Cron で回す場合は API ルートを別途追加する。詳細: `src/features/core/purchaseQuota/README.md` の「cron」
+- `purchase-quota-cleanup` — 90 日より古い購入クォータ台帳を物理削除する定期メンテナンス（任意）。定期実行したい fork は `src/app/api/cron/<別名>/` に task.ts と route.ts を足す（`ONE_SHOT_TASKS` と同名は不可）。詳細: `src/features/core/purchaseQuota/README.md` の「cron」
 - ワンショット（**定期実行してはいけない**。導入時などに手動で 1 回だけ実行する）:
   - `wallet-lots-init` — ウォレット有効期限の導入時のデータ移行。再実行は全ユーザーの失効カウントをリセットする
   - `wallet-lots-init-from-history` — `wallet-lots-init` の代替（導入時に**どちらか一方だけ**実行）。付与履歴から実際の付与日でロットを復元し、既に期限を過ぎた分は次回の `wallet-expire-lots` で没収される。`-- --dry-run` で対象件数と没収見込み額を事前確認できる。詳細: `src/features/core/wallet/README.md` の「導入手順（ダウンストリーム）」
@@ -203,48 +135,53 @@ userCounter の日次行を保持期限経過後に削除する。累計（`user
 
 ### Vercel（推奨）
 
-リポジトリルートの `vercel.json.example` を `vercel.json` にコピーし、Vercel のプロジェクト設定で環境変数 `CRON_SECRET` を登録する
-（Vercel Cron は `Authorization: Bearer ${CRON_SECRET}` を自動で付ける）。使わないタスクは `vercel.json` から外してよい。
+```bash
+pnpm cron:generate --plan hobby   # Vercel Hobby: 全タスクを 1 日 1 回
+pnpm cron:generate --plan pro     # Vercel Pro:   task.ts の cadence どおり
+```
+
+`vercel.json` の `crons` だけを書き換える（他のキーと `/api/cron/` の外のエントリは残す）。生成した `vercel.json` をコミットし、
+Vercel の環境変数に `CRON_SECRET` を登録する（Vercel Cron は `Authorization: Bearer ${CRON_SECRET}` を自動で付ける）。
+新規 fork は `/fork-init` がこれを済ませる。upstream は `vercel.json` を持たない（各リポジトリが自分のフォルダから生成する）。
+
+- **再生成が要るとき**: タスクのフォルダが増減したとき（upstream からの merge を含む）・プランを変えたとき・
+  `cron-schedule.config.ts` の値を変えたとき
+- **検査**: `pnpm cron:check` が `vercel.json` と生成結果を突き合わせる（無い・エントリの漏れ・消えたタスクの残骸・時刻の手書き → 失敗）。
+  `pnpm build` は Vercel 上（`VERCEL=1`）でだけ冒頭にこれを実行し、`pnpm deploy:all` もデプロイ前に実行する。
+  定期タスクを意図して 1 本も動かさないデプロイ（デモ環境等）だけは環境変数 `SKIP_CRON_CHECK=1` で外す
+- **上限**: Vercel の cron は 1 プロジェクト 100 本まで（全プラン共通）。Hobby は 1 日 1 回より細かい式でデプロイが失敗し、
+  起動時刻も指定時刻から最大 59 分ずれる。`15m` / `hourly` のタスクも 1 日 1 回になる
+  （`expire-pending-purchases` の期限切れ反映や `wallet-expiration-notice` の送信が最大 1 日遅れる）。困るなら Pro にする
+- **確認**: デプロイ後、Vercel の Cron Jobs タブにタスクごとのエントリが出ていること（手動実行もそこからできる）
 
 ### Vercel 以外（CLI）
 
-任意のスケジューラから `pnpm task <task-name>` を呼ぶ（API ルートを経由しないので `CRON_SECRET` は不要、DB 等の環境変数は必要）。
+任意のスケジューラから頻度区分ごとに `pnpm task --cadence <区分>` を呼ぶ（API ルートを経由しないので `CRON_SECRET` は不要、
+DB 等の環境変数は必要）。区分内のタスクは順に実行され、1 つ失敗しても残りは実行して最後に exit 1。
 
 ```cron
 # Docker + cron
-*/15 * * * * cd /app && pnpm task expire-pending-purchases
+*/15 * * * * cd /app && pnpm task --cadence 15m
+10 * * * *   cd /app && pnpm task --cadence hourly
+0 18 * * *   cd /app && pnpm task --cadence daily
 ```
 
 ```yaml
-# Kubernetes CronJob
-spec:
-  schedule: "*/15 * * * *"
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-          - name: expire-pending
-            image: myapp:latest
-            command: ["pnpm", "task", "expire-pending-purchases"]
-```
-
-```yaml
-# GitHub Actions
+# GitHub Actions（日次だけ回す例。--cadence all なら全区分を 1 回で）
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "0 18 * * *"
 jobs:
-  expire:
+  daily:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pnpm install && pnpm task expire-pending-purchases
+      - run: pnpm install && pnpm task --cadence daily
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 ```
 
-登録済みタスクの一覧は `pnpm task --list`。
+登録済みタスクの一覧（頻度・有効/無効・説明つき）は `pnpm task --list`。
 
 ## 認証
 
