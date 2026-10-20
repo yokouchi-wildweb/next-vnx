@@ -59,3 +59,4 @@
 - id:20261020-050516-claude-md-restructure | date:2026-10-20T11:22:00+09:00 | commit:- | notes:merge only (CLAUDE.md / behavior.md not fork-edited, playwright line arrived by merge); no fork refs to removed sections
 - id:20261020-142133-crud-extra-order-by | date:2026-10-20T16:30:00+09:00 | commit:- | notes:merge only; fork had no extraOrderBy edit
 - id:20261020-160000-user-bulk-ops-removed | date:2026-10-20T16:35:00+09:00 | commit:- | notes:merge only; no fork callers; no fork domain with useImportExport:false
+- id:20261020-170000-feature-gate-schema-gate | date:2026-10-20T16:45:00+09:00 | commit:- | notes:flags unchanged (payment/wallet/coupon/referral enabled); package.json conflict resolved (fork deps + upstream tsx); behavior.md example switched to pnpm db:push; .claude/settings.local.json drizzle-kit push permission kept; db:push:check zero statements
