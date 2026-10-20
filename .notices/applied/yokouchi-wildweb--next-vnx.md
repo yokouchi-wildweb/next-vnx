@@ -50,3 +50,4 @@
 - id:20261019-133730-must-read-why-docs | date:2026-10-19T14:52:00+09:00 | commit:- | notes:no fork edits to moved files; merge only
 - id:20261019-140501-eslint-template-ignores | date:2026-10-19T14:54:00+09:00 | commit:- | notes:-
 - id:20261019-141500-search-wrapper-id-tiebreak | date:2026-10-20T09:12:00+09:00 | commit:- | notes:no fork wrappers using buildOrderBy; merge only
+- id:20261019-152649-lib-catalog | date:2026-10-20T09:15:00+09:00 | commit:- | notes:fork owns no src/lib libraries (engine lives in src/engine) -> no own CATALOG.md section added; merge only
