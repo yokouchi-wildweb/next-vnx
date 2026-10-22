@@ -78,3 +78,4 @@
 - id:20261022-115459-flux-relay-diff-judgment | date:2026-10-22T18:31:04+09:00 | commit:- | notes:merge only; leaf fork, no relay judgment
 - id:20261022-190000-storage-api-admin-only | date:2026-10-22T18:31:21+09:00 | commit:- | notes:clean merge; no non-admin callers (comment-only hits); manual_step Storage rules review left to user
 - id:20261022-200000-notification-read-visibility-setup-ratelimit | date:2026-10-22T18:31:39+09:00 | commit:- | notes:clean merge; only caller is upstream route; rate-limit adminSetup kept as upstream
+- id:20261022-210000-dc-generate-domain-folder-check | date:2026-10-22T18:31:55+09:00 | commit:- | notes:clean merge; all business domain folders match camel(singular)
