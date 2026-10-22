@@ -16,7 +16,7 @@
 - src/lib/cn — Tailwind className 結合(clsx + tailwind-merge、独自トークンのクラス群登録)
 - src/lib/cron — /api/cron/* 定期タスク基盤(1 タスク 1 フォルダの task.ts から vercel.json を生成・検査)と CLI 実行、時間予算付きの再開可能ループ runBudgetedBatches
 - src/lib/crud — createCrudService 汎用 CRUD(サービス・フック・クエリ構築)
-- src/lib/crypto — AES-256-GCM 対称暗号化(トークン・機密データの暗号化保存)
+- src/lib/crypto — AES-256-GCM 対称暗号化(トークン・機密データの暗号化保存)と、ハッシュ照合用のランダムトークン・短いコード生成
 - src/lib/csv — CSV ダウンロードとヘッダ付きパース
 - src/lib/dataMigration — CSV + ZIP のエクスポート / インポート(管理画面・チャンク処理)
 - src/lib/date — dayjs ラッパと柔軟な日付パース
@@ -39,7 +39,7 @@
 - src/lib/metadata — Next.js の generateMetadata 生成ヘルパ(createMetadata)
 - src/lib/realtimeRoom — ホットパス・リアルタイム基盤の SDK(servers/room 接続、購読フック、サーバー dispatch)
 - src/lib/recaptcha — Google reCAPTCHA v3 / v2 ハイブリッドのボット対策
-- src/lib/request — リクエスト情報の取得(getClientIp)
+- src/lib/request — リクエスト情報の取得(getClientIp、ヘッダーを受け取る純粋版 readClientIp)
 - src/lib/requestMemo — リクエストスコープの無効化可能なメモ化(同一リクエスト内の重複読み取りを圧縮)
 - src/lib/routeFactory — 全 API ルートの生成ファクトリ(認可を構造的に強制)
 - src/lib/screens — page 層の構造(1 行スイッチ + _screen/ + loader)の型 ScreenProps と規律テスト
