@@ -74,3 +74,4 @@
 - id:20261022-160000-session-refresh-db-check | date:2026-10-22T18:29:07+09:00 | commit:- | notes:merge only; fork never edited session route or token.ts
 - id:20261022-140000-tsx-test-server-only-preload | date:2026-10-22T18:29:30+09:00 | commit:- | notes:clean merge; no fork tsx test scripts; behavior.md already pnpm db:push; verify ran pnpm install without rm -rf node_modules
 - id:20261022-170000-hidden-columns-raw-select-lint | date:2026-10-22T18:30:37+09:00 | commit:- | notes:clean merge; eslint zero hidden-columns hits in fork code
+- id:20261022-180000-redirect-error-pii-hardening | date:2026-10-22T18:31:01+09:00 | commit:- | notes:clean merge; all grep hits were upstream files fixed by merge; no fork-owned hits
