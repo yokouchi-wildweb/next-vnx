@@ -46,7 +46,7 @@ disable-model-invocation: true
    - **特定の fork への影響を書くときは推測しない**。その fork のリポジトリで、この変更が触るファイルについて fork 側の編集を差分で取り、結果をそのまま書く:
      `git -C <fork の作業ディレクトリ> diff --name-only $(git -C <fork> merge-base HEAD <fork 内の upstream remote>/<branch>) HEAD -- <この変更が追加・変更・削除・移動するファイル>`
      (移動元のパスも含める)。出力が空なら「上流ファイルの編集なし」、空でなければファイル名と `--stat` の規模を書く。fork 自身のファイル(fork が足したページ等)の確認はこれとは別に行い、混同しない。調べていない fork は `not checked` と書く。
-   - **上流が core のコンポーネント・hook・service の呼び出し側(`_screen/*` の Screen など)を足す/切り替える変更では、verify に次の標準行を入れる**: `pnpm tsc --noEmit passes including upstream _screen/* default screens even where your page.tsx points to _components/; a failure there = your fork's core edit is not backward compatible (CLAUDE.md CORE_FILES fork_core_edit_compat) — fix the core side, do not edit the upstream Screen`
+   - **上流が core のコンポーネント・hook・service の呼び出し側(`_screen/*` の Screen など)を足す/切り替える変更では、verify に次の標準行を入れる**: `pnpm typecheck passes including upstream _screen/* default screens even where your page.tsx points to _components/; a failure there = your fork's core edit is not backward compatible (CLAUDE.md CORE_FILES fork_core_edit_compat) — fix the core side, do not edit the upstream Screen`
    - **`checkpoint`(区切り) = 原則必ずラベルを入れる**(英語ケバブ。迷ったら `<slug>` をそのまま使う)。意味は「この notice まで適用すれば fork は整合した休憩点にある」。notice は追随作業の単位で出荷されるので、適用し終えた時点で fork が整合しているのが普通 = 1 notice が 1 休憩点。/flux はこの区切りごとに merge→適用→verify→commit→push を閉じるので、DB 規模が大きい fork や独自要素の多い fork でも 1 変更ずつ安全に進められる。
      - **`-` は例外宣言**: 「後続の notice を適用しないと fork が動かない中間点」と断言できるときだけ。理由を `notes:` に書く(例: `notes: checkpoint:- because 20261020-... (step 2) is required for the build to pass`)。迷ったら `-` にしない。
      - 追随作業は無いが区切りだけ置きたい commit には、`severity: info` + `required_actions: none` + `checkpoint: <label>` の notice を起票する。
@@ -60,7 +60,7 @@ disable-model-invocation: true
 
 ## relay モード($ARGUMENTS が `relay` で始まるとき)
 中間 Tier(T2 など)が、自分が `/flux` で適用した上流 notice を下流(T3)へ中継する notice を下書きする。仕様: `.notices/README.md`「中継(relay)」。上記「手順」の 1・3・4 はそのまま使い、2 の材料を次で置き換える(`relay` 以降の文字列は補足メモ扱い)。
-- 通常の中継は `/flux` が区間ごとに差分で判定し、必要な区間だけ下書きまで行う(`.claude/skills/flux/SKILL.md`「中継判定」)。このモードは、その仕組み導入前に適用した**未判定**の旧 notice の後始末用。
+- 通常の中継は `/flux` が区間ごとに差分で判定し、必要な区間だけ下書きまで行う(`.claude/skills/flux/relay.md`「中継判定」)。このモードは、その仕組み導入前に適用した**未判定**の旧 notice の後始末用。
 - 下記の手順 3〜4(材料集めと合成)は `/flux` の中継判定から呼ばれる共通の合成規則でもある。`/flux` から使うときは、`covers:` は `/flux` が渡す id(その区間で差分ありの id と、その covered id)に置き換え、手順 1・2・5 は使わない。
 1. **自 fork 台帳を特定**: fork-id は `/flux` と同じ規則(origin URL のパス部分、`.git` 除去、`/`→`--`、小文字化)。台帳 = `.notices/applied/<fork-id>.md`。無ければ「中継対象なし」と報告して終了。
 2. **未判定 id を求める**: 台帳の id のうち、その行に `relay:` 欄が無く、notice ファイル(`.notices/<id>.md` または `done/<id>.md`)の `from:` が自分の origin でなく、自分の origin の notice のどの `covers:` にも含まれないもの。0 件なら「未判定の notice はありません」と報告して終了(書き出さない)。
