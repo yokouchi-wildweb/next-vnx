@@ -69,3 +69,4 @@
 - id:20261020-165959-feature-gate-check-disabled-only | date:2026-10-20T18:35:00+09:00 | commit:- | notes:merge only; all gated flags true, no fork rules
 - id:20261021-125409-paired-device-auth | date:2026-10-22T12:00:00+09:00 | commit:- | notes:serviceRegistry conflict resolved (upstream sample lines + fork save line); cron:generate --plan hobby; db:push (enum value only, 2 tables gate-skipped); db:push:check no diff
 - id:20261021-133822-guest-login-feature-gate | date:2026-10-22T12:05:00+09:00 | commit:- | notes:merge only; APP_FEATURES.demo.login = true so step 2 n/a, curl check skipped
+- id:20261021-142959-paired-device-principal-guard | date:2026-10-22T12:10:00+09:00 | commit:- | notes:merge only; fork does not use pairedDevice
