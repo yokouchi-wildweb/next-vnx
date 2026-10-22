@@ -67,3 +67,4 @@
 - id:20261020-165234-drizzle-kit-composite-pk-order | date:2026-10-20T18:25:00+09:00 | commit:- | notes:merge + pnpm install; db:push:check no diff
 - id:20261020-165825-cron-task-override-export | date:2026-10-20T18:30:00+09:00 | commit:- | notes:merge only; no fork override.ts
 - id:20261020-165959-feature-gate-check-disabled-only | date:2026-10-20T18:35:00+09:00 | commit:- | notes:merge only; all gated flags true, no fork rules
+- id:20261021-125409-paired-device-auth | date:2026-10-22T12:00:00+09:00 | commit:- | notes:serviceRegistry conflict resolved (upstream sample lines + fork save line); cron:generate --plan hobby; db:push (enum value only, 2 tables gate-skipped); db:push:check no diff
