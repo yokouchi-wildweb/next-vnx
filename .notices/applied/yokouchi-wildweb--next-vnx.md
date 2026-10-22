@@ -76,3 +76,4 @@
 - id:20261022-170000-hidden-columns-raw-select-lint | date:2026-10-22T18:30:37+09:00 | commit:- | notes:clean merge; eslint zero hidden-columns hits in fork code
 - id:20261022-180000-redirect-error-pii-hardening | date:2026-10-22T18:31:01+09:00 | commit:- | notes:clean merge; all grep hits were upstream files fixed by merge; no fork-owned hits
 - id:20261022-115459-flux-relay-diff-judgment | date:2026-10-22T18:31:04+09:00 | commit:- | notes:merge only; leaf fork, no relay judgment
+- id:20261022-190000-storage-api-admin-only | date:2026-10-22T18:31:21+09:00 | commit:- | notes:clean merge; no non-admin callers (comment-only hits); manual_step Storage rules review left to user
