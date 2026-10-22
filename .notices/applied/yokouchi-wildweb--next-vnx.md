@@ -80,3 +80,4 @@
 - id:20261022-200000-notification-read-visibility-setup-ratelimit | date:2026-10-22T18:31:39+09:00 | commit:- | notes:clean merge; only caller is upstream route; rate-limit adminSetup kept as upstream
 - id:20261022-210000-dc-generate-domain-folder-check | date:2026-10-22T18:31:55+09:00 | commit:- | notes:clean merge; all business domain folders match camel(singular)
 - id:20261022-220000-para-center-in-upstream-screens | date:2026-10-22T18:32:04+09:00 | commit:- | notes:merge only; no fork copies of affected screens
+- id:20261022-230000-domain-service-write-once | date:2026-10-22T18:32:25+09:00 | commit:- | notes:no serverServices:false; dc:generate:all --only serverServices produced no diff (bases already current)
