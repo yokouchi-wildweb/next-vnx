@@ -71,3 +71,4 @@
 - id:20261021-133822-guest-login-feature-gate | date:2026-10-22T12:05:00+09:00 | commit:- | notes:merge only; APP_FEATURES.demo.login = true so step 2 n/a, curl check skipped
 - id:20261021-142959-paired-device-principal-guard | date:2026-10-22T12:10:00+09:00 | commit:- | notes:merge only; fork does not use pairedDevice
 - id:20261022-120000-service-registry-preset-names | date:2026-10-22T12:20:00+09:00 | commit:- | notes:serviceRegistry conflict resolved (upstream preset lines + fork save line); dc:generate:all --yes rewrote save to ADMIN_ONLY, no other drift
+- id:20261022-160000-session-refresh-db-check | date:2026-10-22T18:29:07+09:00 | commit:- | notes:merge only; fork never edited session route or token.ts
