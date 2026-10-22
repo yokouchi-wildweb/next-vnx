@@ -81,7 +81,7 @@ export const serviceRegistry: Record<string, DomainRegistryEntry> = {
   sample: { service: sampleService, access: {"read":"public","write":{"roleCategories":["admin"]},"operations":{"update":"authenticated","reorder":"authenticated"}} },
   sampleCategory: { service: sampleCategoryService, access: PUBLIC_READ },
   sampleTag: { service: sampleTagService, access: PUBLIC_READ },
-  save: { service: saveService, access: {"read":{"roleCategories":["admin"]},"write":{"roleCategories":["admin"]}} },
+  save: { service: saveService, access: ADMIN_ONLY },
   // --- AUTO-GENERATED-END ---
 
 };
