@@ -49,6 +49,7 @@ rule: no pre-designed schema, evolve through prototyping
 - engine: no DB access, no API calls
 - public/game/: input data for engine (dev mock, prod from DB)
 - scenario format: undefined, evolve via prototyping
+- storage: unused (no GCS bucket exists) | to start using it: grant the SA (MY_SERVICE_ACCOUNT_KEY) Storage Admin → pnpm storage:setup → STORAGE_* env (local + Vercel) | firebase deploy --only storage not needed (no default Firebase bucket)
 
 ## data_boundary
 ```
