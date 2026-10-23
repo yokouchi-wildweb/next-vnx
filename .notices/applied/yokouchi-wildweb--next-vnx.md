@@ -83,3 +83,4 @@
 - id:20261022-230000-domain-service-write-once | date:2026-10-22T18:32:25+09:00 | commit:- | notes:no serverServices:false; dc:generate:all --only serverServices produced no diff (bases already current)
 - id:20261022-160000-rules-marker-files | date:2026-10-22T18:32:38+09:00 | commit:- | notes:term-aliases.md conflict: upstream above marker, fork alias (pixi) moved below marker
 - id:20261022-233000-pnpm-typecheck | date:2026-10-22T18:33:08+09:00 | commit:- | notes:clean merge; tsconfig include has no fork entries; tsc --noEmit hits only in upstream-owned skills (not edited)
+- id:20261023-133633-storage-foundation | date:2026-10-23T19:27:00+09:00 | commit:- | notes:clean merge; registry regen no fork AUTO purposes; cron:generate --plan hobby (storage-sweep daily); db:push = storage_objects + 6 indexes only

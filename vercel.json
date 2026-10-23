@@ -34,6 +34,10 @@
       "schedule": "50 18 * * *"
     },
     {
+      "path": "/api/cron/storage-sweep",
+      "schedule": "10 19 * * *"
+    },
+    {
       "path": "/api/cron/user-daily-counter-prune",
       "schedule": "25 18 * * *"
     },
@@ -43,7 +47,7 @@
     },
     {
       "path": "/api/cron/wallet-expiration-notice",
-      "schedule": "10 19 * * *"
+      "schedule": "15 19 * * *"
     },
     {
       "path": "/api/cron/wallet-expire-lots",
