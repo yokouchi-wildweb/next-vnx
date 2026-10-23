@@ -9,8 +9,8 @@
 ## TIER (multi-tier hierarchy)
 this_repo: Tier2 (direct fork of next-starter = Tier1). no Tier3 downstream planned for now
 rule: generic/foundational capabilities (domain-independent infra, UI primitives, CRUD base, auth) live in Tier1. do NOT hardcode them here — file /upreq instead. VN engine / studio features live HERE
-request_protocol (shared mailbox: ~/.team/upstream-requests/):
-- file a generic-capability request with /upreq
+request_protocol (shared mailbox: ~/.team/upstream-requests/, one inbox per receiving repo):
+- file a request with /upreq (it picks the target tier: generic → Tier1, VN engine / studio-specific → this repo)
 - track own requests with /wen
 - receive upstream notices with /flux (ledger: .notices/applied/yokouchi-wildweb--next-vnx.md)
 
