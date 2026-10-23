@@ -12,7 +12,7 @@
 
 誰がアップロード・読み取り・削除してよいかの判定と台帳は、`src/features/core/storageObject` が持つ。この lib は features に依存しない。
 
-> **移行中**: 新しい基盤（この README の大半）は追加の段階（N1 `storage-foundation`）。旧 API（`client/` の 3 ファイル・`hooks/`・`server/storageService.ts`・`server/wrappers/`・`types.ts`）はまだ動いており、N2 `storage-cutover` で削除する。新しいコードは旧 API を使わない。旧 API の注意点は末尾の「旧 API」を参照。
+> ファイルのアップロード・読み取り・削除は、すべてこの基盤（とドメインの binding / `storageObjectService`）を通す。旧 API（Firebase クライアント SDK の経路・旧アップロード / 削除ルート・createCrudService の旧削除連動オプション）は N2 `storage-cutover` で削除した。Firebase Storage のルールはリポ直下の `storage.rules`（全拒否）で、クライアント SDK からは何もできない。
 
 ## 全体の流れ
 
@@ -47,7 +47,7 @@
 | `client/drivers/put.ts` / `client/drivers/gcsSession.ts` | client | GCS への直接転送（単発 PUT / 再開可能セッション） |
 | `client/reencodeImage.ts` | client | 画像の描き直し（EXIF を落とす） |
 | `client/transferTypes.ts` | client | 進捗・中止の型、ルートの応答の形、`StorageUploadError` |
-| `client/usePrivateMediaRecovery.ts` | client | 非公開の動画・音声の、署名期限後の読み込み失敗からの復帰 |
+| `client/usePrivateMediaRecovery.ts` | client | 非公開の動画・音声の、署名期限後の読み込み失敗からの復帰と先回りの読み直し |
 
 ## ref（業務行に保存する値）
 
@@ -110,8 +110,13 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
 - **許可を失った場合（logout・退室・削除で 401/404）は、自動では再試行しない**
   - HTTP の状態は見ない（ブラウザで 302 を追わずに状態を知るには fetch が要り、client HTTP は axios だけという規約に例外を作らないため）
   - 自動復帰 1 回の後は `failed` で止まる。再開しても許可が無ければ、また `failed` に戻る
+- **先回りの読み直し**: 読み込み開始（`loadstart`）から `readTtlSec(video|audio) − 30 秒`（`PROACTIVE_RELOAD_MARGIN_SEC`）を過ぎた要素で再生・シークが起きたら、失敗を待たずに同じ手順で読み直す
+  - Chrome は期限後のシークで約 27 秒待ってからエラーを出すため、待たせずに済むようにする
+  - 失敗ではないので自動復帰の回数は使わない。ブラウザの判別はしない
+  - 署名は読み込み開始より後に発行されるので、開始時刻から数えると早めに倒れる
 - src が固定 URL でなければ何もしない（旧 URL・公開 URL はそのまま）
 - 配線済み: `VideoPreview`（lib/mediaInputSuite）、`DetailModal` の動画（`DetailModalVideo`）。props の追加は無い
+- 独自のプレーヤーに配線するとき: `recovery.src` を要素の `src` に、`handleError` / `handleLoadedMetadata` / `handleCanPlay` / `handleLoadStart` を同名のイベントに、`handlePlaybackIntent` を `onPlay` と `onSeeking` に渡し、`status === "failed"` でエラーと `resume()` の操作を出す
 - 全ページの署名更新の仕組みは作らない
 - 要素の `src` 属性で渡す。`<source>` 子要素だと読み込み失敗の error が `<source>` 側に出て、media 要素の onError に届かない
 
@@ -167,7 +172,7 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
 
 - `locationOf(store, objectKey)` で物理位置（`{ bucket, path }`）を得る
 - pub / priv の env が無ければ `StorageNotConfiguredError` ですぐに失敗する
-- **既定バケットへの読み替え（暗黙の fallback）はしない**。旧バケットには移行期間中も緩いルールが残るので、新しいファイルを置かない
+- **既定バケットへの読み替え（暗黙の fallback）はしない**。旧バケットには新しいファイルを置かない（配備の順序によっては旧バケットに緩いルールが残っている期間がある）
 - 新しい 2 つのバケットは Firebase に登録しない（クライアント SDK からの経路を作らない）
 - バケットの作成・権限・CORS は `pnpm storage:setup` で行う。手順・必要な権限・組織のポリシーで止まる場合・location の注意: [scripts/storage/README.md](../../../scripts/storage/README.md)
 
@@ -177,9 +182,12 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
 - `parseLegacyStorageUrl(url)` は、自分の旧バケットの URL を位置に変換する
   - 対象は Firebase のトークン付きダウンロード URL と、`storage.googleapis.com/<bucket>/...`
   - 外部 URL・他バケットの URL・旧バケットが未設定なら null
-- 使ってよいのは次の 2 つだけ
+  - pub / priv の保存先と重なる位置（同じバケットで prefix 配下）も null。管理下の物を旧 URL として copy・削除・probe させないため。`isLegacyLocation(location)` が同じ判定
+  - 旧バケットを pub / priv と共有し prefix が `""` の構成では、旧バケットのどの URL も旧 URL として扱われない（旧物の copy・削除連動・probe ができない。安全側）
+- 使ってよいのは次の 3 つだけ
   - 業務行の物理削除に連動する削除
   - 管理者による複製（copy で新しい ref にする）
+  - 管理者のメディア解析（`/api/media/probe` の storagePath / downloadUrl）
 - 利用者による旧ファイルの個別削除・上書きには使わない
 
 ## 用途（purpose）の型: `policy/types.ts`
@@ -219,10 +227,15 @@ const { cancel } = uploadToStorage(file, {
 - **流れ**: 画像の描き直し → アップロード権の発行（`POST /api/me/storage/uploads`）→ 種類に合うドライバーで GCS へ直接送る → commit
   - ドライバーはサーバーが決める（`STORAGE_CONFIG.sessionThresholdBytes` = 16MiB 以下は単発 PUT、超えると GCS セッション）
   - 単発 PUT: 署名に含めたヘッダーをそのまま付けて送る。上書き不可・サイズ上限・型は署名で GCS が強制する
-  - GCS セッション: 8MiB ずつ `Content-Range` を付けて送る（途中は 308）。通信が途切れたら `bytes */<total>` で状態を照会し、続きから再開する（最大 3 回）。応答のある失敗（4xx / 5xx）は再開しない
+  - GCS セッション: 8MiB ずつ `Content-Range` を付けて送る（途中は 308）
+    - 通信が途切れたら、すぐ `bytes */<total>` で状態を照会し、続きから再開する
+    - GCS が再試行を勧める応答（408 / 429 / 500 / 502 / 503 / 504）は、1s・2s・4s の指数 + 0〜500ms の揺らぎで待ってから同じく照会して続きから送る
+    - 通信の途切れと合わせて連続 3 回まで（前進すれば数え直す）。照会自体の失敗も同じ回数に数える
+    - それ以外の応答のある失敗（400 / 403 など）は再試行しない
+  - 単発 PUT は再試行しない（失敗したら取り消して `onError`）
 - **中止・失敗**
   - `cancel()` や失敗のときは、発行済みなら取り消し（`DELETE /api/me/storage/uploads/[id]`）を試みる。セッションの URI はサーバーが中止する
-  - 中止は `onError` に code `storage/canceled` の `StorageUploadError` を渡す（旧 clientUploader と同じコード）
+  - 中止は `onError` に code `storage/canceled` の `StorageUploadError` を渡す
 - **画像の描き直し**（`reencodeImage`）: jpeg / png / webp を描き直して EXIF（撮影位置など）を落とす
   - 向きは EXIF に従って補正する
   - gif・svg・その他はそのまま
@@ -233,7 +246,10 @@ const { cancel } = uploadToStorage(file, {
   - アプリのルートは `storageClient`（axios + `normalizeHttpError`）
   - GCS への直接転送も axios で行う（ブラウザでは XHR になり、`onUploadProgress` で進捗、`AbortSignal` で中止）。アプリの Cookie は送らない（`withCredentials: false`）
 - **ルートの応答の形**（`IssueUploadResponse` / `CommitUploadResponse`）: features/core/storageObject の `storageObjectService` と揃えて `transferTypes.ts` に持つ（lib は features に依存しない）
-- **テスト**: `pnpm test:storage-client`。axios の adapter を差し替えて、ルートと GCS を偽物にする。本物のブラウザ（XHR の進捗・中止、canvas）は MediaUploader の切替のときに確かめる
+- **呼び出す場所**: lib の部品（`MediaUploader` / `MediaUploaderMulti`、lib/mediaInputSuite）と、各ドメインの hook（チャット送信など）から呼ぶ
+  - features・app の UI 部品から直接呼ばない。フォームの項目は `MediaUploader` 系の部品（FieldRenderer・MediaHandler 経由を含む）、それ以外は送信を受け持つドメインの hook を使う
+  - lint（client-service-boundary）は `@/lib/storage/client` を対象にしないため、この規約は README で持つ
+- **テスト**: `pnpm test:storage-client`。axios の adapter を差し替えて、ルートと GCS を偽物にする。先回りの読み直しの判定（`isSignedReadStale`）と、MediaUploader の未採用分の追跡（lib/mediaInputSuite の `pendingUploadTracker`）も同じコマンドで走る。本物のブラウザ（XHR の進捗・中止、canvas、動画の読み直し）は手で確かめる
 
 ## メディア列のスキーマ: `storageMediaValueSchema`
 
@@ -282,10 +298,8 @@ const { cancel } = uploadToStorage(file, {
 - 旧 URL の解析
 - 用途の引き当て
 
-## 旧 API（N2 で削除）
+## Firebase Storage のルール（全拒否）
 
-- 対象: `client/{appStorageClient,clientUploader,directStorageClient}.ts`、`hooks/`、`server/storageService.ts`、`server/wrappers/`、`types.ts`
-- 旧 API の権限
-  - `/api/storage/upload`・`/api/storage/delete`（`useAppStorage` / `appStorageClient`）は、保存先・所有者の検証を持たないため、管理者カテゴリのみに制限している（未ログイン 401 / 一般ユーザー 403）
-  - クライアント直経路（`clientUploader` / `directStorageClient` / `useDirectStorage`）の権限は Firebase Storage ルールだけが判定する。`request.auth != null` だけでは、ログインユーザーなら誰でも任意のファイルを上書き・削除できるので、各環境で書き込み先のパスを絞ること
-- 新しい画面・ドメインはこれらを使わない。切替の手順は N2 の notice で出す
+- リポ直下の `storage.rules` と `firebase.json` を upstream が同梱する。業務のポリシーは一切持たない（判定はアプリのサーバーだけ）
+- 配備: `firebase deploy --only storage --project <project-id>`。既存のプロジェクトでは、アプリの配備 → 新しい経路の確認 → ルールの配備 → 旧 URL の確認、の順（docs/setup/Neon_Firebaseなど各種バックエンドサービスの設定方法.md §6.1）
+- 旧 URL（ダウンロードトークン付き URL・公開 URL）はルールを通らないので、配備後も読める

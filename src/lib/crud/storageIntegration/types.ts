@@ -3,7 +3,6 @@
 // createCrudService の `storage` オプション（ファイル台帳との連動）の型。
 // lib/crud は features に依存しないので、ここは型と呼び出しの約束だけを持つ。
 // 実装（台帳への attach / detach / copy）は features/core/storageObject の storageBindingFor が差し込む。
-// 旧来の storageCleanupFields（cleanupFiles / duplicateFiles / extractStorageFields）とは別の経路で、N2 で置き換わる。
 
 import type { DbTransaction } from "../drizzle/types";
 
@@ -15,6 +14,16 @@ export type CrudStorageField = {
   purpose: string;
   /** true = 値が配列（mediaUploaderMulti） */
   multi?: boolean;
+  /** 用途の範囲（scope_id）と一致を求めるときに、行から値を取り出す */
+  scope?: (row: Record<string, unknown>) => string | null;
+};
+
+/**
+ * storage オプション付きのサービスが出す読み取り専用の宣言（どの列がメディア列か・用途・multi）。
+ * dataMigration などがメディア列を知る正本。storage を指定しないサービスでは undefined
+ */
+export type StorageFieldsAugmented = {
+  readonly storageFields?: readonly CrudStorageField[];
 };
 
 /**

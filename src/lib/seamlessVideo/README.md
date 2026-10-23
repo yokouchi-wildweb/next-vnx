@@ -209,14 +209,15 @@ await load(fragments, { progressive: true }); // 先頭準備で ready(=playable
 - `buildReelManifest(fragments, createdAtISO)` でマニフェスト(各フラグメントの公開 URL + 順序)を作成
 - `reelManifestClient.save(manifest, key?)` で保存(サーバー側は `server/reelManifestStore`)。`key` 省略時は最新スロット、指定で任意キー名前空間(複数リール定義を URL で持てる)。`saveLatest(manifest)` は後方互換
 - 再生側は保存済みマニフェストを `manifestToFragments(manifest)` に通して `useSeamlessReel().load(...)` へ
-- アップロードは `clientUploader`(ブラウザ→Firebase 直、サイズ制限なし)を使う
+- アップロードは `uploadToStorage`(`@/lib/storage/client`、ブラウザ→GCS 直)で公開の用途に上げ、完了時の `src`(公開 URL)をマニフェストに入れる。上限は用途の maxBytes
+  - デモ(`/demo/seamless-av`)は用途 `demo.media`(管理者のみ)。業務行に紐付けないので、猶予(24 時間)を過ぎると storage-sweep がファイルを消し、保存したマニフェストは再生できなくなる。製品で使うときは、マニフェストを保存する業務行に紐付ける用途を作る
 
 ### ⚠ 重要: 別ドメイン URL の再生にはバケットの CORS 設定が必要
 
 URL ソースの再生は MSE(`appendBuffer`)/ Web Audio(`decodeAudioData`)がバイト列を `fetch()` で読むため、
-別ドメイン(Firebase Storage 等)のバケットに CORS 設定が無いと再生時に `Failed to fetch` になる。
+別ドメイン(ファイル保存の GCS バケット等)のバケットに CORS 設定が無いと再生時に `Failed to fetch` になる。
 これは seamlessVideo 固有ではなく **「別ドメインの Storage バイトを読む全機能の共通基盤前提」** で、
-設定は `pnpm storage:setup-cors` で一度きり。**判定ルール・前提(権限/env)・手順・トラブルシュートは一次情報を参照**:
+設定はバケット単位で一度きり(新しい 2 バケットは `pnpm storage:setup` が設定済み、旧バケットは `pnpm storage:setup-cors`)。**判定ルール・前提(権限/env)・手順・トラブルシュートは一次情報を参照**:
 
 ➡ [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../../../docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)
 
