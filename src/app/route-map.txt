@@ -73,9 +73,15 @@
 /demo/sortable-list	legacy-unverified	none
 /demo/status-badge	legacy-unverified	none
 /demo/tables	legacy-unverified	none
+/draft	legacy-unverified	none
 /email/verify	legacy-unverified	none
 /entry	legacy-unverified	none
 /forgot-password	legacy-unverified	none
+/lab	legacy-unverified	none
+/lab/001-basic-scene	legacy-unverified	none
+/lab/002-ai-dialogue	legacy-unverified	none
+/lab/003-save-load	legacy-unverified	none
+/lab/004-tunnel-background	legacy-unverified	none
 /login	legacy-unverified	loader:_screen getSessionUser#00000000
 /logout	legacy-unverified	none
 /maintenance	legacy-unverified	none
