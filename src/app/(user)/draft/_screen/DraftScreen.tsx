@@ -1,7 +1,7 @@
 // src/app/(user)/draft/_screen/DraftScreen.tsx
 // トップページ案(ドラフト)の Screen。page.tsx は 1 行スイッチでここを参照する。
 
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { TunnelBackground } from "../_components/TunnelBackground";
 import { HeroSection } from "../HeroSection";
 import { ServiceAboutSection } from "../ServiceAboutSection";
