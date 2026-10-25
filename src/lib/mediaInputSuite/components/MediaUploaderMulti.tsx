@@ -18,7 +18,13 @@ import { Button } from "@/components/Form/Button/Button";
 import { Para } from "@/components/TextBlocks";
 import { PseudoButton } from "@/components/Form/Button/PseudoButton";
 import { cn } from "@/lib/cn";
-import { isStorageUploadCanceled, uploadToStorage, type UploadProgress } from "@/lib/storage/client";
+import {
+  isStorageUploadCanceled,
+  pickerAcceptFor,
+  uploadToStorage,
+  usePurposeMetadata,
+  type UploadProgress,
+} from "@/lib/storage/client";
 
 import { MediaPreview } from "./MediaPreview";
 import { MediaThumbGrid } from "./MediaThumbGrid";
@@ -39,7 +45,7 @@ export type MediaUploaderMultiValidationRule = FileValidationRule & {
 export type MediaUploaderMultiProps = {
   /** ファイルの用途 ID（`<domain>.<field>`。src/registry/storagePurposeRegistry.ts の登録名） */
   purpose: string;
-  /** 画像を描き直して EXIF を落とすか（既定 true。jpeg / png / webp が対象。false で送られたまま） */
+  /** 送る前にブラウザで画像を描き直すか（既定 false。通信量を減らす任意の前処理。位置情報の除去の保証はサーバー） */
   reencodeImage?: boolean;
   /** 値（storage ref、または移行前の旧 URL）の配列。プレビュー（MediaPreview）が ref を表示用 URL にする */
   initialUrls?: string[] | null;
@@ -80,7 +86,7 @@ const slotIsUploading = (slot: SlotState): slot is Extract<SlotState, { kind: "u
 
 export const MediaUploaderMulti = ({
   purpose,
-  reencodeImage = true,
+  reencodeImage,
   initialUrls,
   onUrlsChange,
   onUploadingChange,
@@ -97,6 +103,8 @@ export const MediaUploaderMulti = ({
 }: MediaUploaderMultiProps) => {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  // 用途の方針（サーバーから。分かるまでは accept を狭めない）。strip なら accept の image/* を受け付ける画像の型に狭める
+  const metadata = usePurposeMetadata(purpose);
   const [slots, setSlots] = useState<SlotState[]>(() =>
     (initialUrls ?? []).map((url) => ({ kind: "uploaded", id: uuidv7(), url })),
   );
@@ -420,7 +428,7 @@ export const MediaUploaderMulti = ({
         id={inputId}
         type="file"
         multiple
-        accept={accept}
+        accept={pickerAcceptFor(accept, metadata ?? "keep")}
         className="sr-only"
         disabled={disabled}
         onChange={handleInputChange}

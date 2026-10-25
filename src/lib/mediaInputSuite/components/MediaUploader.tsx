@@ -4,14 +4,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { MediaInput, type MediaInputProps } from "./MediaInput";
 import type { FileValidationError, FileValidationRule } from "../types";
-import { isStorageUploadCanceled, uploadToStorage, type UploadProgress } from "@/lib/storage/client";
+import {
+  isStorageUploadCanceled,
+  pickerAcceptFor,
+  uploadToStorage,
+  usePurposeMetadata,
+  type UploadProgress,
+} from "@/lib/storage/client";
 import { Para } from "@/components/TextBlocks";
 import { PseudoButton } from "@/components/Form/Button/PseudoButton";
 
 export type MediaUploaderProps = Omit<MediaInputProps, "onFileChange" | "previewUrl" | "statusOverlay" | "clearButtonDisabled"> & {
   /** ファイルの用途 ID（`<domain>.<field>`。src/registry/storagePurposeRegistry.ts の登録名） */
   purpose: string;
-  /** 画像を描き直して EXIF を落とすか（既定 true。jpeg / png / webp が対象。false で送られたまま） */
+  /** 送る前にブラウザで画像を描き直すか（既定 false。通信量を減らす任意の前処理。位置情報の除去の保証はサーバー） */
   reencodeImage?: boolean;
   /** 値（storage ref、または移行前の旧 URL）。プレビュー（MediaPreview）が ref を表示用 URL にする */
   initialUrl?: string | null;
@@ -25,7 +31,8 @@ export type MediaUploaderProps = Omit<MediaInputProps, "onFileChange" | "preview
 
 export const MediaUploader = ({
   purpose,
-  reencodeImage = true,
+  reencodeImage,
+  accept,
   initialUrl = null,
   onUrlChange,
   onMetadataChange,
@@ -37,6 +44,8 @@ export const MediaUploader = ({
   onRegisterPendingDelete,
   ...inputProps
 }: MediaUploaderProps) => {
+  // 用途の方針（サーバーから。分かるまでは accept を狭めない）。strip なら accept の image/* を受け付ける画像の型に狭める
+  const metadata = usePurposeMetadata(purpose);
   const [currentUrl, setCurrentUrl] = useState<string | null>(initialUrl);
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -155,6 +164,7 @@ export const MediaUploader = ({
     <div className="flex flex-col gap-2">
       <MediaInput
         {...inputProps}
+        accept={pickerAcceptFor(accept, metadata ?? "keep")}
         helperText={helperText}
         validationRule={validationRule}
         onValidationError={onValidationError}

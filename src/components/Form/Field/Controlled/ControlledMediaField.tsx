@@ -23,7 +23,7 @@ export type ControlledMediaFieldProps<
   label?: ReactNode;
   /** ファイルの用途 ID（`<domain>.<field>`。src/registry/storagePurposeRegistry.ts の登録名） */
   purpose: string;
-  /** 画像を描き直して EXIF を落とすか（既定 true） */
+  /** 送る前にブラウザで画像を描き直すか（既定 false。任意の前処理。位置情報の除去の保証はサーバー） */
   reencodeImage?: boolean;
   accept?: string;
   helperText?: string;
