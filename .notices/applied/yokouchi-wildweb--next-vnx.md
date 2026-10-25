@@ -102,3 +102,4 @@
 - id:20261024-180928-transition-guard-path-query | date:2026-10-25T09:56:02Z | commit:- | notes:merge 839f5e7e clean; no fork transitionGuard patch or call-site workaround; OAuth signup in-app check not run (dev server is the user's)
 - id:20261024-181351-password-input-autocomplete-required | date:2026-10-25T10:19:17Z | commit:- | notes:merge 4b188181 clean; no fork PasswordInput call sites (all 14 upstream-owned, all with autoComplete); Safari in-app check not run (dev server is the user's)
 - id:20261024-182027-form-a11y-describedby-labels | date:2026-10-25T10:26:53Z | commit:- | notes:merge 8140356f clean; no fork form a11y patches or direct FormControl use; in-browser checks not run (dev server is the user's)
+- id:20261024-182504-statetabs-active-label-popover-collision | date:2026-10-25T11:22:38Z | commit:- | notes:merge 0ef95804 clean; no fork StateTabs / Popover patches or collisionPadding call sites; in-browser checks not run (dev server is the user's)
