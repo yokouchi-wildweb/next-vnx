@@ -101,3 +101,4 @@
 - id:20261024-180446-lint-cleanup-2 | date:2026-10-25T09:49:59Z | commit:- | notes:merge bfdfcefd clean; no fork setMounted pattern; pnpm lint 0 errors / 13 deprecated warns; in-app behavior checks not run (dev server is the user's)
 - id:20261024-180928-transition-guard-path-query | date:2026-10-25T09:56:02Z | commit:- | notes:merge 839f5e7e clean; no fork transitionGuard patch or call-site workaround; OAuth signup in-app check not run (dev server is the user's)
 - id:20261024-181351-password-input-autocomplete-required | date:2026-10-25T10:19:17Z | commit:- | notes:merge 4b188181 clean; no fork PasswordInput call sites (all 14 upstream-owned, all with autoComplete); Safari in-app check not run (dev server is the user's)
+- id:20261024-182027-form-a11y-describedby-labels | date:2026-10-25T10:26:53Z | commit:- | notes:merge 8140356f clean; no fork form a11y patches or direct FormControl use; in-browser checks not run (dev server is the user's)
