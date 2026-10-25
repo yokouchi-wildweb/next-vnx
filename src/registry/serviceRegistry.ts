@@ -40,6 +40,7 @@ import { domainEntries as walletHistoryEntries } from "@/features/core/walletHis
 import { domainEntries as sampleEntries } from "@/features/sample/services/server/domainEntry";
 import { domainEntries as sampleCategoryEntries } from "@/features/sampleCategory/services/server/domainEntry";
 import { domainEntries as sampleTagEntries } from "@/features/sampleTag/services/server/domainEntry";
+import { domainEntries as saveEntries } from "@/features/save/services/server/domainEntry";
 
 export const serviceRegistry: DomainRegistry = {
   auditLog: auditLogEntries.auditLog,
@@ -72,4 +73,5 @@ export const serviceRegistry: DomainRegistry = {
   sample: sampleEntries.sample,
   sampleCategory: sampleCategoryEntries.sampleCategory,
   sampleTag: sampleTagEntries.sampleTag,
+  save: saveEntries.save,
 };
