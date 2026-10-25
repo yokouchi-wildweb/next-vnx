@@ -91,3 +91,4 @@
 - id:20261023-234600-form-default-values | date:2026-10-24T00:11:10+09:00 | commit:- | notes:merge only (e4c27a88); no fork jsonb/map formInput none fields, no fork onUrlsChange reliance; test:form-defaults 5 pass; in-app check not run
 - id:20261023-213357-frame-move-user | date:2026-10-25T01:40:00+09:00 | commit:- | notes:merge fd997f58 clean; no fork edits on moved paths (no port); fork DraftScreen UserPage import moved to new path; config/ui + (user) layouts left on old path per notice; lint 59 errors all in files identical to upstream
 - id:20261024-001617-frame-move-admin | date:2026-10-25T02:11:29Z | commit:- | notes:-
+- id:20261024-110321-order-skill | date:2026-10-25T02:17:49Z | commit:- | notes:merge bf92953d; project.md conflict resolved fork side, request_protocol bullets replaced with template /order /wen /inbox (domain=VN engine / studio) inside the merge commit; mailbox.mjs not edited by fork (no port)
