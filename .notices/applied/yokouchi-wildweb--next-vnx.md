@@ -94,3 +94,4 @@
 - id:20261024-110321-order-skill | date:2026-10-25T02:17:49Z | commit:- | notes:merge bf92953d; project.md conflict resolved fork side, request_protocol bullets replaced with template /order /wen /inbox (domain=VN engine / studio) inside the merge commit; mailbox.mjs not edited by fork (no port)
 - id:20261024-140000-orders-mailbox-rename | date:2026-10-25T02:23:00Z | commit:- | notes:merge c458db4a; project.md conflict resolved fork side, request_protocol mailbox path → ~/.team/orders/ inside the merge commit; machine folder move already done (symlink present)
 - id:20261024-153414-claude-md-core-rules | date:2026-10-25T02:25:26Z | commit:- | notes:merge 0f58032a clean; fork never edited CLAUDE.md; test:core-rules 24 pass
+- id:20261024-154302-server-only-stub-module-mocks | date:2026-10-25T05:26:50Z | commit:- | notes:merge 6f40c2be clean; no node_modules/server-only, no fork run.ts workarounds, callsites.test.ts not edited by fork (no port)
