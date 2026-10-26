@@ -9,6 +9,8 @@ import { ADMIN_ONLY, ADMIN_RULE } from "@/config/app/domain-api-access.config";
 export const domainEntries = {
   save: {
     service: () => import("./saveService").then((m) => m.saveService),
+    table: "saves",
+    idColumn: "id",
     access: {
       ...ADMIN_ONLY,
       operations: {
