@@ -243,6 +243,61 @@ describe("drizzleLedger（実 DB）", { skip }, () => {
     );
   });
 
+  test("照合の対象の取り出し: 紐付いた ready だけを id 順に返し、afterId から続ける", async () => {
+    await cleanup();
+    const now = new Date();
+    const readyRow = async (recordId: string | null) => {
+      const row = pending();
+      await ledger.insertPendingWithinLimit(row, 10, now);
+      await ledger.markReady(row.id, { size: 3, contentType: "image/png", generation: "1", readyAt: now });
+      if (recordId !== null) {
+        await ledger.attach({ id: row.id, purpose: PURPOSE, store: "priv", key: row.key, ownerUserId: OWNER, recordType: "t", recordId, recordField: "f" });
+      }
+      return row;
+    };
+    const a = await readyRow("r-a");
+    const b = await readyRow("r-b");
+    const unattached = await readyRow(null);
+    const removed = await readyRow("r-c");
+    await ledger.detach({ ids: [removed.id], recordType: "t", recordId: "r-c", reason: "record_removed", at: now });
+    const stillPending = pending();
+    await ledger.insertPendingWithinLimit(stillPending, 10, now);
+
+    const own = [a.id, b.id, unattached.id, removed.id, stillPending.id];
+    const mine = (rows: Array<{ id: string }>) => rows.filter((r) => own.includes(r.id));
+    // 開発 DB の他の行が混ざっても取りこぼさないよう、上限は大きく取る
+    const all = mine(await ledger.listAttached({ afterId: null, limit: 100_000 }));
+    const expected = [a, b].sort((x, y) => (x.id < y.id ? -1 : 1));
+    assert.deepEqual(
+      all,
+      expected.map((row) => ({ id: row.id, recordType: "t", recordId: row.id === a.id ? "r-a" : "r-b" })),
+    );
+    const rest = mine(await ledger.listAttached({ afterId: expected[0].id, limit: 100_000 }));
+    assert.deepEqual(rest.map((r) => r.id), [expected[1].id]);
+  });
+
+  test("本人の未紐付けの取り出し: 本人の pending / ready で未紐付けの行だけを id 順に返す", async () => {
+    await cleanup();
+    const now = new Date();
+    const pendingRow = pending();
+    await ledger.insertPendingWithinLimit(pendingRow, 10, now);
+    const readyRow = pending();
+    await ledger.insertPendingWithinLimit(readyRow, 10, now);
+    await ledger.markReady(readyRow.id, { size: 3, contentType: "image/png", generation: "1", readyAt: now });
+    const attachedRow = pending();
+    await ledger.insertPendingWithinLimit(attachedRow, 10, now);
+    await ledger.markReady(attachedRow.id, { size: 3, contentType: "image/png", generation: "1", readyAt: now });
+    await ledger.attach({ id: attachedRow.id, purpose: PURPOSE, store: "priv", key: attachedRow.key, ownerUserId: OWNER, recordType: "t", recordId: "r", recordField: "f" });
+    const deletedRow = pending();
+    await ledger.insertPendingWithinLimit(deletedRow, 10, now);
+    await ledger.markDeleted(deletedRow.id, { reason: "discarded", at: now }, { statuses: ["pending"] });
+
+    const expected = [pendingRow.id, readyRow.id].sort();
+    assert.deepEqual(await ledger.listUnattachedOwnedBy(OWNER, { afterId: null, limit: 100 }), expected);
+    assert.deepEqual(await ledger.listUnattachedOwnedBy(OWNER, { afterId: expected[0], limit: 100 }), [expected[1]]);
+    assert.deepEqual(await ledger.listUnattachedOwnedBy(randomUUID(), { afterId: null, limit: 100 }), []);
+  });
+
   test("session_uri は findById だけが返し、更新の戻り値には出ない", async () => {
     await cleanup();
     const row = pending({ transferKind: "session" });
