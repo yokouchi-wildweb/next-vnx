@@ -78,7 +78,7 @@ export const STORAGE_CONFIG = {
     reconcile: {
       maxDetachPerRun: 1000,
       massMissingMin: 50,
-      valueCheck: "report" as "off" | "report" | "detach",
+      valueCheck: "detach" as "off" | "report" | "detach",
     },
   },
 
