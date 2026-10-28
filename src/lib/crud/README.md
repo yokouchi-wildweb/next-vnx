@@ -458,6 +458,7 @@ export const productService = createCrudService(ProductTable, {
       valueColumn: GalleryImageTable.image,       // 集まりの値の列（差分はこの値で取る）
       sortColumn: GalleryImageTable.sort_order,   // text（fractional の鍵。既定）か integer（0 始まりの添字）
       maxItems: 10,                               // 省略 = 上限なし。超える配列の保存は 400（切り詰めない）
+      minItems: 1,                                // 省略 = 下限なし。下回る保存は 400（下の「最小件数」）
       duplicate: true,                            // 主の複製で従属も写すか（既定 true）
     },
   ],
@@ -467,13 +468,13 @@ export const productService = createCrudService(ProductTable, {
 - 集まりは 1 行 1 値: 従属の 1 行が集まりの 1 要素で、`valueColumn` の値で見分ける（同じ値の重複は持たない）
 - `parentColumn` / `valueColumn` / `sortColumn` は同じ従属の表の列で、互いに別の列。従属の表は `id` 列を持つ
 - 論理削除の従属（`deletedAt` 列を持つ表）は扱わない（宣言時に throw）
-- 宣言の誤り（列の取り違え・`fieldName` が主の列や belongsToMany の項目と重なる・並びの列が text / integer でない）はサービス生成時に throw する
+- 宣言の誤り（列の取り違え・`fieldName` が主の列や belongsToMany の項目と重なる・並びの列が text / integer でない・`maxItems` / `minItems` の値の誤り）はサービス生成時に throw する
 
 ### 書き込み
 
 - create / update / upsert の入力の集まりの項目は、parse の前に外して検査する（DB に触れる前に 400）
   - 省略（または undefined）= 維持、`[]` = 全部消す
-  - 配列でない・空の要素・重複・`maxItems` 超過は 400。切り詰めない（`maxItems` を超えた既存の行も黙って消さない）
+  - 配列でない・空の要素・重複・`maxItems` 超過・`minItems` 不足は 400。切り詰めない（`maxItems` を超えた既存の行も黙って消さない）
 - 同期は主の行を `FOR UPDATE` でロックしてから従属を全件読み直し、値で差分を取る
   - 変わらない値の行は残す（従属の id を保つ）/ 消えた値の行は従属の `hardDelete` / 新しい値は従属の `create`
   - 並びは同期のたびに配列順に振り直す（text = fractional の鍵、integer = 添字）。値の変わった行だけ従属の `systemUpdate` で書く
@@ -483,6 +484,22 @@ export const productService = createCrudService(ProductTable, {
 - 呼び出し元が tx を渡さなければ内部で TX を張る。従属の `hardDelete` が外したファイルは、従属の storage binding の動きのまま（外から tx を渡すので掃除 cron が片付ける）
 - base を通らない書き込み（手書きのドメイン・fork の独自の保存）は単独関数 `syncCollection({ parentTable, parentId, collection, values }, tx?)` で同じ規則の同期ができる（主の行が無ければ 404）
 
+### 最小件数（minItems）
+
+`minItems`（非負の整数、省略 = 下限なし）を宣言した集まりは、下回る保存を 400（`<fieldName> は <minItems> 件以上必要です`）で断る。
+
+- create: 項目の省略（または undefined）は `[]` とみなして検査する。`minItems` が 1 以上なら DB に触れる前に 400
+- update: `[]` / 下限未満の配列は 400（DB に触れる前）。項目の省略は今までどおり触らない（維持）
+- upsert: 渡した配列は同じく DB に触れる前に検査する。項目を省くと、新規か更新かは書くまで分からないので、主の書き込みの後に同じ TX で従属の件数を数え、下限未満なら 400 で巻き戻す（新規の行は残らない。下限を満たす既存の行への upsert は通る）
+  - 呼び出し元が tx を渡したときは、その TX の中で throw する（巻き戻しは呼び出し元の TX）
+- 単独関数 `syncCollection` も渡した値を同じく検査する
+- 検査しないもの
+  - 複製の内側の主の create（従属は 2 段目で複製元の件数のまま写す。複製元が下回っていても断らない）
+  - `bulkUpsert` / `bulkUpdate*` / `replaceByQuery`（集まりの値を受け付けない。`bulkUpsert` / `replaceByQuery` は集まりなしで主の新規行を作れるので、必須の集まりがあるドメインでは使い方に注意）
+  - 従属の API からの直接の書き込み・主の削除（従属の件数は lib が見張らない。次の主の保存で検査する）
+- 宣言の検査（サービス生成時に throw）: 非負の整数・`maxItems` 以下・1 以上と `duplicate: false` の併用は不可（複製すると必ず下回るため）
+- `minItems` を宣言しない（または 0 の）サービスは今のまま（TX もクエリも増えない）
+
 ### 読み出し
 
 - 配列を載せる口: `get` / `getWithDeleted` / `list` / `listWithDeleted` / `search` / `searchWithDeleted` / `searchForSorting` と、create / update / upsert の戻り値
@@ -491,6 +508,7 @@ export const productService = createCrudService(ProductTable, {
 - 並びは 並びの列 ASC NULLS LAST → id ASC。text の並びの列は `COLLATE "C"`（下の「並びの鍵の照合順序」）
 - 集まりごとに呼び出し 1 回で 1 クエリ（主の id の IN）。呼び出し元の tx の外（`db`）で読む。複製の 1 段目の読み出しも同じ
 - TS 側の先頭 1 件は配列の `[0]`
+- 一覧の表示: `formatCollectionThumbnails(value)`（`@/lib/crud`。先頭 1 件のサムネイルと、残りがあれば `+N`。解決できない値は数えず、0 件は null）。生成の presenters は主の集まりの項目（`mediaCollection`）にこれを使う。旧来の複数メディア列（mediaUploaderMulti）は `formatMediaThumbnails`（先頭 3 件を重ねて `+N`）のまま
 
 ### 先頭 1 件の SQL
 
@@ -538,16 +556,24 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
   - チャンクの取り込み（画面）は各チャンクの先頭で調べる（チャンクは同じ見出しを持つので最初のチャンクで止まる）。ZIP 一括の取り込み（`importData`）は全チャンクを先に調べてから書く
 - 書き出し: 選ばれていても集まりの項目は出さない（CSV の列・manifest の fields から外す。関連・hasMany のドメインも）
 
+### 生成器からの配線
+
+- domain.json の主の集まりの項目（`fieldType: "mediaCollection"`、[src/features/README.md](../../features/README.md)「主の集まりの項目（mediaCollection）」）から、`dc:generate` が従属の domain.json（無いときだけ）・主の `services/server/collections.ts`（`collections: CrudCollectionConfig[]`、毎回上書き）・主のスキーマ / モデル / フォームを生成する
+  - `fieldName` = 項目名（domain.json に書いたまま）、`service` = 従属の `<child>Service` の遅延 import、`parentColumn` / `valueColumn` / `sortColumn` = 従属の主への参照列 / `file` 列 / `sortOrderField`、`maxItems` = `collection.maxItems`、`minItems` = required なら 1、`duplicate` = `collection.duplicate`
+- 生成の drizzleBase.ts は `import { collections } from "./collections"` して `createCrudService` の options に `collections` を渡す
+- drizzleBase.ts を手書きする主（`generateFiles.serverServices: false`）は、この 2 行を自分で足す（`dc:generate` が毎回案内する）
+- 突き合わせ: `pnpm test:collection-wiring` が、全 domain.json の集まりの項目と、serviceRegistry から読み込んだ主のサービスの `collectionFields` を比べる（渡し忘れ・余分を主と項目で出す。DB 未設定でも走る）
+- 生成器を使わないドメインは、手書きのサービスで `createCrudService` に `collections` を渡す（宣言の形は同じ `CrudCollectionConfig`）
+
 ### 基盤に無いもの
 
 - データ移行の補助・書き込みの経路（既存の行を集まりへ移す等）は持たない。一度きりの移行は DB を直接操作する
 - 論理削除の従属
-- 生成器: `dc:generate` はまだ集まりの項目を出さない（生成器の対応は評議会で審議中）。今使うなら、手書きのサービスで `createCrudService` に `collections` を渡すか、生成ドメインでは domain.json の `generateFiles` で drizzleBase を外してから手で書く（CLAUDE.md の code_generation の規則）。宣言の形（`CrudCollectionConfig`）は生成器の対応の後もそのまま使う
 
 ### 後からの変更の規則
 
 - 名前を変えるときは新しい名前を足し、古い名前を残す（消さない）
-- 宣言の形（`CrudCollectionConfig`）は足すだけで広げる（新しい項目は省略できる形にする）
+- 宣言の形（`CrudCollectionConfig`）は足すだけで広げる（新しい項目は省略できる形にする。`minItems` もこの規則で足した項目）
 
 ---
 

@@ -3,7 +3,7 @@
 import { toCamelCase, toPascalCase, toPlural } from "../../../../src/utils/stringCase.mjs";
 import { resolveFieldName } from "../../domain/fieldName.mjs";
 import { belongsToManyRelations, belongsToRelations } from "../../domain/relations.mjs";
-import { tsType } from "../../spec/fieldTypes.mjs";
+import { isCollectionFieldType, tsType } from "../../spec/fieldTypes.mjs";
 
 const typeLine = (name, type, required) => `  ${name}: ${required ? type : `${type} | null`};`;
 
@@ -20,6 +20,9 @@ function bodyLines(config, dbEngine) {
     if (f.fieldType === "enum") {
       const values = (f.options || []).map((o) => `'${o.value}'`).join(" | ");
       lines.push(typeLine(fieldName, values, f.required));
+    } else if (isCollectionFieldType(f.fieldType)) {
+      // 主の集まりは表の列ではない（サービスの読み出しが載せる）。belongsToMany と同じく省略可（表の行の型からも代入できる）
+      lines.push(`  ${fieldName}?: ${tsType(f.fieldType)};`);
     } else {
       // mediaUploaderMulti は常に NOT NULL なので required 扱い（null を返さない）
       lines.push(typeLine(fieldName, tsType(f.fieldType), f.fieldType === "mediaUploaderMulti" ? true : f.required));

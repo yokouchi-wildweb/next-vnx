@@ -20,6 +20,7 @@
 | useCreatedAt | boolean | 🟢 Yes | createdAt カラムの有無 |
 | useUpdatedAt | boolean | 🟢 Yes | updatedAt カラムの有無 |
 | useSoftDelete | boolean | ⚪ No | 論理削除の有無（deletedAt カラム） |
+| sortOrderField | string | ⚪ No | 並び順の列（fractional の鍵を入れる text の列）のフィールド名。fields に同名の項目（`fieldType: "string"`、`formInput: "hidden"`）を置く。管理画面の並べ替え（sort/）と reorder / searchForSorting のフックを生成する |
 | fields | Field[] | 🟢 Yes | フィールド定義 |
 | fieldGroups | FieldGroup[] | ⚪ No | 管理画面フォームのセクション分け（後述） |
 | searchFields | string[] | ⚪ No | 検索対象フィールド名の配列 |
@@ -184,6 +185,7 @@ custom リレーションの UI 実装例:
 | options | Option[] | ⚪ No | 選択肢（select, radio, checkbox, multiSelect で使用） |
 | displayType | `"standard"` \| `"bookmark"` | ⚪ No | radio/checkbox の表示スタイル |
 | placeholder | string | ⚪ No | プレースホルダー（textInput, numberInput, textarea, select, multiSelect, emailInput, passwordInput で使用） |
+| collection | Collection | ⚪ No | 主の集まりの宣言（fieldType `mediaCollection` の項目。下の「主の集まりの項目（mediaCollection）」） |
 
 #### FieldType（Neon）
 
@@ -206,6 +208,7 @@ custom リレーションの UI 実装例:
 | jsonb | JSONオブジェクト |
 | array | 配列 |
 | mediaUploader | メディアアップロード用 |
+| mediaCollection | 主の集まり（従属ドメインのメディアの行の並び。列を持たない。formInput は `mediaUploaderMulti`） |
 
 #### FieldType（Firestore）
 
@@ -320,6 +323,42 @@ import { ControlledField } from "@/components/Form/Field";
 
 ---
 
+### 主の集まりの項目（mediaCollection）
+
+主の 1 行に属する従属ドメインの行の並び（例: 商品のギャラリー画像）。主の表に列は持たず、lib の collections オプション（[src/lib/crud/README.md](../lib/crud/README.md)「ドメイン集約」）で読み書きする。Neon のみ。
+
+- 新しく 1 つのレコードに複数のメディアを持たせるなら mediaCollection を選ぶ（1 枚ずつ従属のドメインの行に保存）。`mediaUploaderMulti`（1 列の text[]）は既存の項目のために残っており、そのまま動く。dc:init / dc:add も型の選択で集まりを multi より先に並べ、multi を選ぶと 1 行案内する
+- 例: `src/features/sample/domain.json` の `images`（従属 `sampleImage`）。`gallery_images` は既存の multi の例
+
+```json
+{ "name": "galleryImages", "label": "ギャラリー", "fieldType": "mediaCollection", "formInput": "mediaUploaderMulti",
+  "required": true, "reorderable": true, "collection": { "domain": "productImage", "maxItems": 10, "duplicate": true } }
+```
+
+| プロパティ | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| collection.domain | string | 🟢 Yes | 従属ドメインの singular |
+| collection.maxItems | number（1 以上の整数） | ⚪ No | 最大件数。省略 = 上限なし |
+| collection.duplicate | boolean | ⚪ No | 主の複製で従属も写すか。省略 = true |
+
+- 必須 = `required`、並べ替え = `reorderable`（既存のキー）
+- ファイルの条件（slug・mediaTypePreset・accept・validationRule・storage）は主に書かず、従属ドメインのメディア項目に書く
+- 語彙の検査（`[domain.json]` の警告）は collection の下位キーの型を見る
+- dc:generate は、従属ドメインの domain.json（`src/features/<collection.domain の camelCase>/domain.json`）が**無いときだけ**書き出す（既にあれば触らない。`--only` でも、dry-run では「作成 / 保持」と出すだけ）。書き出す雛形:
+  - singular = `collection.domain`、plural = 既定の名前のままなら `<主>_<項目名>`（項目名が s で終わるとき）、変えていれば書かない（推定）、label = 主の項目の label、Neon、idType = 主と同じ
+  - relations = 主への belongsTo（`<主>_id`、必須、onDelete CASCADE）。主の relations には足さない
+  - fields = メディア項目 `file`（mediaUploader、images / `image/*`、10MB、slug = 主の項目名の camelCase）と並び列 `sort_order`（hidden、`sortOrderField` と `systemColumns` に宣言）。useSoftDelete false
+  - 汎用 API は閉じる（`apiAccess: { read: "none", write: "none" }` = INTERNAL_ONLY）、addToAdminDataMenu false、generateFiles は entities / serverServices / registry / fieldConstants / presenters だけ（管理画面・フック・クライアントは主の画面から使う）
+  - `file` の storage は主の汎用 API の規則から写す: upload = 主の create と update の和、read = 主の get、visibility = read が `"public"` なら public、それ以外は private。写せるのは `"public"` / `"authenticated"` / ロールの規則だけで、主が閉じている（`"none"`）・知らない値・`generateFiles.registry: false`（domainEntry.ts が手書き）なら管理者のみを書き、直す場所を出力する
+  - ファイルの条件（preset・accept・上限）は雛形の既定なので、従属の domain.json で直す
+- 従属が守ること（dc:generate が書く前に検査し、1 つでも外れれば全件を並べて何も書かずに止まる。一覧と判定: [scripts/domain-config/README.md](../../scripts/domain-config/README.md)「dc:generate」）
+  - 主への belongsTo はちょうど 1 本・required・onDelete CASCADE、`useSoftDelete` は false
+  - メディア項目（mediaUploader）はちょうど 1 つ。mediaUploaderMulti / mediaCollection は持たない。ファイルの条件はここに書く（主の項目には書かない）
+  - 主の項目が reorderable なら、`sortOrderField` とその項目を持ち、`systemColumns` に入れる
+  - 主の画面から埋められない必須の項目（主への参照・メディア・並び以外で required かつ defaultValue なし）を持たない
+  - `file` の upload は主の create・update の和より狭くしない、read は主の get より狭くしない（public の従属は見ない）。広い upload と、開いた汎用 API は知らせるだけ
+  - 表名・主への FK 名は 63 字以内、singular・表名は他のドメインと重ねない。required の集まりは `collection.duplicate: false` にしない
+
 ### MediaUploader フィールド追加プロパティ
 
 保存先は項目ごとに自動で決まる用途 `<domain>.<field>`（purpose）で決まる。保存先パスの指定（旧 `uploadPath`）は無い。
@@ -336,6 +375,7 @@ import { ControlledField } from "@/components/Form/Field";
 | storage | object | ⚪ No | ファイル用途の設定（下の「ファイルの保存（storage）」） |
 | storage.visibility | `"public"` \| `"private"` | ⚪ No | 公開・非公開。**一般利用者がアップロードできる項目では必須**（省略すると dc:generate がエラーで止まる） |
 | storage.upload | アクセスルール（`"public"` 以外） | ⚪ No | アップロードしてよい人。省略時は apiAccess の create と update の許可者の和 |
+| storage.read | アクセスルール（`"public"` を含む） | ⚪ No | 読んでよい人。省略時は apiAccess の get の規則 |
 | storage.metadata | `"strip"` \| `"keep"` | ⚪ No | 画像の位置情報などのメタデータの扱い。省略 = `"strip"`（サーバーが描き直して消す）。原本のまま残す項目（書類・明細など）だけ `"keep"` |
 
 #### metadataBinding キー
@@ -361,8 +401,8 @@ dc:generate は、メディア項目ごとにファイル用途（`<domain>.<fie
   - ロールの規則どうしは roles / roleCategories を合わせる。`"none"` は数えない
 - visibility は `storage.visibility` を使う。無いときは次のとおり
   - **一般利用者（admin 以外のカテゴリ）がアップロードできる項目 → 生成エラー**（公開か非公開かを人が決めるため）
-  - 管理者だけがアップロードできる項目 → apiAccess の get が `"public"` なら public、それ以外は private
-- private の用途には read.allow として apiAccess の get の規則を付ける
+  - 管理者だけがアップロードできる項目 → 読める人（`storage.read`、無ければ apiAccess の get）が `"public"` なら public、それ以外は private
+- private の用途には read.allow として読める人（`storage.read`、無ければ apiAccess の get の規則）を付ける。`storage.read` の `"public"` も書ける（visibility を private と明示した項目でもそのまま出す）
 - AUTO ブロックの外（手書きの FORK ブロック）に同じ ID があれば上書きせず、警告だけを出す。手書きの定義（check 関数付きなど）が優先される
 - 項目を消して再生成すると、AUTO ブロックから消える。dc:delete はそのドメインの AUTO エントリを消す
 - core ドメインの domain.json（notification / coupon）は dc:generate の対象外なので、`src/registry/storagePurposes/core.ts` に手で書く。`pnpm test:storage-purposes` が、全 domain.json のメディア項目に用途があるかと、手書き（CORE / FORK）の用途の metadata の規則（上の生成エラーと同じ規則、`user.avatar` を keep にしない）を確かめる

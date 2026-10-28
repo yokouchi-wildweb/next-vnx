@@ -19,6 +19,7 @@ import sampleCategoryConfig from "@/features/sampleCategory/domain.json";
 import sampleTagConfig from "@/features/sampleTag/domain.json";
 import saveConfig from "@/features/save/domain.json";
 import chatRoomConfig from "@/features/core/chatRoom/domain.json";
+import sampleImageConfig from "@/features/sampleImage/domain.json";
 
 export const domainConfigMap = {
 
@@ -41,6 +42,7 @@ export const domainConfigMap = {
   sample_category: sampleCategoryConfig,
   sample_tag: sampleTagConfig,
   save: saveConfig,
+  sample_image: sampleImageConfig,
   // --- AUTO-GENERATED-END ---
 
 } as const;

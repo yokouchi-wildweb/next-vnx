@@ -46,6 +46,7 @@ export * from "@/features/sample/entities/drizzle";
 export * from "@/features/sampleCategory/entities/drizzle";
 export * from "@/features/sampleTag/entities/drizzle";
 export * from "@/features/save/entities/drizzle";
+export * from "@/features/sampleImage/entities/drizzle";
 // --- AUTO-GENERATED-END ---
 
 export {};
