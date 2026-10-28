@@ -47,6 +47,9 @@ import { hydrateBelongsTo, hydrateBelongsToManyObjects, hydrateHasMany, DEFAULT_
 import { applyRequestMemo } from "./requestMemo";
 import { applyHiddenColumns } from "./hiddenColumns";
 import { applyStorageBinding } from "../storageIntegration/applyStorageBinding";
+import { applyCollectionDuplicate, applyCollections } from "../collections/applyCollections";
+import { sortKeyAsc, sortKeyDesc, sortKeyGt } from "./fractionalSort/sortKeyOrder";
+import type { CollectionDuplicateResult, CollectionFieldsAugmented } from "../collections/types";
 import type { StorageFieldsAugmented } from "../storageIntegration/types";
 
 const resolveRecordId = (value: unknown): string | number | undefined => {
@@ -598,7 +601,7 @@ export function createCrudService<
             const firstResults = await executor
               .select({ sortOrder: sortOrderColumn })
               .from(table as any)
-              .orderBy(asc(sortOrderColumn))
+              .orderBy(sortKeyAsc(sortOrderColumn))
               .limit(1) as { sortOrder: string | null }[];
             const firstSortOrder = firstResults[0]?.sortOrder ?? null;
             (finalInsert as Record<string, any>)[sortOrderFieldName] = generateFirstSortKey(firstSortOrder);
@@ -658,7 +661,7 @@ export function createCrudService<
       let query: any = db.select().from(table as any);
       const softDeleteFilter = buildSoftDeleteFilter();
       if (softDeleteFilter) query = query.where(softDeleteFilter);
-      const orderClauses = buildOrderBy(table, serviceOptions.defaultOrderBy);
+      const orderClauses = buildOrderBy(table, serviceOptions.defaultOrderBy, { sortKeyColumn: sortOrderColumn });
       if (orderClauses.length) query = query.orderBy(...orderClauses);
       query = query.limit(limit);
       const results = (await query) as Select[];
@@ -676,7 +679,7 @@ export function createCrudService<
 
     async listWithDeleted(options?: WithOptions): Promise<Select[]> {
       let query: any = db.select().from(table as any);
-      const orderClauses = buildOrderBy(table, serviceOptions.defaultOrderBy);
+      const orderClauses = buildOrderBy(table, serviceOptions.defaultOrderBy, { sortKeyColumn: sortOrderColumn });
       if (orderClauses.length) query = query.orderBy(...orderClauses);
       const results = (await query) as Select[];
 
@@ -1044,7 +1047,7 @@ export function createCrudService<
       const orderClauses = composeSearchOrderBy(table, orderBy, {
         rank: rankOrderClause,
         extra: extraOrderBy,
-        base: buildOrderBy(table, orderBy),
+        base: buildOrderBy(table, orderBy, { sortKeyColumn: sortOrderColumn }),
       });
       const result = await runQuery<Select>(table, baseQuery, {
         page,
@@ -1138,7 +1141,7 @@ export function createCrudService<
       const orderClauses = composeSearchOrderBy(table, orderBy, {
         rank: rankOrderClause,
         extra: extraOrderBy,
-        base: buildOrderBy(table, orderBy),
+        base: buildOrderBy(table, orderBy, { sortKeyColumn: sortOrderColumn }),
       });
       const result = await runQuery<Select>(table, baseQuery, {
         page,
@@ -2122,6 +2125,18 @@ export function createCrudService<
     },
 
     /**
+     * duplicate と同じ複製をし、集まりの項目ごとの「複製元の従属の id → 複製した従属の id」の対応表も返す。
+     * collections オプションの無いサービスでは idMaps は空（複製は duplicate のまま）
+     */
+    async duplicateWithIdMap(
+      id: string,
+      options?: DuplicateOptions,
+      tx?: DbTransaction,
+    ): Promise<CollectionDuplicateResult<Select>> {
+      return { record: await this.duplicate(id, options, tx), idMaps: {} };
+    },
+
+    /**
      * テーブルの全データを物理削除する（TRUNCATE CASCADE）
      * belongsToMany中間テーブルも削除対象となる
      *
@@ -2233,7 +2248,7 @@ export function createCrudService<
         const firstResults = await executor
           .select({ sortOrder: sortOrderColumn })
           .from(table as any)
-          .orderBy(asc(sortOrderColumn))
+          .orderBy(sortKeyAsc(sortOrderColumn))
           .limit(1) as { sortOrder: string | null }[];
 
         const firstSortOrder = firstResults[0]?.sortOrder ?? null;
@@ -2256,8 +2271,8 @@ export function createCrudService<
           const nextResults = await executor
             .select({ sortOrder: sortOrderColumn })
             .from(table as any)
-            .where(gt(sortOrderColumn, afterSortOrder))
-            .orderBy(asc(sortOrderColumn))
+            .where(sortKeyGt(sortOrderColumn, afterSortOrder))
+            .orderBy(sortKeyAsc(sortOrderColumn))
             .limit(1) as { sortOrder: string | null }[];
 
           const nextSortOrder = nextResults[0]?.sortOrder ?? null;
@@ -2311,7 +2326,7 @@ export function createCrudService<
         .select({ sortOrder: sortOrderColumn })
         .from(table as any)
         .where(sql`${sortOrderColumn} IS NOT NULL`)
-        .orderBy(desc(sortOrderColumn))
+        .orderBy(sortKeyDesc(sortOrderColumn))
         .limit(1) as { sortOrder: string | null }[];
 
       const prevKey = maxResults[0]?.sortOrder ?? null;
@@ -2386,7 +2401,7 @@ export function createCrudService<
         .select({ id: idColumn })
         .from(table as any)
         .where(inArray(idColumn, nullIds))
-        .orderBy(...buildOrderBy(table, initOrderBy)) as { id: string }[];
+        .orderBy(...buildOrderBy(table, initOrderBy, { sortKeyColumn: sortOrderColumn })) as { id: string }[];
 
       const orderedNullIds = orderedNullItems.map((item) => String(item.id));
 
@@ -2409,14 +2424,27 @@ export function createCrudService<
   // 無効時も invalidateRequestMemo (no-op) を公開し、サービスの形を一定に保つ。
   // hiddenColumns: テーブルに defineHiddenColumns() の宣言があれば、最外層で
   // 全メソッドの戻り値から秘匿カラムを null 化する（audit / memo は生値で動作済み）。
+  // collections: ドメイン集約の差分同期。指定したサービスだけ書き込み系メソッドを包む（未指定なら service そのまま）。
   // storage: ファイル台帳との連動。指定したサービスだけ書き込み系メソッドを包み、storageFields を出す（未指定なら service そのまま）。
+  const withCollections: typeof service & CollectionFieldsAugmented = serviceOptions.collections?.length
+    ? applyCollections(service, {
+        table,
+        collections: serviceOptions.collections,
+        reservedFieldNames: belongsToManyRelations.map((relation) => relation.fieldName),
+      })
+    : service;
   const withStorage: typeof service & StorageFieldsAugmented = serviceOptions.storage
-    ? applyStorageBinding(service, {
+    ? applyStorageBinding(withCollections, {
         table,
         binding: serviceOptions.storage,
         useSoftDelete: Boolean(deletedAtColumn),
         conflictTarget: (upsertOptions) => resolveConflictTarget(table, serviceOptions, upsertOptions),
       })
-    : service;
-  return applyHiddenColumns(applyRequestMemo(withStorage, serviceOptions.requestMemo === true), table);
+    : withCollections;
+  // collections の複製は storage binding の外側で包む（主のファイルは storage 層の duplicateStorageValues で写し、
+  // 主の create は storage binding → 集まりの層を通る）
+  const withCollectionDuplicate: typeof withStorage = serviceOptions.collections?.length
+    ? applyCollectionDuplicate(withStorage, serviceOptions.collections)
+    : withStorage;
+  return applyHiddenColumns(applyRequestMemo(withCollectionDuplicate, serviceOptions.requestMemo === true), table);
 }

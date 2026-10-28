@@ -22,7 +22,7 @@
 
 > **`--` は任意**: pnpm は `pnpm dc:generate -- Sample` の `--` をそのままスクリプトへ渡すが、スクリプト側（`cli/args.mjs`）が単独の `--` を捨てるので `pnpm dc:generate Sample` と同じ動きになる（`dc:add` / `dc:delete` も同じ）。
 > `<Domain>` は snake_case / camelCase / PascalCase のどれでもよい（内部で正規化し、`src/features/<camelCase>/` を見る）。
-> 失敗（`domain.json` が無い、検査で止まる、テンプレートが無いなど）は終了コード 1 になり、**何も書かない**（生成物は全部組み立ててから書くので、書きかけのファイルは残らない。例外は最後の `serviceRegistry.ts` の作り直しで、失敗してもそのドメインのファイルは書き終わっている）。
+> 失敗（`domain.json` が無い、検査で止まる、テンプレートが無い、登録表が作れないなど）は終了コード 1 になり、**何も書かない**（生成物は全部組み立て、書いた後の状態で `serviceRegistry.ts` が作れることまで確かめてから書く）。
 > **フォルダ名 = `singular` の camelCase**（例: `name_pool_entry` → `src/features/namePoolEntry/`）が全ジェネレーターの前提。生成先・import・レジストリ登録・他ドメインからのリレーション import をすべてこの規則で組み立てるため、ずれているドメインがあると `dc:generate` / `dc:generate:all` は何も書かずに終了コード 1 で止まる（`checks/domainFolder.mjs`、`:all` は全件を事前検査）。直すときはフォルダを改名する（`singular` を変えるとテーブル名・FK 名が変わる）。
 
 ## 対話なし実行（`--yes`）
@@ -33,7 +33,15 @@
 - `pnpm dc:generate:all --yes` … `domain.json` を持つ全ドメインを、それぞれの `generateFiles` で生成する
 - 「すべてのファイルを生成」「手動選択」には対応しない。`generateFiles` を false にして手で編集しているファイルを、確認なしで上書きさせないため（必要なら対話で実行する）
 - `dc:delete` / `dc:add` には `--yes` は無い（削除の名前入力は安全装置、フィールド追加は入力そのものが目的）
-- `.notices` の再生成手順は `pnpm dc:generate <Domain> --yes` と書き、`[user-run]` を付けない
+- `.notices` の再生成手順は `pnpm dc:generate <Domain> --yes` と書き、`[user-run]` を付けない。`--dry-run` を足せば書かずに対象だけ確かめられる
+
+## 書かずに確かめる（`--dry-run`）
+
+`pnpm dc:generate <Domain> --yes --dry-run` / `pnpm dc:generate:all --yes --dry-run --only registry` のように付けると、何も書かずに、書くはずのファイルごとの動作を一覧する（上書き確認も出ない）。
+
+- 動作: `作成`（無いファイル）/ `上書き`（内容が変わる）/ `変更なし` / `保持`（write-once で既存を残す）/ `移行`（旧形式の page.tsx を 1 行スイッチへ）/ `スキップ`（レジストリのファイルが無い）。最後に `[dry-run] <domain>: 作成 N / 上書き N / ...` のまとめ
+- `serviceRegistry.ts` の作り直しは実行時に行うので一覧には出ない（まとめに注記が付く）
+- 使いどころ: `.notices` の再生成手順を実行する前に「この `--only` は何を触るか」を見る、テンプレートを変えた後に影響するドメインを数える
 
 ## カテゴリの絞り込み（`--only`）
 
@@ -72,11 +80,11 @@
    - `生成カテゴリを手動で選択` … 今回だけカテゴリを選ぶ。選択を `domain.json` に保存するかも聞かれる
    - `すべてのファイルを生成` … 全カテゴリ
 2. 「既存の関係ファイルはすべて上書きされます。生成を実行しますか？」で Yes
-3. 生成（`pipeline/generate.mjs`）: 読む → 検査 → 全カテゴリの生成物を組み立てる → 書く → `serviceRegistry.ts` を作り直す
+3. 生成（`pipeline/generate.mjs`）: 読む → 検査 → 全カテゴリの生成物を組み立てる → 書いた後の状態で `serviceRegistry.ts` が作れるか確かめる → 書く → `serviceRegistry.ts` を作り直す。登録表が作れない状態（手書きの行が残っている、他のドメインに `domainEntry.ts` が無い）なら何も書かずに止まる
 
 ## `dc:generate:all`
 
-ドメインを複数選び（既定は全件）、各 `domain.json` の `generateFiles` で生成する。途中で「ファイル種別を手動で選択しますか？」に Yes と答えると、選んだカテゴリを全ドメインに適用する（`domain.json` には保存しない）。テンプレートを変えたあとの一括反映に使う。
+ドメインを複数選び（既定は全件）、各 `domain.json` の `generateFiles` で生成する。途中で「ファイル種別を手動で選択しますか？」に Yes と答えると、選んだカテゴリを全ドメインに適用する（`domain.json` には保存しない）。テンプレートを変えたあとの一括反映に使う。全ドメインの生成物を先に組み立て、登録表が作れることを確かめてから書き始めるので、途中のドメインで止まって半端に残ることはない。
 
 ## `dc:add <Domain>`
 
@@ -154,6 +162,7 @@
 
 ## よくある失敗
 
+- `[domain.json] <domain>: ...` の警告が出る → 綴り違いのキー、古いキー（`version` → `domainConfigVersion`、`onDeleteCascade` → `onDelete`）、その DB に無い `fieldType`、知らない `formInput` を `checks/vocabulary.mjs` が [src/features/README.md](../../src/features/README.md) の語彙（`spec/domainJson.mjs`）と照らして出す。生成は止まらないが、未知の `fieldType` は列名としてそのまま出力され、未知の `formInput` はフォームに出ないので直す
 - `domain.json` が壊れている（JSON として読めない） → 直してから再実行
 - `テンプレートのトークンが置換されていません` → 管理画面テンプレートに未対応のトークンが残っている。テンプレートを直す
 - MediaUploader の追加質問が出ない → フォーム入力の種類を `mediaUploader` / `mediaUploaderMulti` にしたフィールドでだけ出る
@@ -173,7 +182,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 | `index.mjs` `add-field.mjs` `generate-*.mjs` | `pnpm dc:*` の入口（package.json が指す。中身は 1 行） | |
 | `cli/` | 引数の解釈（`args.mjs`）、対話（`prompts.mjs`、`init` / `generate` / `generateAll` / `delete` / `addField`、`pick/` = 個別選択）、`process.exit` | inquirer、process.exit、domain.json の書き出し |
 | `questions/` | `dc:init` / `dc:add` の質問。`fields/` は 1 項目の質問（`media.mjs` / `options.mjs` / `defaultValue.mjs`） | inquirer |
-| `pipeline/` | `generate.mjs`（1 ドメイン: 読む → 検査 → plan → apply → serviceRegistry）、`generateAll.mjs`、`plan.mjs`（カテゴリ順に render を呼ぶ）、`apply.mjs`（**唯一の書き込み点**。write-once / 旧形式の移行 / 変更なし / レジストリの部分書き換え）、`remove/`（dc:delete の本体） | fs（apply / remove のみ） |
+| `pipeline/` | `generate.mjs`（1 ドメイン: 読む → 検査 → plan → 登録表の事前検査 → apply → serviceRegistry）、`serviceRegistry.mjs`（書く前の検査 = これから書くファイルを重ねた見え方で scripts/registry の検査を呼ぶ）、`generateAll.mjs`、`plan.mjs`（カテゴリ順に render を呼ぶ）、`apply.mjs`（**唯一の書き込み点**。write-once / 旧形式の移行 / 変更なし / レジストリの部分書き換え）、`dryRun.mjs`（apply と同じ判定を読むだけで行い一覧する）、`remove/`（dc:delete の本体） | fs（apply / remove が書く、dryRun は読むだけ） |
 | `render/<カテゴリ>/` | 生成物の文字列を組む純関数。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`）。`tokens.mjs` = `__domain__` 系の置換 | 読み取りは workspace 経由のみ |
 | `checks/` | 生成前の検査（フォルダ名、Firestore のメディア列）。エラー文か null を返す | |
 | `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。**fs を読むのはここだけ**）、`context.mjs`（DomainContext = 名前の全形 + domain.json。名前の導出はここだけ）、`names.mjs`（表名・FK 名・63 字）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |
@@ -181,7 +190,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 | `text/` | TS ソースの部分編集（`objectEntry.mjs`。scripts/registry も使う） | |
 | `tests/` | 全テスト（`structure.test.mjs` が下の規則を機械で検査する） | |
 
-規則（`pnpm test:dc-structure`）: 1 ファイル 200 行以内（テスト 320）| `spec/` `domain/`（workspace 以外）`checks/` `render/` `text/` は fs・child_process・inquirer・process.exit を使わない | inquirer は `cli/` と `questions/` だけ、process.exit は `cli/` だけ | `render/` は `pipeline/` `cli/` を import しない。
+規則（`pnpm test:dc-structure`）: 1 ファイル 200 行以内（テスト 320）| `spec/` `domain/`（workspace 以外）`checks/` `render/` `text/` は fs・child_process・inquirer・process.exit を使わない | fs は `domain/workspace.mjs` `pipeline/apply.mjs` `pipeline/dryRun.mjs` `pipeline/remove/` `cli/` だけ | inquirer は `cli/` と `questions/` だけ、process.exit は `cli/` だけ | `render/` は `pipeline/` `cli/` を import しない。
 
 よくある変更の置き場:
 
@@ -192,5 +201,15 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 - **複数ドメインの生成順** → `pipeline/generateAll.mjs`（対象の並び）と `domain/`（全 domain.json を読む関数は `workspace.listDomains` + `readConfig`）
 
 テスト: `pnpm test:dc-structure` `test:dc-registry` `test:dc-domain-folder` `test:dc-only` `test:dc-server-service` `test:dc-drizzle-indexes` `test:dc-storage-output` `test:dc-sample-drift`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
+
+### 前後比較（`pnpm dc:parity <git-ref>`）
+
+生成器を変えたら、変える前のコミットの生成器と作業ツリーの生成器を**同じ fixture に流して**、生成物・終了コード・出力行が同じかを見る（`tests/parity.mjs`）。「生成物を変えないつもりの変更」はこれが空になるまで直す。生成物を変える変更では、差分が意図したものだけかを目で確かめる。
+
+- fixture: `samples`（このリポの src/ そのまま）、`synthetic` / `synthetic-bad`（`tests/fixtures/parity/<name>/<domain>/domain.json`。Firestore・hiddenColumns・63 字超の FK・空スキーマ・入れ子リレーション・メディア列・旧形式のキーと、検査で止まる失敗系）。`--repo <path>` で fork のリポを足せる（`src/features/*/domain.json` を重ねる。`existing` は domain フォルダ・管理画面ルート・registry も写して write-once の経路を通す）
+- mode: `each`（1 ドメインずつ `--yes`）、`all`、`all2`（2 回 = 冪等性）、`only-registry`、`only-entities-hooks`。`--modes` / `--variants` / `--fixtures` で絞る、`--keep` で作業ディレクトリを残す
+- 失敗系は両版が同じ exit code・同じエラー文で止まることを見る。差分の詳細は FAIL 行の report（JSON）に出る
+- 対話の経路（`dc:init` / `dc:add` / `dc:delete` / 生成方法の選択）は対象外。質問の順や文言を変えたときは手で確かめる
+- 新しい形の domain.json（新しい fieldType、リレーションの組み合わせ）を生成器が受けるようになったら、`tests/fixtures/parity/synthetic/` にその例を 1 つ足す
 
 サンプルの陳腐化検査: `pnpm test:dc-sample-drift` は `sample` / `sampleCategory` / `sampleTag` を一時ディレクトリへ複製したうえで再生成し、コミット済みの生成物と 1 バイトでも違えば落ちる（作業ツリーは書き換えない）。fork が手本にするサンプルを、テンプレートの変更に追従させるための検査。生成物（`serviceRegistry.ts` の `AUTO-GENERATED` ブロックを含む）を手で整形すると落ちる。存在しないサンプルドメインは対象から外し、全部無ければスキップする（サンプルを消した fork では何もしない）。
