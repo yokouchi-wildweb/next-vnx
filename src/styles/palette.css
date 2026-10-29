@@ -1,7 +1,7 @@
 /*
- * src/styles/custom/palette.css — 色トークンの上書き(下流所有)
+ * src/styles/palette.css — 色トークンの上書き(下流所有)
  *
- * 変えたい変数だけを書きます。変数名の一覧と既定値は src/styles/palette.defaults.css を参照。
+ * 変えたい変数だけを書きます。変数名の一覧と既定値は src/styles/_base/palette.defaults.css を参照。
  * 色を変えたら `pnpm mail:generate-colors` を実行してメール用定数を再生成・コミットしてください。
  *
  * (例)

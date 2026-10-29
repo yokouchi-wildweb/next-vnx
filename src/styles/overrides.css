@@ -1,5 +1,5 @@
 /*
- * src/styles/custom/overrides.css — ユーティリティが触らない領域の上書き(下流所有)
+ * src/styles/overrides.css — ユーティリティが触らない領域の上書き(下流所有)
  *
  * 用途はここに限定してください:
  *   - 要素の既定スタイル(body の文字組み、a の下線、::selection、scrollbar など)

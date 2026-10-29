@@ -22,3 +22,7 @@
 @import "./palette.css";
 @import "./typography.css";
 @import "./overrides.css";
+/* fork 固有のアニメーショントークン(--animate-* + keyframes) */
+@import "./animations.css";
+/* ウィジェット専用トークン(HudFrame) */
+@import "./hud.css";

@@ -1,8 +1,8 @@
 /*
- * src/styles/custom/animations.css — fork 固有のアニメーショントークン(下流所有)
+ * src/styles/animations.css — fork 固有のアニメーショントークン(下流所有)
  *
- * 上流の src/styles/animations.css と同じ書き方で、@theme に --animate-* と @keyframes を登録する。
- * custom/index.css から読み込まれ、Tailwind の animate-* ユーティリティとして使える。
+ * 上流の src/styles/_base/animations.css と同じ書き方で、@theme に --animate-* と @keyframes を登録する。
+ * global.css から読み込まれ、Tailwind の animate-* ユーティリティとして使える。
  * 利用先: src/app/(user)/draft/**, src/app/lab/001-basic-scene, src/engine/features/dialogue
  */
 

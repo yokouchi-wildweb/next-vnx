@@ -1,5 +1,5 @@
 /*
- * src/styles/custom/hud.css — HudFrame(サイバー HUD 風フレーム)専用の色トークン(下流所有)
+ * src/styles/hud.css — HudFrame(サイバー HUD 風フレーム)専用の色トークン(下流所有)
  *
  * 対象: src/app/(user)/draft/_components/HudFrame/
  * 背景: 共有 UI(src/components)では生パレット色クラス(bg-slate-900 / text-white / bg-[rgb(...)] 等)が

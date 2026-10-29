@@ -2,7 +2,7 @@
  * HUDフレームテーマ
  * - アクセントカラー: CSS変数 --hud-accent を参照（クラスは hud-accent トークン経由、inline style は rgb(var(--hud-accent)) 直参照）
  * - モード: プリセットから取得した値を使用
- * - 色トークン定義: src/styles/custom/hud.css
+ * - 色トークン定義: src/styles/hud.css
  */
 
 import { HUD_MODE_PRESETS, HudMode } from "./presets";

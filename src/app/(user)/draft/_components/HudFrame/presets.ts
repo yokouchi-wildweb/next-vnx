@@ -14,7 +14,7 @@ export const DEFAULT_HUD_ACCENT: HudAccent = "cyan";
 
 /**
  * HUDフレーム モードプリセット（ダーク/ライト）
- * 色クラスは src/styles/custom/hud.css の hud-* / hud-light-* トークンを使う（生パレット色は lint 禁止）
+ * 色クラスは src/styles/hud.css の hud-* / hud-light-* トークンを使う（生パレット色は lint 禁止）
  */
 export const HUD_MODE_PRESETS = {
   dark: {

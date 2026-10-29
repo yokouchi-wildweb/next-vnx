@@ -1,12 +1,12 @@
 // src/config/app/gradients.config.ts
 // downstream（フォーク先）固有のグラデーショントークンを宣言する拡張ポイント。
 //
-// これにより upstream の src/styles/gradient.css や tokens.base.ts を直接編集せずに
+// これにより upstream の src/styles/_base/gradient.css や tokens.base.ts を直接編集せずに
 // プロジェクト固有のグラデーションを追加できる（マージ衝突回避・所有権の明確化）。
 //
 // 使い方:
 //   1. 下の配列にトークンを追加する。
-//   2. `pnpm gradient:gen` で src/styles/gradient.css を再生成し、生成物をコミットする。
+//   2. `pnpm gradient:gen` で src/styles/_base/gradient.css を再生成し、生成物をコミットする。
 //   3. TS 側（listGradients() / getGradient() / <ColorValueInput>）には即座に反映される。
 //
 // 例:
