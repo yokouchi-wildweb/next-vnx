@@ -1,11 +1,12 @@
 // scripts/db/seed/data/index.ts
 
 export { seedDemoUser } from "./demoUser";
-export type { SeedDemoUserResult } from "./demoUser";
 export { seedSampleTags } from "./sampleTags";
 export { seedSampleCategories } from "./sampleCategories";
 export { seedSamples } from "./samples";
+// --- fork entries start (upstream never edits inside) ---
 export { seedSaves } from "./saves";
+// --- fork entries end ---
 
 // registry
 export { seedRegistry, resolveDependencyOrder } from "./registry";

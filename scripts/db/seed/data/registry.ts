@@ -2,19 +2,23 @@
 
 import type { SeedSampleCategories } from "./sampleCategories";
 import type { SeedSampleTags } from "./sampleTags";
+
+// --- fork entries start (upstream never edits inside) ---
 import type { SeedSavesResult } from "./saves";
-import type { SeedDemoUserResult } from "./demoUser";
+// --- fork entries end ---
 
 /**
  * 各シードが返すデータの型マップ
  * 新しいシードを追加する際はここに型を追加する
  */
 export type SeedResultMap = {
-  demoUser: SeedDemoUserResult;
+  demoUser: void;
   sampleTags: SeedSampleTags;
   sampleCategories: SeedSampleCategories;
   samples: void;
+  // --- fork entries start (upstream never edits inside) ---
   saves: SeedSavesResult;
+  // --- fork entries end ---
 };
 
 export type SeedKey = keyof SeedResultMap;
@@ -52,7 +56,7 @@ export const seedRegistry: SeedConfig[] = [
     deps: [],
     fn: async () => {
       const { seedDemoUser } = await import("./demoUser");
-      return seedDemoUser();
+      await seedDemoUser();
     },
   },
   {
@@ -85,15 +89,17 @@ export const seedRegistry: SeedConfig[] = [
       });
     },
   },
+  // --- fork entries start (upstream never edits inside) ---
   {
     name: "セーブデータ",
     key: "saves",
     deps: ["demoUser"],
-    fn: async (deps) => {
+    fn: async () => {
       const { seedSaves } = await import("./saves");
-      return seedSaves({ demoUser: deps.demoUser });
+      return seedSaves();
     },
   },
+  // --- fork entries end ---
 ];
 
 /**
