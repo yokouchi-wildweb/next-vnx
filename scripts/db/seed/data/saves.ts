@@ -2,25 +2,21 @@
 
 import { db } from "@/lib/drizzle";
 import { SaveTable } from "@/features/save/entities/drizzle";
-import type { SeedDemoUserResult } from "./demoUser";
+import { findDemoUser } from "./demoUser";
 import fs from "fs";
 import path from "path";
-
-type SeedSavesParams = {
-  demoUser?: SeedDemoUserResult;
-};
 
 export type SeedSavesResult = {
   slot1: typeof SaveTable.$inferSelect;
 };
 
-export async function seedSaves(
-  { demoUser }: SeedSavesParams = {}
-): Promise<SeedSavesResult> {
+export async function seedSaves(): Promise<SeedSavesResult> {
   console.log("  → セーブデータを作成中...");
 
+  // デモユーザーは DB から探す(seedRegistry の deps: ["demoUser"] は実行順のため)
+  const demoUser = await findDemoUser();
   if (!demoUser) {
-    console.log("  ⚠ デモユーザーが選択されていません（スキップ）");
+    console.log("  ⚠ デモユーザーがいません（スキップ）");
     return { slot1: null as unknown as typeof SaveTable.$inferSelect };
   }
 
