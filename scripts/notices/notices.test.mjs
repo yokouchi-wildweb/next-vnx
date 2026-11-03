@@ -1,6 +1,6 @@
 // scripts/notices/notices.test.mjs
 // DOWNSTREAM NOTICE(.notices/*.md)の契約テスト。実行: pnpm test:notices (node:test)
-// /ship が notice を出荷する前に通し、/flux が読む書式(見出し行・checkpoint・fixes・covers・moved)と食い違わないことを確かめる。
+// /ship が notice を出荷する前に通し、/flux が読む書式(見出し行・checkpoint・fixes・covers・moved・resolves)と食い違わないことを確かめる。
 // 仕様: .notices/README.md
 import { test } from "node:test";
 import assert from "node:assert/strict";

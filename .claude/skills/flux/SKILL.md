@@ -141,7 +141,7 @@ notice は次のいずれかに該当すれば対象外、残りが**未適用**
    - 以降、流入予定を履歴順に走査し、**区切り notice**(`checkpoint:` が `-` 以外、または欄が無い旧 schema)の**直後で区間を閉じる**。閉じた区間の merge 先 = その区切り notice の区切り点 commit。`checkpoint: -` の notice は次の区切りまで同じ区間に入る(上流の例外宣言。理由は notes: にある)。
    - 最後の区切り以降の notice(無ければ空)+ 残りのコミットが**末尾区間**。merge 先 = `<upstream>/<branch>`。notice が無くても未マージコミットがあれば末尾区間は存在する(merge のみ)。
    - 結果として通常は notice 1 件 = 1 区間。同じ commit で出荷された複数 notice は merge 先が同じ区間が連続する(merge は 1 回目で完了し、2 回目以降は「既に最新」になるだけ。正常)。
-6. 区間ごとに持つ情報(概観): 番号 / merge 先(短 sha と、checkpoint ラベル or `HEAD`)/ 含まれる notice id / そこまでのコミット数 / `moved:` の有無 / 修正の関係(上記「修正(fixes)」の印)。衝突の予測・移動元の編集・上流の変更点は**次の区間だけ**(下記 2 節)。
+6. 区間ごとに持つ情報(概観): 番号 / merge 先(短 sha と、checkpoint ラベル or `HEAD`)/ 含まれる notice id / そこまでのコミット数 / `moved:` の有無 / 修正の関係(上記「修正(fixes)」の印)/ `resolves:` のうち自分の一時許可(`.fork-ownership/<fork-id>.permits.txt` の `upreq:`)に当たる番号。当たる行は、その区間の merge の後に許可が失効する(全番号が解決した行)ので、計画で「受け口へ移す・元に戻す」を示す(`.notices/README.md`「解決(resolves)」、`pnpm ownership:check` が expired-resolved で示す)。衝突の予測・移動元の編集・上流の変更点は**次の区間だけ**(下記 2 節)。
 
 ## 衝突の事前予測(次の区間の計画時、読み取りのみ)
 次の区間の merge で衝突しそうなファイルを承認前に出す。index・作業ツリーは変更しない。
