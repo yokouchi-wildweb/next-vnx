@@ -1,6 +1,6 @@
 // src/app/api/[domain]/bulk/add-relation/route.ts
 
-import { createDomainRoute } from "src/lib/routeFactory";
+import { createDomainRoute } from "@/wiring/apiRoute";
 import { readBulkRelationPayload } from "../bulkRelationPayload";
 
 type DomainParams = { domain: string };

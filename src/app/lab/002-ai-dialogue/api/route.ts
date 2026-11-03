@@ -5,6 +5,7 @@
  * - 単一ツール（npc_response）で構造化出力を強制
  */
 import { NextRequest, NextResponse } from "next/server"
+import { createApiRoute } from "@/wiring/apiRoute"
 import Anthropic from "@anthropic-ai/sdk"
 import {
   NPCDialogueRequest,
@@ -402,7 +403,7 @@ function parseToolResponse(
 // API Handler
 // =============================================================================
 
-export async function POST(request: NextRequest) {
+async function handleDialogue(request: NextRequest): Promise<NextResponse> {
   const requestId = Date.now().toString(36)
 
   try {
@@ -501,3 +502,15 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+// 認可: lab の実験用 API(画面モックから呼ぶ。ログイン不要の従来どおり)。access "public"、デモでも実行する。
+// 応答は handleDialogue が返す NextResponse をそのまま返す(passthrough)。
+export const POST = createApiRoute(
+  {
+    operation: "POST /lab/002-ai-dialogue/api",
+    operationType: "write",
+    access: "public",
+    skipForDemo: false,
+  },
+  async (request) => handleDialogue(request),
+)
