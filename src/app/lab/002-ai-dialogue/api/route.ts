@@ -6,6 +6,7 @@
  */
 import { NextRequest, NextResponse } from "next/server"
 import { createApiRoute } from "@/wiring/apiRoute"
+import { ADMIN_OR_DEBUGGER_RULE } from "@/config/app/domain-api-access.config"
 import Anthropic from "@anthropic-ai/sdk"
 import {
   NPCDialogueRequest,
@@ -503,13 +504,14 @@ async function handleDialogue(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-// 認可: lab の実験用 API(画面モックから呼ぶ。ログイン不要の従来どおり)。access "public"、デモでも実行する。
+// 認可: lab の実験用 API。lab の画面(src/app/lab/guard.ts)と同じ 管理者カテゴリ + debugger だけ(D6。
+// サーバーの API キーで Claude を呼ぶので公開しない)。デモでも実行する。
 // 応答は handleDialogue が返す NextResponse をそのまま返す(passthrough)。
 export const POST = createApiRoute(
   {
     operation: "POST /lab/002-ai-dialogue/api",
     operationType: "write",
-    access: "public",
+    access: ADMIN_OR_DEBUGGER_RULE,
     skipForDemo: false,
   },
   async (request) => handleDialogue(request),

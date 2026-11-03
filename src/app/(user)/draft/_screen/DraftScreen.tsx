@@ -1,6 +1,7 @@
 // src/app/(user)/draft/_screen/DraftScreen.tsx
 // トップページ案(ドラフト)の Screen。page.tsx は 1 行スイッチでここを参照する。
 
+import type { ScreenProps } from "@/lib/screens/types";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { TunnelBackground } from "../_components/TunnelBackground";
 import { HeroSection } from "../HeroSection";
@@ -10,8 +11,11 @@ import { AboutSection } from "../AboutSection";
 import { CyberGridSection } from "../CyberGridSection";
 import { FeatureCarousel } from "../FeatureCarousel";
 import { HideBottomNav } from "@/components/AppFrames/User/controls";
+import { loadDraftScreen } from "./loader";
 
-export function DraftScreen() {
+export async function DraftScreen(props: ScreenProps) {
+  await loadDraftScreen(props);
+
   return (
     <>
       <HideBottomNav />
