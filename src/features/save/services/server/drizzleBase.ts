@@ -1,6 +1,8 @@
 // src/features/save/services/server/drizzleBase.ts
 
-import { getDomainConfig, type DomainConfig } from "@/lib/domain";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
+import rawConf from "@/features/save/domain.json";
 import { SaveTable } from "@/features/save/entities/drizzle";
 import { UserTable } from "@/features/user/entities/drizzle";
 import { SaveCreateSchema, SaveUpdateSchema } from "@/features/save/entities/schema";
@@ -10,7 +12,7 @@ import type { IdType, OrderBySpec, SearchRankSpec } from "@/lib/crud/types";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
-const conf = getDomainConfig("save");
+const conf = normalizeDomainJsonConfig(rawConf) as typeof rawConf & DomainConfigOptionals;
 
 // sortOrderField が設定されている場合、対応するカラムを取得
 const sortOrderColumn = conf.sortOrderField
