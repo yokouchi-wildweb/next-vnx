@@ -3,7 +3,7 @@
 
 import type { DomainDisplay } from "@/lib/domain/types/display";
 
-export const domainDisplay = {
+export const domainDisplay: DomainDisplay = {
   "singular": "save",
   "plural": "saves",
   "label": "セーブデータ",
@@ -12,37 +12,45 @@ export const domainDisplay = {
       "name": "scenario_id",
       "label": "シナリオID",
       "fieldType": "string",
-      "formInput": "textInput"
+      "formInput": "textInput",
+      "required": true
     },
     {
       "name": "slot_number",
       "label": "スロット番号",
       "fieldType": "integer",
-      "formInput": "numberInput"
+      "formInput": "numberInput",
+      "required": true,
+      "defaultValue": 0
     },
     {
       "name": "playhead",
       "label": "再生位置",
       "fieldType": "jsonb",
-      "formInput": "hidden"
+      "formInput": "hidden",
+      "required": true
     },
     {
       "name": "play_state",
       "label": "プレイ状態",
       "fieldType": "jsonb",
-      "formInput": "hidden"
+      "formInput": "hidden",
+      "required": false
     },
     {
       "name": "thumbnail",
       "label": "サムネイル（base64）",
       "fieldType": "string",
-      "formInput": "hidden"
+      "formInput": "hidden",
+      "required": false
     },
     {
       "name": "play_time",
       "label": "プレイ時間（秒）",
       "fieldType": "integer",
-      "formInput": "numberInput"
+      "formInput": "numberInput",
+      "required": false,
+      "defaultValue": 0
     }
   ],
   "relations": [
@@ -60,5 +68,11 @@ export const domainDisplay = {
   ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
-  "useSoftDelete": false
-} as const satisfies DomainDisplay;
+  "useSoftDelete": false,
+  "tableFields": [
+    "scenario_id",
+    "slot_number",
+    "play_time",
+    "updatedAt"
+  ]
+};
