@@ -61,3 +61,5 @@
 - src/lib/webAudio — Web Audio の共有エンジン(効果音・ループ SE・BGM・デコードキャッシュ)
 - src/lib/x — X(Twitter)API(認証・投稿・メディア・Webhook 検証)
 - src/lib/zod — Zod スキーマからの既定値抽出(getZodDefaults)
+
+## next-vnx
