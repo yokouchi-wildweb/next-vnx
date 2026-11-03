@@ -9,8 +9,8 @@
 // - false: ① 口座 → ② 画像 → ③ 申告（AI 判定セクション非表示）
 // ステップ番号は親で動的計算し、各セクションに step props で渡す。
 //
-// セクションコンテナ。部品の import は絶対パス:
-// 下流がこのファイルを _components/ に複製しても import を直さずに動く
+// セクションコンテナ。
+// 下流が複製したら部品の import は入口へ向ける(CLAUDE.md core_ui)
 
 "use client";
 
@@ -33,6 +33,14 @@ import { SaveBookmarkButton } from "@/features/core/purchaseRequest/components/B
 import { StepConnector } from "@/features/core/purchaseRequest/components/BankTransferInstruction/StepConnector";
 import { StrictModeNoticeDialog } from "@/features/core/purchaseRequest/components/BankTransferInstruction/StrictModeNoticeDialog";
 import { UnverifiedSubmitNoticeDialog } from "@/features/core/purchaseRequest/components/BankTransferInstruction/UnverifiedSubmitNoticeDialog";
+export { AccountInfoDetails } from "./AccountInfoDetails";
+export { BankAccountDetailsModal } from "./BankAccountDetailsModal";
+export { ConfirmTransferModal } from "./ConfirmTransferModal";
+export { CopyButton } from "./CopyButton";
+export { ExpiryNotice } from "./ExpiryNotice";
+export { ActionRow } from "./SaveBookmarkModal/ActionRow";
+export { UrlPreviewCard } from "./SaveBookmarkModal/UrlPreviewCard";
+export { TransferIdentifierCard } from "./TransferIdentifierCard";
 
 // 部品の barrel export: 下流が Screen やセクションコンテナを複製するときはここから import する
 export {

@@ -10,15 +10,16 @@ import { notFound, redirect } from "next/navigation";
 
 import type { ScreenProps } from "@/lib/screens/types";
 import type { Setting } from "@/features/core/setting/entities";
-import { settingService } from "@/features/core/setting/services/server/settingService";
-import { settingSections, type SettingSection } from "@/features/core/setting/setting.sections";
+import { getSettingForActor } from "@/features/core/setting/services/server/settingActor";
+import { sections } from "@/features/core/setting/extensions/sections";
+import type { SettingSectionDefinition } from "@/features/core/setting/types/definition";
 import { createLoader } from "@/app/admin/(protected)/guard";
 
 export type AdminSettingSectionScreenParams = { section: string };
 
 export type AdminSettingSectionScreenData = {
   sectionKey: string;
-  section: SettingSection;
+  section: SettingSectionDefinition;
   setting: Setting;
   /** 保存後の戻り先(このセクション自身) */
   redirectPath: string;
@@ -30,15 +31,15 @@ export const loadAdminSettingSectionScreen = createLoader({
     const { section } = await props.params;
     return [section];
   },
-  load: async ({ allows }, sectionKey): Promise<AdminSettingSectionScreenData> => {
-    const section = settingSections[sectionKey];
+  load: async ({ allows, user }, sectionKey): Promise<AdminSettingSectionScreenData> => {
+    const section = sections[sectionKey];
     if (!section) notFound();
 
     if (section.allowRoles && section.allowRoles.length > 0) {
       if (!allows({ roles: [...section.allowRoles] })) redirect("/admin");
     }
 
-    const setting = await settingService.getGlobalSetting();
+    const setting = (await getSettingForActor(user!)) as Setting; // 範囲の guard が管理者カテゴリを確かめ済み
     return { sectionKey, section, setting, redirectPath: `/admin/settings/${sectionKey}` };
   },
 });

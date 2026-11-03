@@ -4,13 +4,14 @@
 // access = 汎用 API（/api/<domain>/**）と管理データ操作（truncateAll / export / import）の認可。詳細: src/lib/domain/README.md
 
 import type { DomainEntries } from "@/lib/domain/types";
-import { ADMIN_DATA_OPERATIONS, ADMIN_ONLY } from "@/config/app/domain-api-access.config";
+import { ADMIN_DATA_OPERATIONS, INTERNAL_ONLY } from "@/config/app/domain-api-access.config";
 
 export const domainEntries = {
   setting: {
     service: () => import("./settingService").then((m) => m.settingService),
     table: "settings",
     idColumn: "id",
-    access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
+    // 読み書きは主体を渡せる専用の窓口(/api/setting/admin・/public)だけ。汎用 API は閉じる
+    access: { ...INTERNAL_ONLY, operations: { export: ADMIN_DATA_OPERATIONS.export } },
   },
 } satisfies DomainEntries;

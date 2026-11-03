@@ -8,6 +8,11 @@ import { PhoneNumberStep } from "./PhoneNumberStep";
 import { OtpStep } from "./OtpStep";
 import { CompleteStep } from "./CompleteStep";
 
+export { PhoneVerificationModal, type PhoneVerificationModalProps } from "./Modal";
+export { CompleteStep } from "./CompleteStep";
+export { OtpStep } from "./OtpStep";
+export { PhoneNumberStep } from "./PhoneNumberStep";
+
 export type PhoneVerificationProps = {
   /** 認証モード: "register" = 新規登録, "change" = 番号変更 */
   mode?: PhoneVerificationMode;

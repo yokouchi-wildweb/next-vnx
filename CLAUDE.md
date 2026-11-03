@@ -18,11 +18,11 @@ downstream_owned (upstream never edits after creation): root src/styles/*.css (e
 - full list of the places a fork may write in upstream files (intake points) = src/lib/forkOwnership/intake.txt (kinds: edit / region / marker / append / generated / debt) | src/config/** = an intake point too (the fork may edit it; upstream edits it as well, rules: config below)
 config: src/config/ = values only (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval
 fork_ownership (check: pnpm ownership:check, run by /flux after each segment commit and before its push | fails from the start | exit 2 = unverified, never a pass | ref: src/lib/forkOwnership/README.md):
-- base = merge-base with the direct parent | files the fork added = fork-owned | files in the base = parent-owned: write only inside intake points, never delete / move / rename them (a `_` prefix rename too) | adding a file inside an ancestor's lib = violation
+- base = merge-base with the direct parent | files the fork added = fork-owned | files in the base = parent-owned: write only inside intake points, never delete / move / rename them (a `_` prefix rename too) | adding a file inside an ancestor's lib, or under src/features/core/ outside a receptacle = violation
 - multi-tier: strict only for files in the Tier1 version (walked from the ledger's upstream:\<sha\> to the version without .notices/applied) | files a middle tier added may be edited / deleted / renamed below it | fork name = fork_id: in .claude/rules/project.md (every repo; ledger, permits, CATALOG heading use it)
 - unused upstream page → switch it off (app-features pages / feature-gate) | unused role → enabled:false | replacement → _components/ under a new name, 1-line switch in page.tsx
 - edit outside the intake: an intake point exists → move there | none (incl. upstream bug / perf / security fixes) → /order <direct parent> + temporary permit in .fork-ownership/\<fork name\>.permits.txt (≥1 order id; expires when all its orders ship as resolves: or the parent touches the file) | debt rows of intake.txt → permit with that row's order id
-fork_core_edit_compat (while a permit lets a fork edit a core path):
+fork_core_edit_compat (while a permit lets a fork edit a core path; upstream's own breaking change → notice is a separate rule, see core_ui):
 - stay backward compatible with upstream callers: props/args the fork adds = optional with an empty default | never delete core code the fork does not use | signature change = add a new name, keep the old
 - why: upstream `_screen/*` Screens stay in the fork's tsc scope even when its page.tsx points to `_components/` → an incompatible core edit fails tsc at the next merge | fix the fork's edit, never the upstream Screen | ref: src/lib/screens/README.md §7
 
@@ -87,8 +87,8 @@ code_generation: generated files (no edit) / registry / write-once / hand-owned 
 stores (zustand): app-wide → src/stores/ | domain-specific → features/\<domain\>/stores/ | one-frame-only → app/\<route\>/_layout/stores/ | structure: stores/\<name\>/{index.ts, internalStore.ts, useStore.ts} | state only (logic in services), internalStore accessed only from useStore.ts | rest → .claude/rules/core/stores.md
 
 ## DOMAINS
-core: src/features/core/, hand-maintained (a domain.json there is config source only, NOT a dc:generate target) | index: src/features/core/README.md | imports omit core/ (@/features/\<coreDomain\>/* → features/core/)
-business: src/features/\<domain\>/ with domain.json → dc:generate | before creating or editing any domain.json → MUST read src/features/README.md
+core: src/features/core/ = domains shipped by Tier1 (upstream-owned: forks never add or edit there, only receptacle items + overrides) | business: all a fork or mid tier adds = src/features/\<domain\>/ | promotion to core = Tier1's call | hand-written vs generated is not part of the definition | index: src/features/core/README.md | imports omit core/ (@/features/\<coreDomain\>/* → features/core/)
+business: src/features/\<domain\>/ with domain.json → dc:generate, or hand-written with the same files (domainEntry.ts etc., scanned alike) | before creating or editing any domain.json → MUST read src/features/README.md
 commands: pnpm dc:init (create domain.json interactively) | dc:add \<Domain\> (append fields to an existing domain.json) | dc:generate \<Domain\> / dc:generate:all (generate files) | dc:delete \<Domain\> | `--` optional | agents / CI / notices: `--yes` = no prompts, generates per domain.json generateFiles (no [user-run]) | ref: scripts/domain-config/README.md
 schema_registry (MANDATORY): src/registry/schemaRegistry.ts = the only push entry (pnpm db:push) | generated whole by pnpm registry:generate from every pgTable under src/features (core and business) | new table → registry:generate + ship .notices with `[user-run] db:push` | unregistered = table never created, best-effort writes fail silently
 service_registry (MANDATORY): serviceRegistry = the one way to resolve a domain name ↔ service / table / id column (never add a per-feature map) | ref: src/lib/domain/README.md
@@ -96,7 +96,7 @@ service_registry (MANDATORY): serviceRegistry = the one way to resolve a domain 
 - server callers → src/wiring/domains.ts (table → domain: findDomainByTable, domain → table: getDomainTable, sync, no service load) | one table = one key | registry = a list that grows one line per domain, not a downstream extension point
 push_roundtrip (MANDATORY when adding/changing an index): user runs `pnpm db:push` → `pnpm db:push:check` must report zero statements (read-only dry run, the agent may run it) | ref: scripts/registry/README.md
 - a non-round-trip index = DROP+CREATE on every push = write lock on large tables → never `sql\`${col} DESC\`` (use .desc()), never mix plain columns and sql expressions in one index | push may lock tables → run at maintenance / low traffic
-setting (core): singleton id "global" | extend = add Zod fields to setting.extended.ts (no DB migration) | ref: src/features/core/setting/README.md
+setting (core): singleton id "global" + 1 jsonb | key = setting/fields/\<key\>[.\<fork name\>].ts (Zod + .default(), public, allowRoles, ui), section = setting/sections/\<name\>[.\<fork name\>].ts → pnpm extensions:generate | admin changes it while running = setting, fixed at deploy or structural = config, never both | ref: src/features/core/setting/README.md
 config_utils: src/lib/domain/ (getDomainConfig, extractFields, getRelations; client index.ts, server server.ts)
 inspect: pnpm db:query "SQL" | db:tables | db:describe \<table\> | db:count [table] | fs:* = Firestore equivalents (no args = usage) | claude:test = Anthropic API check | ref: scripts/README.md
 

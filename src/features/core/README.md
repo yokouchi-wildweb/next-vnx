@@ -2,9 +2,9 @@
 
 upstream（ベーステンプレート）が提供する基盤ドメインの索引。新しい機能を作る前に、ここで同じものが無いかを確認する（CLAUDE.md `reuse_check`）。
 
-- core ドメインは手で保守する。`domain.json` を持つものもあるが、`dc:generate` の対象ではない
+- core = Tier1 が出荷するドメイン。上流の持ち物で、fork は足さない・書き換えない(受け口の項目と override だけ)。手書きか生成かは定義に含まない
 - import は `@/features/<domain>` と書ける（tsconfig の paths で `core/` を省略）
-- core はデータレイヤー（エンティティ・サービス・API・フック）までを持ち、画面のデザインは下流に任せる（[docs/!must-read/README.md](../../../docs/!must-read/README.md) §4）
+- core の UI = 細かい部品と既定のコンテナ。部品は全部公開で、読むのは入口だけ(CLAUDE.md `core_ui`)
 
 README があるものはリンク先が一次資料。README が無いものは、関連ドメインの README かコードを直接参照する。
 
@@ -66,7 +66,7 @@ README があるものはリンク先が一次資料。README が無いものは
 | ドメイン | 役割 |
 |---|---|
 | [auditLog](auditLog/README.md) | 監査ログ（誰が・いつ・何を・何が変わったか） |
-| [setting](setting/README.md) | アプリ全体の設定（シングルトン、Zod で拡張） |
+| [setting](setting/README.md) | 管理者が稼働中に変える設定（シングルトン、キーごとのファイルで拡張） |
 | [storageObject](storageObject/README.md) | ファイル台帳（アップロード権の発行・commit・取り消し・非公開ファイルの都度認可の読み取り・業務行への紐付け） |
 | [batchJob](batchJob/README.md) | 大量データのチャンク分割処理 |
 | [cronCheckpoint](cronCheckpoint/README.md) | 差分 cron / 再開可能バッチのチェックポイント |
