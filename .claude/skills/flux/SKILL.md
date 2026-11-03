@@ -45,6 +45,7 @@ fork が merge した版の `/flux` は上流より何区間も古いことが�
 - 上流の変更に fork の使用箇所を揃えきれない(新しい使い方への寄せ方に fork 固有の判断が要る・寄せると fork の挙動が変わる)。黙って古い使い方を残して commit しない
 - 区間の検査(手順 6 の typecheck / lint)が落ち、直し方が自明でない(既知の失敗は除く: 下記「修正(fixes)」)
 - merge 結果が区間の上流差分の外のファイルを変えた(手順 5d「区間外変更の検査」。git の改名推定が fork の無関係なディレクトリへ上流ファイルを流し込む・fork のファイルを消す等)
+- 所有の検査(手順 7c の `pnpm ownership:check`)が 1(違反)か 2(未検証)を返した。この停止は commit の後・push の前で起きる: 区間の commit は残したまま push せず、片付け・直しを追加の commit で積んで検査し直す(`git merge --abort` はしない)
 
 止まり方: merge 途中(未 commit)なら `git merge --abort` で区間開始前に戻す。適用途中なら変更をそのまま残し、何を変えたかを示す。そのうえで「何を見つけたか / 根拠(ファイル・差分・出力)/ 選択肢(手で直して続行・上記「区間の完了」の条件で残す・上流に報告して待つ)」を提示して**待つ**。勝手にスキップも押し切りもしない。再開はユーザーの指示で(同じセッションならその返事で、閉じた後なら `/flux` や notice id 指定で続きから)。
 
@@ -81,11 +82,13 @@ fork が merge した版の `/flux` は上流より何区間も古いことが�
 - 計画に「この区間は軽い(根拠: 上の各項目がなし)」と 1 行書き、PLAN FILE の SEGMENTS の行に `light` を付ける(fleet の見直しが「この先 N 区間は軽い」と数える)。
 
 ## 上流への所見(findings)— 最終報告の常設項目
-適用中に気づいたことを集め、最終報告の末尾に「**上流への所見**」として必ず出す(無ければ「なし」):
+適用中に気づいたことを集め、最終報告の末尾に「**上流への所見**」として必ず出す(無ければ「なし」。(e)(f) は fork 自身への指摘で、上流への起票文案は付けない):
 - (a) 上流のバグ・不備(取り込んだコードの問題、テスト漏れ)
 - (b) notice と実態のズレ(手順が合わない、verify が通らない、書かれていない影響があった)。**notice が無いのに fork 側の追従が要った上流の変更**(下記「上流の変更点の洗い出し」で見つかったもの)は notice 漏れとして必ずここに出す(上流は「追従が要る変更には notice を出す」が必須)
 - (c) この fork で必要になった修正のうち、他 fork でも同じ修正が要りそうな汎用性のあるもの(= /order <上流リポ> 候補)
 - (d) 設計上の懸念
+- (e) 一時許可の放置: `pnpm ownership:check --json` の entries のうち permit が refresh / expired-resolved / expired-base の行と leftovers(残骸)、許可の依頼の状況(`/wen permits` と同じ確かめ方)。却下された依頼の行は「戻す・受け口へ移す・別の方針で許可し直す」を必須として出す。検査が使えない(基準に src/lib/forkOwnership が無い)なら省く
+- (f) project.md の所有の規則との矛盾: fork の `.claude/rules/project.md` の行のうち、upstream の所有の規則(`src/lib/forkOwnership/README.md`・CLAUDE.md CORE_FILES)と食い違う物(例: upstream のファイル・ルートを削除 / rename してよい、core の中を直接編集してよい、受け口の外を変えてよい と読める行)を引用して指摘する。**失敗にしない・直さない**(project.md は fork の持ち物、D34)。食い違いが無ければ「なし」
 
 (a)(c) の文案を出す前に、上流で既に直っていないかを確かめる: 流入予定の notice の `fixes:`、その箇所のファイルに対する上流の未取り込みの commit(`git log HEAD..<upstream>/<branch> -- <file>`)。直っていれば文案は出さず「上流で修正済み(区間 K / commit <sha>)」と書く。
 
@@ -224,10 +227,14 @@ merge と移植は fork の編集をそのまま運ぶ。運ぶ先が上流の�
       - id:<notice id> | date:<ISO8601> | commit:<short sha or -> | relay:<none | relay notice id> | notes:<deviations from required_actions, or ->
       ```
       `relay:` 欄は下流を持つ fork だけが書き、末端 fork は欄ごと省く。covers 側 notice を記録したときの covered id の行・`relay:` の値 → relay.md「台帳への追加」。
-   b. 差分(適用実装+台帳+この区間で下書きした中継 notice)をコミット & プッシュ。メッセージ: 1行サマリ + 空行 + `downstream-notice: <id>`(区間内の全 id、1 行ずつ)+ 環境指定の Co-Authored-By トレーラー。ブランチ運用は自リポの方針に従う。push できない場合は取り繕わず報告し、台帳の `notes:` に正直に反映する。
-   c. その区間の merge コミットも未 push なら一緒に push する。
+   b. 差分(適用実装+台帳+この区間で下書きした中継 notice)をコミットする(push はまだしない)。メッセージ: 1行サマリ + 空行 + `downstream-notice: <id>`(区間内の全 id、1 行ずつ)+ 環境指定の Co-Authored-By トレーラー。ブランチ運用は自リポの方針に従う。
+   c. **所有の検査**(その区間の merge 先に `src/lib/forkOwnership/intake.txt` があるときだけ。無ければ飛ばす): `pnpm ownership:check`。検査は commit 済みの HEAD だけを見る(台帳・一時許可・片付けも HEAD から読む)ので、b の commit の後・push の前に走らせる。下流を持つ中間 Tier も同じ
+      - 0 → d へ
+      - 1(違反)→ 停止条件。push せずに違反の一覧を示し、片付ける(受け口へ移す・元に戻す・一時許可。直し方は `src/lib/forkOwnership/README.md`「導入の段階」と、片付けの notice `fork-ownership-cleanup` の required_actions)。片付けは追加の commit で積み、検査し直して 0 になってから d へ。違反を残したまま push して区間を閉じない
+      - 2(未検証)→ 停止条件。push せずに理由を直す(台帳に無い notice = 台帳の追記漏れ・台帳が無い / 親の remote が無い・取得できない / shallow)。直したら commit して検査し直す
+   d. push する。その区間の merge コミットも未 push なら一緒に push する。push できない場合は取り繕わず報告し、台帳の `notes:` に正直に反映する。
 8. **報告**(日本語。区間の終わりで止まるたび・最終報告の両方):
-   - その区間: merge 結果(取り込みコミット数)/ 適用した notice と verify 結果 / 区間の検査(typecheck・lint)の結果 / コミット sha / 既知の未修正の行(上記「修正(fixes)」の報告。当たるときだけ)。下流を持つ fork なら中継判定の報告行(→ relay.md)。
+   - その区間: merge 結果(取り込みコミット数)/ 適用した notice と verify 結果 / 区間の検査(typecheck・lint)の結果 / 所有の検査(`pnpm ownership:check` の終了コードと件数。走らない区間は「対象外」)/ コミット sha / 既知の未修正の行(上記「修正(fixes)」の報告。当たるときだけ)。下流を持つ fork なら中継判定の報告行(→ relay.md)。
    - 揃えたもの・残したものを、次の決まった行で書く(鍵は英語のまま。fleet などが読んで写す):
      ```
      aligned: <この区間で新しい上流の仕組みに作り直した fork のコード: 何を → どう(件数)。上流が持つパスから移したものも | none>
