@@ -4,7 +4,7 @@
 
 import type { __Domain__ } from "@/features/__domain__/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { EditButton, DeleteButton } from "@/lib/crud";
+import { EditButton, DeleteButton } from "@/lib/crud/components";
 __DUPLICATE_IMPORT__import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
 import rawConfig from "@/features/__domain__/domain.json";
 import presenters from "@/features/__domain__/presenters";
@@ -12,6 +12,7 @@ import { useState } from "react";
 import __Domain__DetailModal from "../common/__Domain__DetailModal";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { domainDisplay as __domain__Display } from "@/features/__domain__/entities/display";
 
 const config = normalizeDomainJsonConfig(rawConfig);
 
@@ -33,8 +34,8 @@ const columns: DataTableColumn<__Domain__>[] = buildDomainColumns<__Domain__>({
     header: "操作",
     render: (d: __Domain__) => (
       <TableCellAction>
-        <EditButton domain="__domain__" id={d.id} />
-        __DUPLICATE_BUTTON__<DeleteButton domain="__domain__" id={d.id} />
+        <EditButton domain={__domain__Display} id={d.id} />
+        __DUPLICATE_BUTTON__<DeleteButton domain={__domain__Display} id={d.id} />
       </TableCellAction>
     ),
   },

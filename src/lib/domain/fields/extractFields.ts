@@ -1,7 +1,7 @@
 // src/lib/domain/fields/extractFields.ts
 // ドメイン設定からフィールド情報を抽出するユーティリティ
 
-import type { DomainConfig } from "../config";
+import type { DomainConfig } from "../types/domainConfig";
 import type { DomainFieldInfo } from "../types";
 
 export type { DomainFieldInfo };
@@ -16,11 +16,11 @@ export type FieldOption = {
  * ドメイン設定から指定フィールドを取得
  *
  * @example
- * const config = getDomainConfig("sample");
+ * import config from "@/features/sample/domain.json";
  * const field = getField(config, "select");
  * // { name: "select", label: "セレクトボックス", fieldType: "enum", options: [...] }
  */
-export function getField(config: DomainConfig, fieldName: string) {
+export function getField<TField extends { name: string }>(config: { fields: readonly TField[] }, fieldName: string): TField | undefined {
   return config.fields.find((f) => f.name === fieldName);
 }
 
@@ -29,12 +29,12 @@ export function getField(config: DomainConfig, fieldName: string) {
  * enumやselect/multiSelectフィールドの選択肢を取得する
  *
  * @example
- * const config = getDomainConfig("sample");
+ * import config from "@/features/sample/domain.json";
  * const options = getFieldOptions(config, "select");
  * // [{ value: "apple", label: "りんご" }, ...]
  */
 export function getFieldOptions(
-  config: DomainConfig,
+  config: { fields: readonly { name: string; options?: unknown }[] },
   fieldName: string
 ): FieldOption[] {
   const field = getField(config, fieldName);
@@ -42,7 +42,7 @@ export function getFieldOptions(
 
   // optionsプロパティがある場合はそれを返す
   if ("options" in field && Array.isArray(field.options)) {
-    return field.options as FieldOption[];
+    return field.options as unknown as FieldOption[];
   }
 
   return [];
@@ -51,7 +51,7 @@ export function getFieldOptions(
 /**
  * ドメイン設定から指定フィールドのラベルを取得
  */
-export function getFieldLabel(config: DomainConfig, fieldName: string): string {
+export function getFieldLabel(config: { fields: readonly { name: string; label?: string }[] }, fieldName: string): string {
   const field = getField(config, fieldName);
   return field?.label ?? fieldName;
 }
@@ -61,7 +61,7 @@ export function getFieldLabel(config: DomainConfig, fieldName: string): string {
  * システムフィールド（id, createdAt, updatedAt, deletedAt）も含む
  *
  * @example
- * const config = getDomainConfig("sample");
+ * import config from "@/features/sample/domain.json";
  * const fields = extractFields(config);
  * // [{ name: "id", label: "ID", fieldType: "uuid" }, ...]
  */

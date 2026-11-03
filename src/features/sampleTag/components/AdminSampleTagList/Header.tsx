@@ -13,8 +13,9 @@ import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJs
 import rawConfig from "@/features/sampleTag/domain.json";
 
 const config = normalizeDomainJsonConfig(rawConfig);
-import { CreateButton } from "@/lib/crud";
+import { CreateButton } from "@/lib/crud/components";
 import { getAdminPaths } from "@/lib/crud/utils";
+import { domainDisplay as sampleTagDisplay } from "@/features/sampleTag/entities/display";
 
 const paths = getAdminPaths("sample-tags");
 const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
@@ -32,7 +33,7 @@ export default function AdminSampleTagListHeader({ page, perPage, total }: Admin
     <ListTop title="登録済みサンプルタグの一覧">
       {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
       {"useImportExport" in config && config.useImportExport === true && (
-        <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
+        <DataMigrationButton domain={sampleTagDisplay} searchParams={params.toString()} />
       )}
       <Pagination
         page={page}
@@ -49,7 +50,7 @@ export default function AdminSampleTagListHeader({ page, perPage, total }: Admin
           <Link href={`${paths.list}/sort`}>並び替え</Link>
         </Button>
       )}
-      <CreateButton domain="sampleTag" />
+      <CreateButton domain={sampleTagDisplay} />
     </ListTop>
   );
 }

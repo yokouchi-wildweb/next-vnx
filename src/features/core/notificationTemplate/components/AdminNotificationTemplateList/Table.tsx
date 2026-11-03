@@ -4,11 +4,12 @@
 
 import type { NotificationTemplate } from "@/features/core/notificationTemplate/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { EditButton, DeleteButton } from "@/lib/crud";
+import { EditButton, DeleteButton } from "@/lib/crud/components";
 import config from "@/features/core/notificationTemplate/domain.json";
 import presenters from "@/features/core/notificationTemplate/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { domainDisplay as notificationTemplateDisplay } from "@/features/core/notificationTemplate/entities/display";
 
 export type AdminNotificationTemplateListTableProps = {
   /**
@@ -28,8 +29,8 @@ const columns: DataTableColumn<NotificationTemplate>[] = buildDomainColumns<Noti
     header: "操作",
     render: (d: NotificationTemplate) => (
       <TableCellAction>
-        <EditButton domain="notificationTemplate" id={d.id} />
-        <DeleteButton domain="notificationTemplate" id={d.id} />
+        <EditButton domain={notificationTemplateDisplay} id={d.id} />
+        <DeleteButton domain={notificationTemplateDisplay} id={d.id} />
       </TableCellAction>
     ),
   },

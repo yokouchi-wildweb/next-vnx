@@ -40,7 +40,7 @@ library: src/lib/\<name\>/, all except entities | owner per library in src/lib/C
 unit: src/components/, hooks/, utils/, small-scale (multi-file OK)
 decision: business domain? → features/ | multi-file feature? → lib/ (needs entities → domain) | unit: UI→components/, hook→hooks/, pure→utils/ | page-only: private part of a route's default Screen → app/\<route\>/_screen/ (route creator), fork page-only part or replacement Screen → app/\<route\>/_components/ (see SCREENS)
 reuse_check: before creating a utility/feature → confirm no equivalent exists (indexes: src/lib/CATALOG.md, src/features/core/README.md)
-deps: lib→lib OK | lib→features NG | features→features (UI): use the target's hooks | features→features (server): direct OK, no cycles | ref: docs/!must-read/設計思想とアーキテクチャ.md
+deps: lib→lib OK | lib→features NG, values and types (lint import-boundaries/lib-no-features, all tiers; type = lib's own or a type param, value = injected, bound in src/wiring) | features→features (UI): use the target's hooks | features→features (server): direct OK, no cycles | ref: docs/!must-read/設計思想とアーキテクチャ.md
 
 ## ARCHITECTURE (8-layer)
 layers: 1.Page = app/**/page.tsx (1-line switch) → _screen/\<Name\>Screen.tsx (SSR entry) → _screen/loader.ts | 2.Component (features/*/components) | 3.Hook (features/*/hooks, client only) | 4.ClientService (services/client) | 5.APIRoute (app/api/**) | 6.ServerService (services/server, business logic + DB) | 7.Entity (features/*/entities) | 8.DB (PostgreSQL or Firestore)
@@ -93,11 +93,12 @@ commands: pnpm dc:init (create domain.json interactively) | dc:add \<Domain\> (a
 schema_registry (MANDATORY): src/registry/schemaRegistry.ts = the only push entry (pnpm db:push) | generated whole by pnpm registry:generate from every pgTable under src/features (core and business) | new table → registry:generate + ship .notices with `[user-run] db:push` | unregistered = table never created, best-effort writes fail silently
 service_registry (MANDATORY): serviceRegistry = the one way to resolve a domain name ↔ service / table / id column (never add a per-feature map) | ref: src/lib/domain/README.md
 - src/registry/serviceRegistry.ts = generated (pnpm registry:generate, checked at build by registry:check) from each domain's services/server/domainEntry.ts { service, access, table, idColumn } (business: dc:generate writes it; core: hand-write it, lazy `service: () => import(...)`, access INTERNAL_ONLY when not for the generic API, table / idColumn = string literals, null only for Firestore)
-- server callers → src/wiring/domains.ts (table → domain: findDomainByTable, domain → table: getDomainTable, sync, no service load) | one table = one key | registry = a list that grows one line per domain, not a downstream extension point
+- server callers → src/wiring/domainRegistry.ts (table → domain: findDomainByTable, domain → table: getDomainTable, sync, no service load) | one table = one key | registry = a list that grows one line per domain, not a downstream extension point
 push_roundtrip (MANDATORY when adding/changing an index): user runs `pnpm db:push` → `pnpm db:push:check` must report zero statements (read-only dry run, the agent may run it) | ref: scripts/registry/README.md
 - a non-round-trip index = DROP+CREATE on every push = write lock on large tables → never `sql\`${col} DESC\`` (use .desc()), never mix plain columns and sql expressions in one index | push may lock tables → run at maintenance / low traffic
 setting (core): singleton id "global" + 1 jsonb | key = setting/fields/\<key\>[.\<fork name\>].ts (Zod + .default(), public, allowRoles, ui), section = setting/sections/\<name\>[.\<fork name\>].ts → pnpm extensions:generate | admin changes it while running = setting, fixed at deploy or structural = config, never both | ref: src/features/core/setting/README.md
-config_utils: src/lib/domain/ (getDomainConfig, extractFields, getRelations; client index.ts, server server.ts)
+config_utils: src/lib/domain/ (extractFields, getRelationsOf and the other *Of functions take a domain copy; client index.ts, server server.ts)
+domain_config: client = \<domain\>/entities/display.ts domainDisplay (pnpm registry:generate, no secrets), passed to parts as a value | server, one domain = its own domain.json + normalizeDomainJsonConfig | server, all domains = @/wiring/domainConfig (domainConfigRegistry is server-only) | ref: src/lib/domain/README.md
 inspect: pnpm db:query "SQL" | db:tables | db:describe \<table\> | db:count [table] | fs:* = Firestore equivalents (no args = usage) | claude:test = Anthropic API check | ref: scripts/README.md
 
 ## API_ROUTES

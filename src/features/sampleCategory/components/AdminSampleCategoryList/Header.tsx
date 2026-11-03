@@ -13,8 +13,9 @@ import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJs
 import rawConfig from "@/features/sampleCategory/domain.json";
 
 const config = normalizeDomainJsonConfig(rawConfig);
-import { CreateButton } from "@/lib/crud";
+import { CreateButton } from "@/lib/crud/components";
 import { getAdminPaths } from "@/lib/crud/utils";
+import { domainDisplay as sampleCategoryDisplay } from "@/features/sampleCategory/entities/display";
 
 const paths = getAdminPaths("sample-categories");
 const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
@@ -32,7 +33,7 @@ export default function AdminSampleCategoryListHeader({ page, perPage, total }: 
     <ListTop title="登録済みサンプルカテゴリの一覧">
       {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
       {"useImportExport" in config && config.useImportExport === true && (
-        <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
+        <DataMigrationButton domain={sampleCategoryDisplay} searchParams={params.toString()} />
       )}
       <Pagination
         page={page}
@@ -49,7 +50,7 @@ export default function AdminSampleCategoryListHeader({ page, perPage, total }: 
           <Link href={`${paths.list}/sort`}>並び替え</Link>
         </Button>
       )}
-      <CreateButton domain="sampleCategory" />
+      <CreateButton domain={sampleCategoryDisplay} />
     </ListTop>
   );
 }

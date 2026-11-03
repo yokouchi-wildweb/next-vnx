@@ -4,12 +4,13 @@
 
 import type { SampleTag } from "@/features/sampleTag/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { EditButton, DeleteButton } from "@/lib/crud";
+import { EditButton, DeleteButton } from "@/lib/crud/components";
 import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
 import rawConfig from "@/features/sampleTag/domain.json";
 import presenters from "@/features/sampleTag/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { domainDisplay as sampleTagDisplay } from "@/features/sampleTag/entities/display";
 
 const config = normalizeDomainJsonConfig(rawConfig);
 
@@ -31,8 +32,8 @@ const columns: DataTableColumn<SampleTag>[] = buildDomainColumns<SampleTag>({
     header: "操作",
     render: (d: SampleTag) => (
       <TableCellAction>
-        <EditButton domain="sampleTag" id={d.id} />
-        <DeleteButton domain="sampleTag" id={d.id} />
+        <EditButton domain={sampleTagDisplay} id={d.id} />
+        <DeleteButton domain={sampleTagDisplay} id={d.id} />
       </TableCellAction>
     ),
   },

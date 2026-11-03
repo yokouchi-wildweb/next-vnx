@@ -1,14 +1,14 @@
 // src/lib/domain/fields/extractImageFields.ts
 // ドメイン設定から画像フィールドを抽出するユーティリティ
 
-import type { DomainConfig } from "../config";
+import type { DomainConfig } from "../types/domainConfig";
 
 /**
  * ドメイン設定から画像フィールド名を抽出
  * formInput が "mediaUploader" のフィールドを抽出
  *
  * @example
- * const config = getDomainConfig("sample");
+ * import config from "@/features/sample/domain.json";
  * const imageFields = extractImageFields(config);
  * // ["thumbnail", "images"]
  *

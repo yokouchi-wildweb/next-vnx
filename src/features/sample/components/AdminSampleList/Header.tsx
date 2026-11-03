@@ -13,8 +13,9 @@ import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJs
 import rawConfig from "@/features/sample/domain.json";
 
 const config = normalizeDomainJsonConfig(rawConfig);
-import { CreateButton } from "@/lib/crud";
+import { CreateButton } from "@/lib/crud/components";
 import { getAdminPaths } from "@/lib/crud/utils";
+import { domainDisplay as sampleDisplay } from "@/features/sample/entities/display";
 
 const paths = getAdminPaths("samples");
 const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
@@ -32,7 +33,7 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
     <ListTop title="登録済みサンプルの一覧">
       {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
       {"useImportExport" in config && config.useImportExport === true && (
-        <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
+        <DataMigrationButton domain={sampleDisplay} searchParams={params.toString()} />
       )}
       <Pagination
         page={page}
@@ -49,7 +50,7 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
           <Link href={`${paths.list}/sort`}>並び替え</Link>
         </Button>
       )}
-      <CreateButton domain="sample" />
+      <CreateButton domain={sampleDisplay} />
     </ListTop>
   );
 }

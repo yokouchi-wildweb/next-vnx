@@ -13,8 +13,9 @@ import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJs
 import rawConfig from "@/features/__domain__/domain.json";
 
 const config = normalizeDomainJsonConfig(rawConfig);
-import { CreateButton } from "@/lib/crud";
+import { CreateButton } from "@/lib/crud/components";
 import { getAdminPaths } from "@/lib/crud/utils";
+import { domainDisplay as __domain__Display } from "@/features/__domain__/entities/display";
 
 const paths = getAdminPaths("__domainsSlug__");
 const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
@@ -32,7 +33,7 @@ export default function Admin__Domain__ListHeader({ page, perPage, total }: Admi
     <ListTop title="登録済み__DomainLabel__の一覧">
       {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
       {"useImportExport" in config && config.useImportExport === true && (
-        <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
+        <DataMigrationButton domain={__domain__Display} searchParams={params.toString()} />
       )}
       <Pagination
         page={page}
@@ -49,7 +50,7 @@ export default function Admin__Domain__ListHeader({ page, perPage, total }: Admi
           <Link href={`${paths.list}/sort`}>並び替え</Link>
         </Button>
       )}
-      <CreateButton domain="__domain__" />
+      <CreateButton domain={__domain__Display} />
     </ListTop>
   );
 }

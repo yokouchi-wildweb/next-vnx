@@ -1,22 +1,13 @@
 // src/lib/domain/relations/getHasManyRelations.ts
 // hasMany リレーション情報を取得するユーティリティ
 
-import { getDomainConfig } from "../config";
 import { toSnakeCase } from "@/utils/stringCase.mjs";
-import type { HasManyRelationInfo } from "../types";
+import type { DomainDisplay, HasManyRelationInfo } from "../types";
 
 export type { HasManyRelationInfo };
 
-/**
- * ドメインの hasMany リレーション情報を取得
- * domain.json の relations で relationType: "hasMany" と定義されたものを取得
- *
- * @example
- * getHasManyRelations("sampleCategory")
- * // [{ domain: "sample", label: "サンプル", fieldName: "sampleCategoryId" }]
- */
-export function getHasManyRelations(domain: string): HasManyRelationInfo[] {
-  const config = getDomainConfig(domain);
+/** 写し（または同じ形の設定）から hasMany リレーション情報を取得（client の部品はこちら） */
+export function getHasManyRelationsOf(config: Pick<DomainDisplay, "relations">): HasManyRelationInfo[] {
   const relations: HasManyRelationInfo[] = [];
 
   for (const relation of config.relations || []) {
@@ -30,11 +21,4 @@ export function getHasManyRelations(domain: string): HasManyRelationInfo[] {
   }
 
   return relations;
-}
-
-/**
- * ドメインが hasMany リレーションを持つかどうかを判定
- */
-export function hasHasManyRelations(domain: string): boolean {
-  return getHasManyRelations(domain).length > 0;
 }

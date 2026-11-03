@@ -3,6 +3,7 @@ import nextConfig from "eslint-config-next";
 import auditPlugin from "./eslint-rules/audit-action-naming.mjs";
 import clientServiceBoundaryPlugin from "./eslint-rules/client-service-boundary.mjs";
 import coreUiEntryPlugin from "./eslint-rules/core-ui-entry.mjs";
+import noServerActionPlugin from "./eslint-rules/no-server-action.mjs";
 import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
 import hiddenColumnsPlugin, { collectHiddenColumns } from "./eslint-rules/hidden-columns.mjs";
 import pageAuthzPlugin from "./eslint-rules/page-authz.mjs";
@@ -79,8 +80,8 @@ const config = [
   // - route-factory-via-wiring: @/lib/routeFactory の値 import は src/wiring/** だけ(D5 K1。型だけは可)
   // - page-guard-via-wiring: @/lib/pageGuard の値 import は src/wiring/** だけ(L1.18。型だけは可)
   // - features-index-no-server-reexport: features の index.ts は services/server を値で再 export しない(D73 K5)
-  // - lib-no-registry: src/lib/** → src/registry/** は値も型も禁止(D23 K3)。今の違反は縮むだけの一覧
-  //   (eslint-rules/import-boundaries.exceptions.mjs、upstream の物で fork は足せない)
+  // - lib-no-registry: src/lib/** → src/registry/** は値も型も禁止(D23 K3、例外の一覧なし)
+  // - lib-no-features: src/lib/** → src/features/** は値も型も禁止(親 D8、例外の一覧なし)
   // 詳細: eslint-rules/import-boundaries.mjs
   {
     files: ["src/**/*.{ts,tsx,mts,mjs}", "scripts/**/*.{ts,mts,mjs}"],
@@ -104,6 +105,7 @@ const config = [
     plugins: { "import-boundaries": importBoundariesPlugin },
     rules: {
       "import-boundaries/lib-no-registry": "error",
+      "import-boundaries/lib-no-features": "error",
     },
   },
   // 見出しの直下の <Span> に size / weight を書かせる(Span の既定 text-base font-normal が見出しを上書きするため。
@@ -283,6 +285,14 @@ const config = [
     plugins: { "page-authz": pageAuthzPlugin },
     rules: {
       "page-authz/session-api-callsite": "error",
+    },
+  },
+  // server action の禁止(全 Tier で error。詳細: eslint-rules/no-server-action.mjs)
+  {
+    files: ["src/**/*.{ts,tsx,mts,mjs}"],
+    plugins: { "no-server-action": noServerActionPlugin },
+    rules: {
+      "no-server-action/no-server-action": "error",
     },
   },
   // core の部品は入口だけを読む(全 Tier で error。詳細: eslint-rules/core-ui-entry.mjs)

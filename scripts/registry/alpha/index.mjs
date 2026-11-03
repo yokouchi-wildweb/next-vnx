@@ -11,6 +11,7 @@ import { join, relative, sep } from "node:path";
 
 import { toCamelCase, toKebabCase, toSnakeCase } from "../../../src/utils/stringCase.mjs";
 import { FEATURES_DIR, scanFeatureTables } from "../tableScan.mjs";
+import { domainDisplayPath, renderDomainDisplay } from "./domainDisplay.mjs";
 
 export const SCHEMA_REGISTRY_FILE = "src/registry/schemaRegistry.ts";
 export const DOMAIN_CONFIG_REGISTRY_FILE = "src/registry/domainConfigRegistry.ts";
@@ -77,7 +78,9 @@ function renderDomainConfigRegistry(domains) {
     headerOf(`${FEATURES_DIR}/**/domain.json`),
     `// ${DOMAIN_CONFIG_REGISTRY_FILE}`,
     "//",
-    "// 全ドメインの domain.json の一覧(キー = フォルダ名の snake_case)。読み手: src/lib/domain/config/getDomainConfig.ts",
+    "// 全ドメインの domain.json の一覧(キー = フォルダ名の snake_case)。読み手: src/wiring/domainConfig.ts",
+    "",
+    'import "server-only";',
     "",
     'import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";',
     "",
@@ -126,6 +129,7 @@ export function buildAlphaRegistries(repoRoot) {
       [SCHEMA_REGISTRY_FILE]: schema.text,
       [DOMAIN_CONFIG_REGISTRY_FILE]: renderDomainConfigRegistry(domains),
       [ADMIN_DATA_MENU_FILE]: renderAdminDataMenu(domains),
+      ...Object.fromEntries(domains.map(({ file, config }) => [domainDisplayPath(file), renderDomainDisplay(file, config, domains.map((domain) => domain.config))])),
     },
     problems: [...domainProblems, ...schema.problems],
   };
