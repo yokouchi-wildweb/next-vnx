@@ -3,8 +3,7 @@
 
 import { execFileSync } from "node:child_process";
 
-import { parseCatalog, resolveOwnerId } from "../folderCatalog/catalog.mjs";
-
+import { parseForkIdDeclaration, PROJECT_RULES_FILE, readForkIdentity } from "./forkIds.mjs";
 import { matchIntake, parseIntake } from "./intake.mjs";
 import { judge } from "./judge.mjs";
 import { checkPermits, fingerprint, parsePermits, permitsPath } from "./permits.mjs";
@@ -27,13 +26,6 @@ const tryGit = (repoRoot, args) => {
 const show = (repoRoot, rev, path) => tryGit(repoRoot, ["show", `${rev}:${path}`]);
 
 const unverified = (reason, extra = {}) => ({ status: "unverified", reason, ...extra });
-
-/** 自分が Tier1(CATALOG.md の先頭の節の持ち主)か。所有者 ID が分からなければ null */
-function isTier1(repoRoot, ownerId) {
-  const catalog = show(repoRoot, "HEAD", "src/lib/CATALOG.md");
-  if (catalog === null || ownerId === null) return null;
-  return parseCatalog(catalog).sections[0]?.owner === ownerId;
-}
 
 /** 親の remote(/flux の「upstream の特定」と同じ: 指定 > 環境変数 > origin 以外が 1 つ) */
 function resolveParentRemote(repoRoot, requested) {
@@ -109,16 +101,66 @@ function parseNameStatus(out) {
   return changes;
 }
 
+/** 台帳の本文の最後の upstream:<sha>(取り込んだ上流の版、/flux が区間ごとの行に書く)。無ければ null */
+export function lastUpstreamSha(ledgerText) {
+  const shas = [...(ledgerText ?? "").matchAll(/^- id:.*\|\s*upstream:([0-9a-f]{7,40})\b/gm)].map((match) => match[1]);
+  return shas.at(-1) ?? null;
+}
+
+/** 台帳をたどる深さの上限(循環・壊れた台帳で止まらないように) */
+export const TIER1_WALK_LIMIT = 10;
+
+/**
+ * Tier1 の版を決める(D29 の読み方 = 多段ティア D34): 自分の台帳の最後の upstream: の版から始め、
+ * その版に .notices/applied/ があれば、その版のリポの名前(その版の project.md の fork_id:)の台帳の最後の upstream: へ …
+ * と .notices/applied/ を持たない版(= Tier1)に着くまでたどる。段数に依らない。
+ * 途中で欠ける(upstream: が無い・sha が無い・その版に fork_id: / 台帳が無い)・循環・深さの上限 → error(exit 2)
+ * @returns {{ sha: string, chain: { sha: string, name: string }[] } | { error: string }}
+ */
+function resolveTier1Version(repoRoot, ownerId) {
+  const chain = [];
+  const seen = new Set();
+  let ledgerPath = `.notices/applied/${ownerId}.md`;
+  let ledgerText = show(repoRoot, "HEAD", ledgerPath);
+  let from = "HEAD";
+  for (let depth = 0; depth < TIER1_WALK_LIMIT; depth += 1) {
+    const sha = lastUpstreamSha(ledgerText);
+    if (!sha) {
+      return {
+        error: `${from} の ${ledgerPath} に upstream:<sha> の行が無い(Tier1 の版が決まらない。/flux が区間の台帳の行に取り込んだ上流の版を書く)`,
+      };
+    }
+    if (tryGit(repoRoot, ["cat-file", "-e", `${sha}^{commit}`]) === null) {
+      return { error: `${from} の ${ledgerPath} の upstream:${sha} が履歴に無い(squash・rebase で辿れない。取得し直すか /flux で記録し直す)` };
+    }
+    if (seen.has(sha)) return { error: `台帳の upstream: が循環している(${sha.slice(0, 10)})` };
+    seen.add(sha);
+    const applied = tryGit(repoRoot, ["ls-tree", "--name-only", sha, ".notices/applied/"]) ?? "";
+    if (applied.trim() === "") return { sha, chain };
+    const name = parseForkIdDeclaration(show(repoRoot, sha, PROJECT_RULES_FILE) ?? "").forkId;
+    if (!name) return { error: `${sha.slice(0, 10)} の版(中間 Tier)に ${PROJECT_RULES_FILE} の fork_id: が無い(その Tier が名前の宣言を含む版を出していない)` };
+    chain.push({ sha, name });
+    from = sha.slice(0, 10);
+    ledgerPath = `.notices/applied/${name}.md`;
+    ledgerText = show(repoRoot, sha, ledgerPath);
+    if (ledgerText === null) return { error: `${from} の版(${name})に ${ledgerPath} が無い(台帳の名前を fork_id: にそろえる)` };
+  }
+  return { error: `台帳を ${TIER1_WALK_LIMIT} 段たどっても Tier1 の版(.notices/applied/ の無い版)に着かない` };
+}
+
 /**
  * @param {string} repoRoot
  * @param {{ parent?: string, branch?: string, fetch?: boolean }} [options] fetch: false はテスト用(取得済みの ref で判定する)
  * @returns {object} status: tier1 | unverified | pass | fail
  */
 export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
-  const ownerId = resolveOwnerId(repoRoot);
-  const tier1 = isTier1(repoRoot, ownerId);
-  if (tier1 === null) return unverified("自分の所有者 ID か src/lib/CATALOG.md が読めない(origin を確かめる)", { ownerId });
-  if (tier1) {
+  // 自分の名前と Tier1 の判定は forkIds.mjs だけが読む(project.md の fork_id:、CATALOG.md の先頭の節。origin は読まない、D27)
+  const identity = readForkIdentity(repoRoot);
+  const ownerId = identity.own;
+  if (identity.errors.length > 0) {
+    return unverified(`fork の名前の宣言に問題がある: ${identity.errors.join(" / ")}`, { ownerId });
+  }
+  if (identity.isTier1) {
     // Tier1 は検査の対象外。upstream の負債の行の数だけ返す(D29: 件数を Tier1 のコマンドと /inbox に出す)
     const own = parseIntake(show(repoRoot, "HEAD", INTAKE_PATH) ?? "");
     return { status: "tier1", ownerId, debt: own.rules.filter((rule) => rule.kind === "debt").map((rule) => rule.glob) };
@@ -150,6 +192,11 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
     return unverified("取り込み済みの notice が台帳に無い(/flux で記録してから検査する)", { ...where, unrecorded });
   }
 
+  // 多段(D29): Tier1 の版にあるファイルだけ厳密、無いファイル(中間 Tier 以下の物)は合格にして参考の一覧へ
+  const tier1 = resolveTier1Version(repoRoot, ownerId);
+  if (tier1.error) return unverified(tier1.error, where);
+  const tier1Files = new Set((tryGit(repoRoot, ["ls-tree", "-r", "--name-only", tier1.sha]) ?? "").split("\n").filter(Boolean));
+
   const changes = parseNameStatus(git(repoRoot, ["diff", "--name-status", "-M", "-z", base, "HEAD"]));
   const cache = new Map();
   const read = (rev) => (path) => {
@@ -165,6 +212,18 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
     .map((path) => path.replace(/^src\/lib\//, ""));
 
   const judged = judge({ changes, baseText, headText, baseLibs, intake: intake.rules });
+  const middleTier = [];
+  for (const entry of judged.entries) {
+    if (entry.verdict !== "violation") continue;
+    const target = entry.status === "R" ? entry.from : entry.path;
+    // 祖先の lib への追加: その lib が Tier1 の版にあれば Tier1 の物(厳密)、無ければ中間 Tier の lib
+    const lib = entry.reason === "ancestor-lib-add" ? /^src\/lib\/([^/]+)\//.exec(target)?.[1] : null;
+    const tier1Owned = lib ? [...tier1Files].some((file) => file.startsWith(`src/lib/${lib}/`)) : tier1Files.has(target);
+    if (tier1Owned) continue;
+    middleTier.push({ path: entry.path, from: entry.from, was: entry.reason });
+    entry.reason = "middle-tier";
+    entry.verdict = "ok";
+  }
   const permitFile = permitsPath(ownerId);
   const permitParse = parsePermits(headText(permitFile) ?? "");
   const { entries, leftovers } = checkPermits({
@@ -198,6 +257,8 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
   return {
     status: failed ? "fail" : "pass",
     ...where,
+    tier1: { sha: tier1.sha, chain: tier1.chain },
+    middleTier,
     permitFile,
     permitErrors: permitParse.errors,
     counts,

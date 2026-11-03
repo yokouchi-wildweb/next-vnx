@@ -10,15 +10,16 @@
 next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: gcs signed direct upload + server-side image metadata strip (sharp) (lib/storage) | http: axios (client), fetch (server)
 
 ## CORE_FILES (ownership: who edits what)
-core (approval required): CLAUDE.md, .claude/rules/core/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/_base/**, src/styles/README.md, servers/room/src/core/, servers/room/src/index.ts, src/wiring/ (dot-named files = fork-owned)
+core (approval required): CLAUDE.md, .claude/rules/core/, src/features/core/, src/components/, src/proxy.ts, src/proxies/ (dot-named files = fork-owned, extensions/ = generated), scripts/domain-config/, src/styles/_base/**, src/styles/README.md, servers/room/src/core/, servers/room/src/index.ts, src/wiring/ (dot-named files = fork-owned)
 - routes and libs: src/app/**/{_screen,_layout}/** of upstream routes (dot-named files beside them = fork-owned) | src/lib/ libs in upstream sections of src/lib/CATALOG.md (fork-added libs = fork-owned)
 downstream_owned (upstream never edits after creation): root src/styles/*.css (entry global.css, palette / typography / overrides.css), src/config/ui/*.config.ts, page.tsx / frame layout.tsx of switched routes, _components/** and dot-named files of upstream routes, src/registry fork regions, api/cron/*/override.ts, domainEntry.override.ts
 - full list of the places a fork may write in upstream files (intake points) = src/lib/forkOwnership/intake.txt (kinds: edit / region / marker / append / generated / debt) | src/config/** = an intake point too (the fork may edit it; upstream edits it as well, rules: config below)
 config: src/config/ = values only (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval
 fork_ownership (check: pnpm ownership:check, run by /flux after each segment commit and before its push | fails from the start | exit 2 = unverified, never a pass | ref: src/lib/forkOwnership/README.md):
 - base = merge-base with the direct parent | files the fork added = fork-owned | files in the base = parent-owned: write only inside intake points, never delete / move / rename them (a `_` prefix rename too) | adding a file inside an ancestor's lib = violation
+- multi-tier: strict only for files in the Tier1 version (walked from the ledger's upstream:\<sha\> to the version without .notices/applied) | files a middle tier added may be edited / deleted / renamed below it | fork name = fork_id: in .claude/rules/project.md (every repo; ledger, permits, CATALOG heading use it)
 - unused upstream page → switch it off (app-features pages / feature-gate) | unused role → enabled:false | replacement → _components/ under a new name, 1-line switch in page.tsx
-- edit outside the intake: an intake point exists → move there | none (incl. upstream bug / perf / security fixes) → /order <direct parent> + temporary permit in .fork-ownership/\<fork-id\>.permits.txt (≥1 order id; expires when all its orders ship as resolves: or the parent touches the file) | debt rows of intake.txt → permit with that row's order id
+- edit outside the intake: an intake point exists → move there | none (incl. upstream bug / perf / security fixes) → /order <direct parent> + temporary permit in .fork-ownership/\<fork name\>.permits.txt (≥1 order id; expires when all its orders ship as resolves: or the parent touches the file) | debt rows of intake.txt → permit with that row's order id
 fork_core_edit_compat (while a permit lets a fork edit a core path):
 - stay backward compatible with upstream callers: props/args the fork adds = optional with an empty default | never delete core code the fork does not use | signature change = add a new name, keep the old
 - why: upstream `_screen/*` Screens stay in the fork's tsc scope even when its page.tsx points to `_components/` → an incompatible core edit fails tsc at the next merge | fix the fork's edit, never the upstream Screen | ref: src/lib/screens/README.md §7
@@ -73,8 +74,9 @@ rules: servers→src imports = lib/realtimeRoom/protocol + features/*/room ONLY 
 before touching servers/ or enabling room → MUST read servers/room/README.md + src/lib/realtimeRoom/README.md
 
 ## PROXY (Next.js 16 proxy, NOT middleware.ts)
-entry: src/proxy.ts | handler chain src/proxies/index.ts (order matters: maintenanceProxy → demoModeProxy → featureGateProxy → redirectProxy) | x-pathname header | chain, order, adding a handler or decorator → .claude/rules/core/proxy.md
-feature_gate (MANDATORY): rules = src/config/app/feature-gate.config.ts (enabled false → pathPatterns 404, tables skipped by pnpm db:push: never created, never dropped) | new route/table of a gated domain → add it to its rule (test: pnpm test:feature-gate) | always-mounted callers check the flag themselves | push only via pnpm db:push | ref: src/proxies/README.md
+entry: src/proxy.ts | skeleton src/proxies/index.ts (maintenance → demoMode → featureGate → redirect) + frame of items src/proxies/\<name\>[.\<fork ID\>].ts (pnpm proxy:generate, forks never edit index.ts) | user = ctx.user() only | x-pathname header | chain, items, gate rules → .claude/rules/core/proxy.md
+feature_gate (MANDATORY): rules = src/proxies/featureGateRules/\<name\>.ts, one per feature (enabled() false → pathPatterns 404, tables of its features folders skipped by pnpm db:push: never created, never dropped) | ref: src/proxies/README.md
+- new route of a gated domain → add it to its rule (tables follow the folder) | always-on entries (cron, cleanup, wiring) close themselves | test: FEATURE_GATE_CHECK=all pnpm test:feature-gate | push only via pnpm db:push
 
 ## DIRECTORY_STRUCTURE
 features/\<domain\>/: components/{Admin*/, common/} | entities/{schema,form,model,drizzle}.ts | services/{client/, server/{drizzleBase, wrappers/, \<domain\>Service}} | hooks/ | constants/, types/, presenters.ts, domain.json
@@ -166,7 +168,7 @@ components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: cam
 db_identifiers: PostgreSQL names ≤ 63 chars | drizzle auto FK name `{table}_{column}_{reftable}_{refcolumn}_fk` gets truncated and can collide → keep table/column names short, or name the FK: `foreignKey({ name: "shortname_fk", columns: [...], foreignColumns: [...] })`
 
 ## DOWNSTREAM_NOTICES
-notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY also for deleting / moving a file forks may extend: moved: or the deletion in notes:) | ledger: .notices/applied/\<fork-id\>.md | ref: .notices/README.md
+notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY also for deleting / moving a file forks may extend: moved: or the deletion in notes:) | ledger: .notices/applied/\<fork name\>.md, each line records upstream:\<sha\> | ref: .notices/README.md
 - resolves (MANDATORY when shipping an order a downstream repo filed): `resolves: <order id>` in the notice (info notice if nothing else needs one) | forks' temporary permits on that order expire with it
 ship (MANDATORY): every commit + push of this repo goes through /ship (checks, judges whether a notice is needed, writes it, pnpm test:notices, commits, pushes) | /flux = its receiving pair | a fix to something shipped earlier → `fixes: <notice id | commit:sha>` in the fix's notice, never edit the earlier notice (/flux warns forks before the broken point)
 checkpoint (MANDATORY on every notice): `checkpoint: <label>` = default (one notice = one point where the fork is consistent) | `checkpoint: -` only when the fork cannot work without the next notice (reason in notes:)

@@ -2,7 +2,7 @@
 
 // アプリ全体で利用する機能トグルを定義します。
 // ここで定義された値を参照することで、UI や機能を環境ごとに切り替えられるようにします。
-// ルートのブロックとテーブル作成の抑止は src/config/app/feature-gate.config.ts の定義で自動制御されます。
+// ルートのブロックとテーブル作成の抑止は src/proxies/featureGateRules/ の規則で自動制御されます。
 
 import type { EmailCheckMode, HideMyEmailAction, SelectionBehavior, SignupMode, WalletPurchaseRestriction } from "./types";
 
@@ -91,7 +91,10 @@ export const APP_FEATURES = {
     enableUserManagement: true,
     /** デモユーザー機能を有効にする（false の場合はメニュー非表示・ページ 404） */
     enableDemoUser: true,
-    /** サンプルのドメイン(sample・sampleCategory・sampleTag)の管理画面と API を有効にする */
+    /**
+     * サンプルのドメイン(sample・sampleCategory・sampleTag・sampleImage)の管理画面・API・サンプルを読むデモ画面と 5 表を有効にする。
+     * 既定 true は上流のデモ用(権限は厳しくしていない)。実際の利用者がいる fork は false(表は db:push で作らない、既存は消さない)
+     */
     enableSampleDomain: true,
     /** チャットルームの管理画面(/admin/chat-rooms)を有効にする(利用者側のチャットは止めない) */
     enableChatRoomAdmin: true,
@@ -129,7 +132,7 @@ export const APP_FEATURES = {
      * 決済機能（購入・決済プロバイダ webhook・銀行振込・購入上限）を有効にする
      * false: 関連ルートは 404、関連テーブルは db:push で作られない（既存テーブルは消さない）
      * true にする場合は wallet.enabled も true が必要（購入リクエストがウォレット履歴を参照するため）
-     * @see src/config/app/feature-gate.config.ts
+     * @see src/proxies/featureGateRules/payment.ts
      */
     enabled: true,
   },
@@ -137,7 +140,7 @@ export const APP_FEATURES = {
     /**
      * ウォレット機能を有効にする
      * false: 関連ルートは 404、関連テーブルは db:push で作られない（既存テーブルは消さない）
-     * @see src/config/app/feature-gate.config.ts
+     * @see src/proxies/featureGateRules/wallet.ts
      */
     enabled: true,
     /** 管理者による残高調整ボタンを有効にする */
@@ -194,7 +197,7 @@ export const APP_FEATURES = {
     },
   },
   pages: {
-    // upstream の画面を止めるスイッチ(false = その画面と対応する API を 404。src/config/app/feature-gate.config.ts)。
+    // upstream の画面を止めるスイッチ(false = その画面と対応する API を 404。src/proxies/featureGateRules/)。
     // fork は画面を消したり rename したりせず、ここで止める。fork が同じ URL の下に足したページは止まらない
     /** マイページ(/mypage 以下の upstream の画面すべて。invite・pause・withdraw・other は各機能のフラグでも止まる) */
     mypage: true,

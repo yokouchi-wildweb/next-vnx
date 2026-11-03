@@ -1,0 +1,224 @@
+// scripts/proxies/proxyFrame.test.mjs
+// proxy の枠(src/proxies/<名前>[.<fork ID>].ts の走査と生成一覧)の回帰テスト。一時ディレクトリに置いたファイルで動かす。
+// - 項目 = export const handler / decorator を 1 つ持つ直下の .ts、骨組み・枠・テスト・サブフォルダ・.mjs は見ない
+// - 並びはファイル名の順、上流(印なし)と fork(宣言済みの fork ID)が同じ枠に入る
+// - 失敗: 宣言に無い fork ID / 両方 / どちらも無い / 名前の形 / 一覧のずれ
+// - 実リポの一覧が項目と一致する(pnpm proxy:check と同じ)
+// 実行: pnpm test:proxy-frame
+
+import assert from "node:assert/strict";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { test } from "node:test";
+import { fileURLToPath } from "node:url";
+
+import { parseForkDotName, readDeclaredForkIds } from "../../src/lib/forkOwnership/forkIds.mjs";
+
+import {
+  DECORATORS_FILE,
+  GATE_RULES_FILE,
+  HANDLERS_FILE,
+  SKELETON_FILES,
+  discoverGateRules,
+  discoverProxyItems,
+  renderProxyLists,
+  staleProxyLists,
+} from "./extensions.mjs";
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+
+/** 骨組み + 渡したファイルを置いた一時リポ */
+function fixture(files) {
+  const root = mkdtempSync(join(tmpdir(), "proxy-frame-"));
+  const dir = join(root, "src/proxies");
+  mkdirSync(join(dir, "extensions"), { recursive: true });
+  for (const name of [...SKELETON_FILES, "index.ts", "types.ts"]) writeFileSync(join(dir, name), "export const somethingProxy = () => {};\n");
+  writeFileSync(join(dir, "pathPattern.mjs"), "export const x = 1;\n");
+  writeFileSync(join(dir, "proxy.test.mts"), "export const handler = 1;\n");
+  writeFileSync(join(dir, "extensions/other.ts"), "export const handler = 1;\n");
+  for (const [name, text] of Object.entries(files)) writeFileSync(join(dir, name), text);
+  return root;
+}
+
+const H = "export const handler: ProxyHandler = async (request, ctx) => {};\n";
+const D = "export const decorator: ProxyResponseDecorator = (request, response, ctx) => {};\n";
+
+test("走査: 直下の .ts の handler / decorator だけをファイル名順に集め、骨組み・枠・テスト・サブフォルダ・.mjs は見ない", () => {
+  const root = fixture({ "zeta.acme.ts": H, "alpha.ts": H, "beta.parent.ts": D, "gamma.acme.ts": D });
+  const { items, problems } = discoverProxyItems(root, ["acme", "parent"]);
+  assert.deepEqual(problems, []);
+  assert.deepEqual(
+    items.map((i) => `${i.kind}:${i.file}:${i.forkId}`),
+    ["handler:alpha.ts:null", "decorator:beta.parent.ts:parent", "decorator:gamma.acme.ts:acme", "handler:zeta.acme.ts:acme"],
+  );
+
+  const lists = renderProxyLists(items);
+  assert.match(lists[HANDLERS_FILE], /import \{ handler as alpha \} from "\.\.\/alpha";\nimport \{ handler as zeta_acme \} from "\.\.\/zeta\.acme";/);
+  assert.match(lists[HANDLERS_FILE], /export const extensionHandlers: ProxyHandler\[\] = \[\n  alpha,\n  zeta_acme,\n\];/);
+  assert.match(lists[DECORATORS_FILE], /export const extensionDecorators: ProxyResponseDecorator\[\] = \[\n  beta_parent,\n  gamma_acme,\n\];/);
+});
+
+test("失敗: 宣言に無い fork ID・両方・どちらも無い・名前の形", () => {
+  const root = fixture({
+    "a.other.ts": H,
+    "both.ts": H + D,
+    "helper.ts": "export function helper() {}\n",
+    "x.a.b.ts": H,
+    "ok.acme.ts": H,
+  });
+  const { items, problems } = discoverProxyItems(root, ["acme"]);
+  assert.deepEqual(items.map((i) => i.file), ["ok.acme.ts"]);
+  assert.equal(problems.length, 4, problems.join("\n"));
+  assert.ok(problems.some((p) => p.includes("a.other.ts") && p.includes("宣言されていない")));
+  assert.ok(problems.some((p) => p.includes("both.ts") && p.includes("両方")));
+  assert.ok(problems.some((p) => p.includes("helper.ts") && p.includes("無い")));
+  assert.ok(problems.some((p) => p.includes("x.a.b.ts") && p.includes("名前の形")));
+});
+
+test("規則: featureGateRules/ の export const rule をファイル名順に集め、上流 x.ts と fork x.<fork ID>.ts は別の規則", () => {
+  const root = fixture({});
+  const dir = join(root, "src/proxies/featureGateRules");
+  mkdirSync(dir, { recursive: true });
+  const R = "export const rule: FeatureGateRule = { pathPatterns: [\"/x\"], enabled: () => true };\n";
+  writeFileSync(join(dir, "wallet.ts"), R);
+  writeFileSync(join(dir, "wallet.acme.ts"), R);
+  writeFileSync(join(dir, "alpha.ts"), R);
+  writeFileSync(join(dir, "helper.ts"), "export const x = 1;\n");
+  writeFileSync(join(dir, "beta.other.ts"), R);
+  const { rules, problems } = discoverGateRules(root, ["acme"]);
+  assert.deepEqual(rules.map((r) => `${r.file}:${r.forkId}`), ["alpha.ts:null", "wallet.acme.ts:acme", "wallet.ts:null"]);
+  assert.equal(problems.length, 2, problems.join("\n"));
+  assert.ok(problems.some((p) => p.includes("helper.ts") && p.includes("export const rule")));
+  assert.ok(problems.some((p) => p.includes("beta.other.ts") && p.includes("宣言されていない")));
+  const list = renderProxyLists([], rules)[GATE_RULES_FILE];
+  assert.match(list, /import \{ rule as alpha \} from "\.\.\/featureGateRules\/alpha";/);
+  assert.match(list, /export const featureGateRules: GatedFeatureRule\[\] = \[\n  \{ \.\.\.alpha, tables: \[\] \},\n  \{ \.\.\.wallet_acme, tables: \[\] \},\n  \{ \.\.\.wallet, tables: \[\] \},\n\];/);
+});
+
+test("規則の features: フォルダの pgTable から表を導き(fork が上流のフォルダに足した表も)、失敗の各条件で止まる", () => {
+  const root = fixture({});
+  const dir = join(root, "src/proxies/featureGateRules");
+  mkdirSync(dir, { recursive: true });
+  const feat = (name, tables) => {
+    const d = join(root, "src/features", name, "entities");
+    mkdirSync(d, { recursive: true });
+    writeFileSync(join(d, "drizzle.ts"), tables.map((t, i) => `export const T${i} = pgTable("${t}", {});\n`).join(""));
+  };
+  feat("core/wallet", ["wallets", "wallet_lots"]);
+  feat("core/walletHistory", ["wallet_histories"]);
+  feat("core/empty", []);
+  // fork が上流のフォルダに足した表
+  writeFileSync(join(root, "src/features/core/wallet/entities/forkExtra.acme.ts"), 'export const X = pgTable("wallet_fork_extras", {});\n');
+  const rule = (body) => `export const rule: FeatureGateRule = { pathPatterns: ["/x"], ${body} enabled: () => true };\n`;
+  writeFileSync(join(dir, "wallet.ts"), rule('features: [\n    "core/wallet",\n    "core/walletHistory",\n  ],'));
+  writeFileSync(join(dir, "plain.ts"), rule(""));
+  writeFileSync(join(dir, "handWritten.ts"), rule('tables: ["wallets"],'));
+  writeFileSync(join(dir, "variable.ts"), rule("features: FOLDERS,"));
+  writeFileSync(join(dir, "notLiteral.ts"), rule("features: [FOLDER],"));
+  writeFileSync(join(dir, "missing.ts"), rule('features: ["core/nowhere"],'));
+  writeFileSync(join(dir, "noTables.ts"), rule('features: ["core/empty"],'));
+
+  const { rules, problems } = discoverGateRules(root, []);
+  assert.deepEqual(
+    rules.map((r) => `${r.file}:${r.tables.join("|")}`),
+    ["plain.ts:", "wallet.ts:wallets|wallet_lots|wallet_fork_extras|wallet_histories"],
+  );
+  const reasons = Object.fromEntries(["handWritten", "variable", "notLiteral", "missing", "noTables"].map((n) => [n, problems.find((p) => p.includes(`/${n}.ts`)) ?? ""]));
+  assert.match(reasons.handWritten, /tables を手書き/);
+  assert.match(reasons.variable, /文字列リテラルの配列でない/);
+  assert.match(reasons.notLiteral, /文字列リテラルでない/);
+  assert.match(reasons.missing, /無いフォルダ/);
+  assert.match(reasons.noTables, /pgTable が無い/);
+  assert.equal(problems.length, 5, problems.join("\n"));
+
+  const list = renderProxyLists([], rules)[GATE_RULES_FILE];
+  assert.match(list, /\{ \.\.\.wallet, tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\] \},/);
+});
+
+test("check: 一覧が無い・古いとずれ、作り直すと一致", () => {
+  const root = fixture({ "alpha.ts": H });
+  const { items } = discoverProxyItems(root, []);
+  const expected = renderProxyLists(items);
+  assert.deepEqual(staleProxyLists(root, expected).sort(), [DECORATORS_FILE, GATE_RULES_FILE, HANDLERS_FILE].sort());
+  for (const [path, content] of Object.entries(expected)) writeFileSync(join(root, path), content);
+  assert.deepEqual(staleProxyLists(root, expected), []);
+  writeFileSync(join(root, HANDLERS_FILE), expected[HANDLERS_FILE].replace("alpha,", ""));
+  assert.deepEqual(staleProxyLists(root, expected), [HANDLERS_FILE]);
+});
+
+test("実リポ: 走査の問題が無く、生成一覧が項目と一致する(ずれたら pnpm proxy:generate)", () => {
+  const { all: forkIds, errors } = readDeclaredForkIds(repoRoot);
+  assert.deepEqual(errors, []);
+  const { items, problems } = discoverProxyItems(repoRoot, forkIds);
+  const { rules, problems: ruleProblems } = discoverGateRules(repoRoot, forkIds);
+  assert.deepEqual([...problems, ...ruleProblems], [], [...problems, ...ruleProblems].join("\n"));
+  assert.deepEqual(staleProxyLists(repoRoot, renderProxyLists(items, rules)), []);
+});
+
+test("常時実行の入口の判定: cron は enabled、登録表は条件つき spread、結線は例外表(縮む表)", async () => {
+  const { judgeAlwaysOnEntries, folderSourcePattern } = await import("./alwaysOnEntries.mjs");
+  const folders = ["core/wallet", "sample"];
+  assert.ok(folderSourcePattern("core/wallet").test("@/features/wallet/x"));
+  assert.ok(folderSourcePattern("core/wallet").test("@/features/core/wallet/x"));
+  assert.ok(!folderSourcePattern("core/wallet").test("@/features/core/walletHistory/x"));
+
+  const cronOk = `export const cronTask = { enabled: () => FLAG, run: async () => (await import("@/features/core/wallet/services/server/x")).run() };`;
+  const cronNg = `export const cronTask = { run: async () => (await import("@/features/core/wallet/services/server/x")).run() };`;
+  const cronUnrelated = `export const cronTask = { run: async () => (await import("@/features/core/auditLog/x")).run() };`;
+  const regOk = `import { clear } from "@/features/core/wallet/services/server/clear";\nimport type { T } from "@/features/sample/types";\nexport const h = [\n  ...(FLAG.enabled ? [clear] : []),\n];`;
+  const regNg = `import { clear } from "@/features/core/wallet/services/server/clear";\nexport const h = [clear];`;
+  const regNamespace = `import * as w from "@/features/core/wallet";\nexport const h = [...(F ? [w.x] : [])];`;
+  const wire = `import { deps } from "@/features/sample/services/server/deps";\nexport const x = deps;`;
+  const entries = [
+    { path: "c/ok/task.ts", kind: "cron", text: cronOk },
+    { path: "c/ng/task.ts", kind: "cron", text: cronNg },
+    { path: "c/other/task.ts", kind: "cron", text: cronUnrelated },
+    { path: "r/ok.ts", kind: "registry", text: regOk },
+    { path: "r/ng.ts", kind: "registry", text: regNg },
+    { path: "r/ns.ts", kind: "registry", text: regNamespace },
+    { path: "w/listed.ts", kind: "wiring", text: wire },
+    { path: "w/unlisted.ts", kind: "wiring", text: wire },
+  ];
+  const { problems, hits } = judgeAlwaysOnEntries(entries, folders, { "w/listed.ts": "理由", "w/gone.ts": "もう無い" });
+  assert.deepEqual(hits.map((h) => h.split(":")[0]), ["c/ok/task.ts", "c/ng/task.ts", "r/ok.ts", "r/ng.ts", "r/ns.ts", "w/listed.ts", "w/unlisted.ts"]);
+  assert.deepEqual(
+    problems.map((p) => p.split(":")[0]).sort(),
+    ["c/ng/task.ts", "r/ng.ts", "r/ns.ts", "w/gone.ts", "w/unlisted.ts"],
+  );
+});
+
+test("常時実行の入口の fork の口(L1.24): alwaysOnExceptions.<fork ID>.mjs の例外・登録表を読み、reason 必須・宣言済みの ID だけ", async () => {
+  const { readForkAlwaysOn, judgeAlwaysOnEntries } = await import("./alwaysOnEntries.mjs");
+  const parse = (name) => parseForkDotName(name, { extensions: ["mjs"] });
+  const file = (name, mod) => ({ name, load: async () => mod });
+  const ok = await readForkAlwaysOn(
+    [
+      file("alwaysOnExceptions.acme.mjs", {
+        exceptions: [{ file: "src/wiring/x.acme.ts", reason: "端末の解決は route でだけ走る" }],
+        registries: [{ file: "src/registry/cleanup.acme.ts", reason: "退会の後片付け" }],
+      }),
+    ],
+    ["acme"],
+    parse,
+  );
+  assert.deepEqual(ok.problems, []);
+  assert.deepEqual(ok.exceptions, { "src/wiring/x.acme.ts": "端末の解決は route でだけ走る" });
+  assert.deepEqual(ok.registries, ["src/registry/cleanup.acme.ts"]);
+
+  const ng = await readForkAlwaysOn(
+    [
+      file("alwaysOnExceptions.other.mjs", { exceptions: [] }),
+      file("alwaysOnExceptions.acme.mjs", { exceptions: [{ file: "src/wiring/y.acme.ts", reason: " " }, { reason: "x" }], registries: "src/registry/z.ts" }),
+      file("somethingElse.acme.mjs", {}),
+    ],
+    ["acme"],
+    parse,
+  );
+  assert.equal(ng.problems.length, 5, ng.problems.join("\n"));
+  assert.deepEqual(ng.exceptions, {});
+
+  // fork の例外の行にも縮む表の規則(当たらない行は失敗)
+  const { problems } = judgeAlwaysOnEntries([], ["core/wallet"], ok.exceptions);
+  assert.deepEqual(problems.map((p) => p.split(":")[0]), ["src/wiring/x.acme.ts"]);
+});
