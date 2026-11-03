@@ -10,7 +10,7 @@
 
 ファイル本体はブラウザから GCS へ直接送ります。誰が何をしてよいかは、アプリのサーバーだけが判定します。部品（ref・ポート・配信規則・保存先）は [`src/lib/storage`](../../../lib/storage/README.md) にあり、このドメインはそれを使って判定と記録を行います。
 
-> 用途は登録表 `src/registry/storagePurposeRegistry.ts`（`getStoragePurposes()` が返す。`user.avatar` は strip に固定して返す）、業務行との連動は createCrudService の `storage` オプション（`storageBindingFor`、[src/lib/crud/README.md](../../../lib/crud/README.md)「storage オプション」）、掃除は cron `storage-sweep`。クライアントは `uploadToStorage`（[src/lib/storage/README.md](../../../lib/storage/README.md)）。
+> 用途は拡張点 `purposes`（`purposes/<名前>[.<fork の名前>].ts`）と業務ドメインの `src/registry/storagePurposeRegistry.ts` の AUTO の区画の合成（`getStoragePurposes()` が返す。ID の重複は例外。`user.avatar` は strip に固定して返す）、業務行との連動は createCrudService の `storage` オプション（`storageBindingFor`、[src/lib/crud/README.md](../../../lib/crud/README.md)「storage オプション」）、掃除は cron `storage-sweep`。クライアントは `uploadToStorage`（[src/lib/storage/README.md](../../../lib/storage/README.md)）。
 
 ## 流れ
 
@@ -195,7 +195,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 - **受け取り中の行**: strip の画像は pending の間 store = priv・key = `incoming/…`。ready になるときに `markReady` が store / key を本来の位置へ書き換える（以後は ref と一致する）
 - **session_uri は hiddenColumns**: 生の select では取り出さず、`services/server/finders/findStorageObjectById.ts` だけが読む
 - **index はすべて素の列**（push の往復を守る）: unique(store, key) / (status, expires_at) / (owner_user_id, status) / (record_type, record_id) / (status, ready_at)
-- **schemaRegistry**: CORE DOMAINS ブロックに登録済み。feature-gate の対象外
+- **schemaRegistry**: 走査で登録される。feature-gate の対象外
 - **監査**: 初版は記録しない
 
 ## 構成

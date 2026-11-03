@@ -63,14 +63,14 @@
 ## UI コンポーネント
 
 ### ユーザー向け
-- `components/InviteCode/index.tsx`: マイページ招待コードのセクションコンテナ(`/mypage/invite` の Screen が配置)。部品 `InviteBenefitsSection` は同ディレクトリ
+- `components/InviteCode/index.tsx`: マイページ招待コードのセクションコンテナ(`/mypage/invite` の Screen が配置)。部品 `InviteBenefitsSection` は同ディレクトリ。特典の説明を差し替える fork は Screen を `_components/` へ複製し(`src/lib/screens/README.md`)、`<InviteCode benefits={<自分の説明 />} />` と渡す
   - 招待コード表示/発行（coupon ドメインのフックを利用）
   - コピーボタン（clipboard API）
   - 招待実績（○人招待済み）表示
 
 ### 管理画面
 - `components/AdminInviteList/`: `/admin/coupons/invite` で使用
-  - `index.tsx`: ヘッダー + テーブル（セクションタブは描画しない。Screen が `app/admin/(protected)/coupons/_screen/CouponSectionTabs` を置く。downstream の追加セクションは `src/registry/couponAdminSectionTabsRegistry.ts` に登録）
+  - `index.tsx`: ヘッダー + テーブル（セクションタブは描画しない。Screen が `app/admin/(protected)/coupons/_screen/CouponSectionTabs` を置く。downstream の追加セクションは `coupon/adminSectionTabs/` に項目を置く）
   - `Header.tsx`: 検索ボックス + ページネーション
   - `Table.tsx`: 招待コード / 発行者ID / 紹介人数 / ステータス / 発行日
   - `ReferralListModal.tsx`: 行クリックで紹介済みユーザー一覧をモーダル表示（API都度取得）

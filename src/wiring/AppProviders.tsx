@@ -11,7 +11,7 @@ import type { ReactNode } from "react";
 import { TooltipProvider } from "@/components/Overlays/Tooltip";
 import { RecaptchaProvider } from "@/components/Providers/RecaptchaProvider";
 import { ImageViewerProvider } from "@/components/Overlays/ImageViewer/Provider";
-import { AdminCommandProvider } from "@/features/core/adminCommand";
+import { AdminCommandRoot } from "@/app/_layout/adminCommand/AdminCommandRoot";
 import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";
 import { ForkProviders } from "@/app/_providers/ForkProviders";
 
@@ -20,11 +20,11 @@ export function AppProviders({ children }: Readonly<{ children: ReactNode }>) {
     <TooltipProvider>
       <RecaptchaProvider>
         <AuthSessionProvider>
-          <AdminCommandProvider>
+          <AdminCommandRoot>
             <ImageViewerProvider>
               <ForkProviders>{children}</ForkProviders>
             </ImageViewerProvider>
-          </AdminCommandProvider>
+          </AdminCommandRoot>
         </AuthSessionProvider>
       </RecaptchaProvider>
     </TooltipProvider>
