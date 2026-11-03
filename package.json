@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.typecheck.json",
     "test:crud-hooks": "node --test src/lib/crud/hooks/internal/*.test.mjs",
-    "test:crud-presenters": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/crud/presenters/media.test.ts",
+    "test:crud-presenters": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/crud/presenters/media.test.ts src/lib/crud/presenters/domainColumns.test.ts",
     "test:crud-search-rank": "node --test src/lib/crud/drizzle/query/searchRank.test.mjs src/lib/crud/drizzle/query/withIdTiebreak.test.mjs",
     "test:crud-collections-db": "cross-env APP_ENV=.env.development npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/crud/collections/collections.db.test.ts src/lib/crud/collections/collectionsEmbed.db.test.ts src/lib/crud/collections/collectionEntries.db.test.ts",
     "test:crud-bulk-relation-db": "cross-env APP_ENV=.env.development npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/crud/drizzle/bulkRelation.db.test.ts",
@@ -171,7 +171,7 @@
     "test:script-entries": "node --test scripts/script-entries/check.test.mjs",
     "test:no-server-action": "node --test eslint-rules/no-server-action.test.mjs",
     "test:domain-display": "node --test scripts/registry/alpha/domainDisplay.test.mjs",
-    "test:codemods": "node --test scripts/codemods/domain-display-buttons.test.mjs scripts/codemods/wiring-domains-split.test.mjs scripts/codemods/crud-entry-split.test.mjs",
+    "test:codemods": "node --test scripts/codemods/domain-display-buttons.test.mjs scripts/codemods/wiring-domains-split.test.mjs scripts/codemods/crud-entry-split.test.mjs scripts/codemods/domain-json-client-display.test.mjs",
     "test:client-chunks": "node --test scripts/bundle/clientChunks.test.mjs && node scripts/bundle/clientChunks.mjs"
   },
   "engines": {
