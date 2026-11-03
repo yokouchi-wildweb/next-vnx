@@ -95,7 +95,7 @@ export const APP_FEATURES = {
      * サンプルのドメイン(sample・sampleCategory・sampleTag・sampleImage)の管理画面・API・サンプルを読むデモ画面と 5 表を有効にする。
      * 既定 true は上流のデモ用(権限は厳しくしていない)。実際の利用者がいる fork は false(表は db:push で作らない、既存は消さない)
      */
-    enableSampleDomain: true,
+    enableSampleDomain: false,
     /** チャットルームの管理画面(/admin/chat-rooms)を有効にする(利用者側のチャットは止めない) */
     enableChatRoomAdmin: true,
     /** 通知テンプレートの管理画面と API を有効にする */
