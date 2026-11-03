@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { checkPhoneAvailability } from "@/features/core/auth/services/server/phoneVerification";
 
 /**
@@ -13,21 +13,13 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/phone/check",
     operationType: "read",
-    access: "custom",
+    access: "authenticated",
   },
-  async (req, { session }) => {
-    // ログインチェック
-    if (!session) {
-      return NextResponse.json(
-        { message: "ログインが必要です。" },
-        { status: 401 }
-      );
-    }
-
+  async (req, { user }) => {
     const json = await req.json();
 
     const result = await checkPhoneAvailability({
-      userId: session.userId,
+      userId: user.userId,
       input: json,
     });
 

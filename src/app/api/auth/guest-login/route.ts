@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { demoLogin } from "@/features/core/auth/services/server/demoLogin";
 import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
 import { getClientIp } from "@/lib/request/getClientIp";
@@ -16,7 +16,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/guest-login",
     operationType: "write",
-    access: "custom",
+    access: "public",
     skipForDemo: false,
     rateLimit: "guestLogin",
   },

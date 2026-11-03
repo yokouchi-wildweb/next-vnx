@@ -3,9 +3,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { createDemoUser } from "@/features/core/user/services/server/creation/console";
-import { getRoleCategory, USER_ROLES } from "@/features/core/user/constants";
+import { USER_ROLES } from "@/features/core/user/constants";
 
 const CreateDemoUserPayloadSchema = z.object({
   name: z.string(),
@@ -23,14 +23,10 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/admin/user/demo/create",
     operationType: "write",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
     skipForDemo: false,
   },
-  async (req, { session }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json({ message: "この操作を行う権限がありません。" }, { status: 403 });
-    }
-
+  async (req) => {
     const json = await req.json();
     const parsed = CreateDemoUserPayloadSchema.safeParse(json);
 

@@ -9,8 +9,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createApiRoute } from "@/lib/routeFactory";
-import { getRoleCategory } from "@/features/core/user/constants";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { bankTransferReviewService } from "@/features/bankTransferReview/services/server/bankTransferReviewService";
 
 const BodySchema = z
@@ -38,17 +37,10 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/admin/bank-transfer-reviews/bulk/send-email",
     operationType: "write",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
     skipForDemo: false,
   },
-  async (req, { session }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json(
-        { message: "この操作を行う権限がありません。" },
-        { status: 403 },
-      );
-    }
-
+  async (req) => {
     let body: z.infer<typeof BodySchema>;
     try {
       const json = await req.json();

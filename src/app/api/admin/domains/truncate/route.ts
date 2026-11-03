@@ -3,9 +3,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createApiRoute } from "@/lib/routeFactory";
-import { enforceAccessRule } from "@/lib/routeFactory/enforceAccess";
-import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
+import { createApiRoute, enforceAccessRule } from "@/wiring/apiRoute";
 import { verifyCurrentUserPassword } from "@/features/core/auth/services/server/verifyCurrentUserPassword";
 import { resolveAccessRule } from "@/lib/domain";
 import { getDomainAccess, getInvalidDomainKeys, getServiceOrThrow } from "@/wiring/domains";
@@ -33,13 +31,10 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/admin/domains/truncate",
     operationType: "write",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
     skipForDemo: true, // デモユーザーは実行不可
   },
-  async (req) => {
-    // admin権限チェック（DB と同期した値で判定）
-    const admin = await requireAdmin();
-
+  async (req, { user: admin }) => {
     // リクエストボディをパース
     const json = await req.json();
     const parsed = TruncatePayloadSchema.safeParse(json);
@@ -74,7 +69,7 @@ export const POST = createApiRoute(
     for (const domainKey of domains) {
       const access = getDomainAccess(domainKey);
       const denied = access
-        ? await enforceAccessRule(resolveAccessRule(access, "truncateAll", "write"))
+        ? await enforceAccessRule(resolveAccessRule(access, "truncateAll", "write"), admin)
         : new NextResponse("Not Found", { status: 404 });
       if (denied) {
         return NextResponse.json(

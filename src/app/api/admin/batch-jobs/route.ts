@@ -3,8 +3,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createApiRoute } from "@/lib/routeFactory";
-import { getRoleCategory } from "@/features/core/user/constants";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { batchJobService } from "@/features/batchJob/services/server";
 
 const CreateBatchJobPayloadSchema = z.object({
@@ -21,14 +20,10 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/admin/batch-jobs",
     operationType: "write",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
     skipForDemo: false,
   },
-  async (req, { session }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json({ message: "この操作を行う権限がありません。" }, { status: 403 });
-    }
-
+  async (req) => {
     let payload: z.infer<typeof CreateBatchJobPayloadSchema>;
     try {
       const json = await req.json();

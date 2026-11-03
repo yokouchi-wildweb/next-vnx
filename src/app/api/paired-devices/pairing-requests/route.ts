@@ -9,21 +9,19 @@ import {
   withPairedDeviceErrors,
 } from "@/features/core/pairedDevice/services/server";
 import { readDeviceRequestInfo } from "@/features/core/pairedDevice/services/server/session";
-import { requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
 import { DomainError } from "@/lib/errors";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 
 export const GET = createApiRoute(
   {
     operation: "GET /api/paired-devices/pairing-requests",
     operationType: "read",
-    access: "custom",
+    access: "authenticated",
     // IP 単位は緩い上限だけ。主な制限はユーザー単位（下）
     rateLimit: "pairedDeviceManageIp",
   },
-  async (req) =>
+  async (req, { user }) =>
     withPairedDeviceErrors(async () => {
-      const user = await requireAuthenticated();
       const limited = await checkPairedDeviceRateLimit("pairedDeviceManage", `user:${user.userId}`);
       if (limited) return limited;
       const code = req.nextUrl.searchParams.get("code");

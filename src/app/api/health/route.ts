@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 import { settingService } from "@/features/core/setting/services/server/settingService";
 import { canBypassMaintenance } from "@/features/core/setting/utils/maintenanceBypass";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 
 // ビルド時に確定するID（next.config.ts の env で注入）
 const BUILD_ID = process.env.NEXT_BUILD_ID ?? "unknown";
@@ -23,11 +23,11 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/health",
     operationType: "read",
-    access: "custom",
+    access: "public",
   },
-  async (_req, { session }) => {
+  async (_req, { user }) => {
     const active = await settingService.isMaintenanceActive();
-    const bypassed = canBypassMaintenance(session);
+    const bypassed = canBypassMaintenance(user);
 
     // デプロイ検知のためキャッシュを無効化
     return NextResponse.json(

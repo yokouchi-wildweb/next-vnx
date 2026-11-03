@@ -6,8 +6,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "@/lib/routeFactory";
-import { getRoleCategory } from "@/features/core/user/constants";
+import { createApiRoute } from "@/wiring/apiRoute";
 import {
   getAudience,
   AUDIENCE_ORDER_BY,
@@ -18,16 +17,9 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/admin/interactions/audience",
     operationType: "read",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
   },
-  async (req, { session }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json(
-        { message: "この操作を行う権限がありません。" },
-        { status: 403 },
-      );
-    }
-
+  async (req) => {
     const { searchParams } = new URL(req.url);
     const targetType = searchParams.get("targetType");
     const targetId = searchParams.get("targetId");

@@ -1,8 +1,7 @@
 // src/app/api/data-migration/export/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { exportData } from "@/lib/dataMigration/export";
 import { MEDIA_SKIPPED_EXAMPLES_HEADER, MEDIA_SKIPPED_HEADER } from "@/lib/dataMigration/media";
 import { getService } from "@/wiring/domains";
@@ -25,9 +24,8 @@ export const POST = createApiRoute(
     operationType: "read",
     access: { roleCategories: ["admin"] },
   },
-  async (req: NextRequest) => {
-    // 非公開ファイルの read 判定に使う実行者（DB と同期した管理者）
-    const admin = await requireAdmin();
+  async (req: NextRequest, { user: admin }) => {
+    // 非公開ファイルの read 判定に使う実行者 = Factory が解いた管理者（DB 同期）
 
     const body = (await req.json()) as ExportRequestBody;
 
@@ -53,6 +51,7 @@ export const POST = createApiRoute(
     const denied = await denyUnlessDomainDataOperationAllowed(
       [domain, ...(includeRelations && Array.isArray(selectedHasManyDomains) ? selectedHasManyDomains : [])],
       "export",
+      admin,
     );
     if (denied) return denied;
 

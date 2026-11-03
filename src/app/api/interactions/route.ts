@@ -4,10 +4,10 @@
 // 匿名ユーザーを含む行動イベント（クリック等）を記録する。
 // - interactionTargetRegistry に未登録の targetType は fail-closed で拒否
 //   （存在しない対象・非公開対象へのカウント水増し防止）
-// - ログイン中はセッションから userId を自動付与（クライアント申告は受け付けない）
+// - ログイン中（利用可能な status）は ctx.user から userId を自動付与（クライアント申告は受け付けない）
 // - IP / サブネットのハイブリッドレート制限でボットによる水増しを緩和
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors/domainError";
 import { InteractionIngestSchema } from "@/features/core/interactionTracking/entities/schema";
 import { record } from "@/features/core/interactionTracking/services/server";
@@ -21,7 +21,7 @@ export const POST = createApiRoute(
     rateLimit: "interactionIngest",
     rateLimitSubnet: "interactionIngestSubnet",
   },
-  async (req, { session }) => {
+  async (req, { user }) => {
     const parsed = InteractionIngestSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) {
       throw new DomainError("リクエスト形式が不正です。", { status: 400 });
@@ -47,7 +47,7 @@ export const POST = createApiRoute(
       targetId,
       action,
       source: source ?? null,
-      userId: session?.userId ?? null,
+      userId: user?.userId ?? null,
       retentionDays: rule.retentionDays,
       recordDetail: rule.recordDetail,
     });

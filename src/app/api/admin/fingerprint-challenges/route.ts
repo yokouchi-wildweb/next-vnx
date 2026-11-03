@@ -6,7 +6,7 @@
 // (レシピ: src/features/core/fingerprintChallenge/README.md)。
 // 一覧・検索は serviceRegistry (fingerprintChallenge, ADMIN_ONLY) の汎用 API を使う。
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 import { FINGERPRINT_CONFIG } from "@/config/app/fingerprint.config";
 import { IssueChallengeSchema } from "@/features/core/fingerprintChallenge/entities/schema";
@@ -19,7 +19,7 @@ export const POST = createApiRoute(
     operationType: "write",
     access: { roleCategories: ["admin"] },
   },
-  async (req, { session }) => {
+  async (req, { user }) => {
     if (!FINGERPRINT_CONFIG.challenge.enabled) {
       throw new DomainError(
         "チャレンジ機能が無効です (FINGERPRINT_CONFIG.challenge.enabled)",
@@ -39,7 +39,7 @@ export const POST = createApiRoute(
 
     const { challenge, token } = await issueChallenge({
       ...parsed.data,
-      issuedBy: session?.userId ?? null,
+      issuedBy: user.userId ?? null,
     });
 
     return { challenge, token };
