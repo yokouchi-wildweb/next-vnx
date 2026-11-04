@@ -83,15 +83,5 @@
   "useDetailModal": false,
   "addToAdminDataMenu": false,
   "useDuplicateButton": false,
-  "generateFiles": {
-    "entities": true,
-    "components": false,
-    "hooks": true,
-    "clientServices": true,
-    "serverServices": true,
-    "adminRoutes": false,
-    "registry": true,
-    "fieldConstants": true,
-    "presenters": false
-  }
+  "generate": false
 }
