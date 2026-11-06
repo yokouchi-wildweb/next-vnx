@@ -4,7 +4,7 @@ sample	business	yes	true
 sampleCategory	business	yes	true
 sampleImage	business	yes	true
 sampleTag	business	yes	true
-save	business	yes	false
+save	business	yes	true
 core/admin	core	no	-
 core/adminCommand	core	no	-
 core/analytics	core	no	-

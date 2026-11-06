@@ -35,6 +35,8 @@ export const baseOptions = {
       field: "user",
       foreignKey: "user_id",
       table: UserTable,
+      useSoftDelete: true,
+      deletedAtColumn: UserTable.deletedAt,
     }
   ],
 

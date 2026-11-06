@@ -8,4 +8,5 @@ export const adminDataMenu: { title: string; href: string }[] = [
   { title: "サンプル", href: "/admin/samples" },
   { title: "サンプルカテゴリ", href: "/admin/sample-categories" },
   { title: "サンプルタグ", href: "/admin/sample-tags" },
+  { title: "セーブデータ", href: "/admin/saves" },
 ];

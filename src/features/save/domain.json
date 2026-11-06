@@ -81,7 +81,7 @@
     "updatedAt"
   ],
   "useDetailModal": false,
-  "addToAdminDataMenu": false,
+  "addToAdminDataMenu": true,
   "useDuplicateButton": false,
-  "generate": false
+  "generate": true
 }
