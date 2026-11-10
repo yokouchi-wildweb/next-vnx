@@ -19,13 +19,25 @@
 //   pnpm deploy:all -- --target=preview    # プレビューデプロイ等、任意の vercel 引数
 // ※ vercel CLI に --preview フラグは存在しない。素のデプロイ (=プレビュー) は本コマンドでは
 //    --prod フォールバックに塞がれているため、プレビューは --target=preview を明示すること
+// 本番(アプリが --prod、またはルームの Worker を出す)ならセーフポイントの上でだけ出す
+// (違えば何もデプロイせず止める。--allow-unsafe=<理由> で通す。scripts/operations/deploy/lib.ts)
 
-import { execSync, spawnSync } from "node:child_process";
+import { execFileSync, execSync, spawnSync } from "node:child_process";
 import path from "node:path";
+
+import { REALTIME_ROOM_CONFIG } from "../src/config/app/realtime-room.config";
+import { allowUnsafeArgs, guardSafePoint, takeAllowUnsafe } from "./operations/deploy/lib";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
 
 console.log("=== deploy:all (room → app) ===\n");
+
+// --- 事前検査: セーフポイント(本番に出すときだけ。何かを打つ前に止める) ---
+const allowUnsafe = takeAllowUnsafe();
+const vercelArgs = process.argv.slice(2);
+const args = vercelArgs.length > 0 ? vercelArgs : ["--prod"];
+const productionApp = args.includes("--prod") || args.includes("--target=production");
+guardSafePoint(productionApp || REALTIME_ROOM_CONFIG.enabled, allowUnsafe);
 
 // --- 0. 事前検査: cron の配線（vercel.json の crons が全タスクの生成結果と一致するか） ---
 // 配線漏れのまま本番に出すと prune 系が動かずテーブルが無制限に増えるため、デプロイ前に止める
@@ -39,7 +51,8 @@ try {
 // --- 1. Worker (servers/room) ---
 // skip (enabled=false) は exit 0 で返るため、そのままアプリへ進む
 try {
-  execSync("pnpm room:deploy", { cwd: repoRoot, stdio: "inherit" });
+  // 確かめは済んだので、子の pnpm room:deploy には同じ --allow-unsafe=<理由> を渡す
+  execFileSync("pnpm", ["room:deploy", ...allowUnsafeArgs(allowUnsafe)], { cwd: repoRoot, stdio: "inherit" });
 } catch {
   console.error("\n✗ ルームサーバーのデプロイに失敗したため、アプリのデプロイを中止します");
   process.exit(1);
@@ -56,9 +69,6 @@ if (versionCheck.error || versionCheck.status !== 0) {
 `);
   process.exit(1);
 }
-
-const vercelArgs = process.argv.slice(2);
-const args = vercelArgs.length > 0 ? vercelArgs : ["--prod"];
 
 console.log(`\n→ vercel ${args.join(" ")} を実行します...\n`);
 const result = spawnSync("vercel", args, { cwd: repoRoot, stdio: "inherit", shell: false });
