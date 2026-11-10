@@ -95,9 +95,9 @@ export const seedRegistry: SeedConfig[] = [
     name: "セーブデータ",
     key: "saves",
     deps: ["demoUser"],
-    fn: async () => {
+    fn: async (deps) => {
       const { seedSaves } = await import("./saves");
-      return seedSaves();
+      return seedSaves(deps.demoUser);
     },
   },
   // --- fork entries end ---

@@ -46,22 +46,3 @@ export async function seedDemoUser(): Promise<SeedDemoUserResult> {
   console.log("  ✓ デモユーザーを作成しました");
   return demoUser;
 }
-
-/**
- * 既存のデモユーザーを探す(無ければ null)。
- * fork のシード(saves)が依存先の戻り値に頼らずデモユーザーを得るための口。
- * seedRegistry の upstream の行(demoUser の型・戻り値)を書き換えずに済ませる。
- */
-export async function findDemoUser(): Promise<typeof UserTable.$inferSelect | null> {
-  const [user] = await db
-    .select()
-    .from(UserTable)
-    .where(
-      and(
-        eq(UserTable.providerType, DEMO_USER_PROVIDER_TYPE),
-        eq(UserTable.providerUid, DEMO_USER_PROVIDER_UID)
-      )
-    )
-    .limit(1);
-  return user ?? null;
-}
