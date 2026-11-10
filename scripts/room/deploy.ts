@@ -6,17 +6,20 @@
 //   - enabled=true, wrangler.toml 無 → 明示エラー (pnpm room:init を案内)
 //   - Worker 名が既定 "room-server"  → 明示エラー (--allow-default-name で強行可)
 //   - enabled=true, 準備済み         → wrangler deploy (認証エラーは wrangler が明示する)
+// 本番ならセーフポイントの上でだけ出す(違えば止める。--allow-unsafe=<理由> で通す。scripts/operations/deploy/lib.ts)
 
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { REALTIME_ROOM_CONFIG } from "../../src/config/app/realtime-room.config";
+import { guardSafePoint, takeAllowUnsafe } from "../operations/deploy/lib";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 const roomDir = path.join(repoRoot, "servers/room");
 
 console.log("=== realtime room: deploy ===\n");
+const allowUnsafe = takeAllowUnsafe();
 
 if (!REALTIME_ROOM_CONFIG.enabled) {
   console.log("room: skipped (realtime-room.config enabled=false)");
@@ -28,6 +31,9 @@ if (!existsSync(path.join(roomDir, "wrangler.toml"))) {
   console.error("✗ servers/room/wrangler.toml がありません。先に pnpm room:init を実行してください");
   process.exit(1);
 }
+
+// 本番の Worker に出す前に、セーフポイントの上かを確かめる(違えば止める。--allow-unsafe=<理由> で通す)
+guardSafePoint(true, allowUnsafe);
 
 // 既定名ガード: wrangler deploy は同名 Worker を無言で置換するため、テンプレート既定名
 // "room-server" のままのデプロイは拒否する (同一アカウント同居の他プロジェクトを上書きする事故防止)
