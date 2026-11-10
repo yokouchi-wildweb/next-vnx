@@ -30,6 +30,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   | kind | 合格 | 違反 |
   | --- | --- | --- |
   | edit | 何を書き換えても `intake` | — |
+  | add | — (足すのは A なので `added`) | 基準にあるファイルの書き換え `outside-intake` |
   | region | fork の区画(印の対)と生成器の区画の外が基準と同じ → `region` | 外も変えた `outside-region` / 印の対が壊れている `region-markers` |
   | marker | `fork entries below` の行までが基準と同じ → `marker` | `above-marker`(印が無い場合も) |
   | append | 基準の中身が先頭にそのまま残る → `append` | `not-append` |
@@ -52,7 +53,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 受け口の外の書き換えを、直接の親への依頼が片付くまでの間だけ通す行。例外の置き場はこれ 1 つ(猶予の区画は作らない)。
 
 - 対象
-  - 受け口が無い固有の機能、upstream のバグ・性能・セキュリティの修正。既存の受け口で済む物には出さない(受け口へ移す)
+  - 受け口が無い固有の機能、upstream のバグ・性能・セキュリティの修正。既存の受け口で済む物には出さない(受け口へ移す)。`_components/` へのコピーに変えない処理や守りが付いてくるなら、済むとは数えない(`.claude/rules/core/extensions.md`)
   - upstream の負債の箇所(debt)。受け口ができた notice で外す
   - 削除・rename(D/R): 付ける依頼は「止める受け口(feature-gate 等)を用意してほしい」に限る。受け口ができたら、止めてから復元する
   - 祖先 lib への追加: 付ける依頼は「その lib に入れてほしい / 受け口がほしい」に限る(ふつうは自分の lib に置いて re-export する)
