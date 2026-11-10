@@ -19,7 +19,8 @@ export async function DraftScreen(props: ScreenProps) {
   return (
     <>
       <HideBottomNav />
-      <TunnelBackground preset="unicorn" />
+      {/* フレームの BackgroundLayer(fixed, z-index:-1, 不透明)より手前に出すため同じ -1 を指定(後に描かれる側が上) */}
+      <TunnelBackground preset="unicorn" zIndex={-1} />
       <UserPage containerType="wideShowcase" paddingInline="none" className="pt-0 sm:pt-4">
         <div className="w-[72rem] mx-auto max-w-full">
           <HeroSection />
