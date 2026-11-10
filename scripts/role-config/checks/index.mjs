@@ -2,6 +2,7 @@
 // 対話で作っていた頃に質問の中にあった決まりをここに移した（role.json・profile.json は手で書き、role:generate で生成する）。
 // 止めない食い違いは roleConfigWarnings（生成は進める）
 
+import { auditIssues } from "../../domain-config/checks/audit.mjs";
 import { profileFieldIssues, profileTagIssues, profileWarnings } from "./profile.mjs";
 import { profileRelationIssues } from "./relations.mjs";
 import { roleIssues, roleWarnings } from "./role.mjs";
@@ -11,19 +12,20 @@ import { roleIssues, roleWarnings } from "./role.mjs";
  * @property {string} fileName ロール設定のファイル名（例: _admin.role.json）
  * @property {object} role ロール設定
  * @property {object | null} profile プロフィール設定（無ければ null）
+ * @property {string[]} [overrideProblems] 隣の上書きを読んだときの問題（role と profile は上書き後の値）
  */
 
 /**
  * @param {RoleCheckInput} input
  * @returns {string[]} [<file>] を前に付けた問題（空なら無し）
  */
-export function roleConfigIssues({ fileName, role, profile }) {
+export function roleConfigIssues({ fileName, role, profile, overrideProblems = [] }) {
   const profileName = `${role?.id}.profile.json`;
-  const issues = roleIssues({ fileName, role, profileExists: profile !== null }).map((issue) => `[${fileName}] ${issue}`);
+  const issues = [...overrideProblems, ...roleIssues({ fileName, role, profileExists: profile !== null }).map((issue) => `[${fileName}] ${issue}`)];
   // hasProfile: false のプロフィールは生成しないので項目は検査しない（警告だけ）
   if (profile !== null && role?.hasProfile === true) {
     issues.push(
-      ...[...profileFieldIssues(profile), ...profileRelationIssues(profile), ...profileTagIssues(profile)].map((issue) => `[${profileName}] ${issue}`),
+      ...[...profileFieldIssues(profile), ...profileRelationIssues(profile), ...profileTagIssues(profile), ...auditIssues(profile, "Neon")].map((issue) => `[${profileName}] ${issue}`),
     );
   }
   return issues;

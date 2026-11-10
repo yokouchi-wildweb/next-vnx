@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // scripts/role-config/deleteRole.mjs
 // 使い方: pnpm role:delete <roleId> --confirm <roleId> [--keep-generated] [--remove-json] [-i]
-// 既定は対話なし: --confirm に同じ ID を渡したときだけ消す。generated/<roleId>/ は既定で消す（--keep-generated で残す）、
+// 既定は対話なし: --confirm に同じ ID を渡したときだけ消す。entities/profiles/<roleId>/ は既定で消す（--keep-generated で残す）、
 // 設定の JSON は既定で残す（--remove-json で消す）。-i のときだけ今までの対話（選択・確認）
 // ロール関連のレジストリエントリを削除するスクリプト
 
@@ -11,6 +11,7 @@ import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import { failUsage, parseRoleOpsArgs } from "./cliArgs.mjs";
 import { cleanupRole } from "./generator/cleanupRole.mjs";
+import { overrideFileName, removeOverride } from "./overrides.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
@@ -108,7 +109,7 @@ export default async function deleteRole(roleIdArg, options = {}) {
     ({ deleteEntity } = await prompt({
       type: "confirm",
       name: "deleteEntity",
-      message: "生成フォルダ（generated/{roleId}/）も削除しますか？",
+      message: "生成フォルダ（entities/profiles/{roleId}/）も削除しますか？",
       default: true,
     }));
     ({ deleteJsonFiles } = await prompt({
@@ -131,7 +132,7 @@ export default async function deleteRole(roleIdArg, options = {}) {
   } else if (options.confirm !== selectedRoleId) {
     failUsage(
       `${options.confirm === undefined ? "削除するには --confirm でロール ID を渡してください" : `--confirm "${options.confirm}" がロール ID と一致しません`}` +
-        `（消すもの: roleRegistry の登録${deleteEntity ? "・generated/" + selectedRoleId + "/" : ""}${deleteJsonFiles ? "・設定の JSON" : ""}）。実行: pnpm role:delete ${selectedRoleId} --confirm ${selectedRoleId}`,
+        `（消すもの: ロールの一覧の登録${deleteEntity ? "・entities/profiles/" + selectedRoleId + "/" : ""}${deleteJsonFiles ? "・設定の JSON" : ""}）。実行: pnpm role:delete ${selectedRoleId} --confirm ${selectedRoleId}`,
       USAGE,
     );
     return;
@@ -139,22 +140,26 @@ export default async function deleteRole(roleIdArg, options = {}) {
 
   // クリーンアップ実行
   console.log("");
-  cleanupRole(selectedRoleId, { includeProfile: true, deleteEntity });
+  // JSON ごと消すときは hasProfile を書き戻す先が無い（上書きが hasProfile を決めていても止めない）
+  cleanupRole(selectedRoleId, { includeProfile: true, deleteEntity, updateHasProfile: !deleteJsonFiles });
 
-  // JSON ファイルの削除
+  // JSON ファイルの削除（隣の上書きも一緒に）
   if (deleteJsonFiles) {
     // ロール設定ファイル
     if (fs.existsSync(selectedRole.filePath)) {
       fs.unlinkSync(selectedRole.filePath);
       console.log(`  ✓ ${selectedRole.fileName} を削除`);
     }
+    if (removeOverride(ROLES_DIR, selectedRole.fileName)) console.log(`  ✓ ${overrideFileName(selectedRole.fileName)} を削除`);
 
     // プロフィール設定ファイル
-    const profilePath = path.join(PROFILES_DIR, `${selectedRoleId}.profile.json`);
+    const profileFile = `${selectedRoleId}.profile.json`;
+    const profilePath = path.join(PROFILES_DIR, profileFile);
     if (fs.existsSync(profilePath)) {
       fs.unlinkSync(profilePath);
-      console.log(`  ✓ ${selectedRoleId}.profile.json を削除`);
+      console.log(`  ✓ ${profileFile} を削除`);
     }
+    if (removeOverride(PROFILES_DIR, profileFile)) console.log(`  ✓ ${overrideFileName(profileFile)} を削除`);
   }
 
   console.log("\n削除完了しました。\n");

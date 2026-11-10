@@ -1,90 +1,23 @@
 // scripts/role-config/generator/cleanupProfile.mjs
-// プロフィール関連のレジストリエントリを削除
+// プロフィールの生成フォルダを消し、一覧を作り直す
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-import { toCamelCase, toPascalCase } from "../../../src/utils/stringCase.mjs";
-import { updateGeneratedIndex } from "./updateGeneratedIndex.mjs";
+import { overrideFileName, readRoleOverride, requireOverride } from "../overrides.mjs";
+import { writeProfileLists } from "./writeLists.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
 const ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/roles");
 
 /**
- * ファイルから特定パターンの行を削除
- */
-function removeLines(filePath, patterns) {
-  if (!fs.existsSync(filePath)) return false;
-
-  let content = fs.readFileSync(filePath, "utf-8");
-  let modified = false;
-
-  for (const pattern of patterns) {
-    const regex = new RegExp(`^.*${escapeRegex(pattern)}.*\n?`, "gm");
-    const newContent = content.replace(regex, "");
-    if (newContent !== content) {
-      content = newContent;
-      modified = true;
-    }
-  }
-
-  if (modified) {
-    // 連続する空行を1つにまとめる
-    content = content.replace(/\n{3,}/g, "\n\n");
-    fs.writeFileSync(filePath, content);
-  }
-
-  return modified;
-}
-
-/**
- * 正規表現の特殊文字をエスケープ
- */
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-/**
- * profiles/index.ts からエントリを削除
- */
-function cleanupProfilesIndex(roleId) {
-  const filePath = path.join(
-    ROOT_DIR,
-    "src/features/core/userProfile/profiles/index.ts"
-  );
-
-  const varName = `${toCamelCase(roleId)}Profile`;
-  const patterns = [
-    `import ${varName} from "./${roleId}.profile.json"`,
-    `${varName} as ProfileConfig`,
-  ];
-
-  return removeLines(filePath, patterns);
-}
-
-/**
- * profileSchemaRegistry.ts からエントリを削除
- */
-function cleanupProfileSchemaRegistry(roleId) {
-  const filePath = path.join(ROOT_DIR, "src/registry/profileSchemaRegistry.ts");
-
-  const schemaName = `${toPascalCase(roleId)}ProfileSchema`;
-  const patterns = [
-    `import { ${schemaName} }`,
-    `${roleId}: ${schemaName}`,
-  ];
-
-  return removeLines(filePath, patterns);
-}
-
-/**
- * generated/{roleId}/ フォルダを削除
+ * entities/profiles/{roleId}/ フォルダを削除
  */
 function cleanupGeneratedFolder(roleId) {
   const folderPath = path.join(
     ROOT_DIR,
-    "src/features/core/userProfile/generated",
+    "src/features/core/userProfile/entities/profiles",
     roleId
   );
 
@@ -93,6 +26,16 @@ function cleanupGeneratedFolder(roleId) {
     return true;
   }
   return false;
+}
+
+/**
+ * 上書きが hasProfile を決めているロールは JSON を書いても効かないので、何も消す前に止める
+ */
+export function assertHasProfileNotOverridden(roleId) {
+  const fileName = [`${roleId}.role.json`, `_${roleId}.role.json`].find((name) => fs.existsSync(path.join(ROLES_DIR, name)));
+  if (fileName && requireOverride(readRoleOverride(ROLES_DIR, fileName)).hasProfile !== undefined) {
+    throw new Error(`ロール「${roleId}」の hasProfile は ${overrideFileName(fileName)} が決めています。そのファイルを直してから実行してください。`);
+  }
 }
 
 /**
@@ -133,25 +76,20 @@ export function cleanupProfile(roleId, options = {}) {
 
   const log = silent ? () => {} : console.log;
 
+  if (updateHasProfile) assertHasProfileNotOverridden(roleId);
+
   log(`プロフィール "${roleId}" のクリーンアップ中...`);
 
   const results = {
-    profilesIndex: cleanupProfilesIndex(roleId),
-    // profileBaseRegistry と profileTableRegistry は全件再生成方式のためクリーンアップ不要
-    profileSchemaRegistry: cleanupProfileSchemaRegistry(roleId),
     generatedFolder: deleteEntity ? cleanupGeneratedFolder(roleId) : false,
     roleHasProfile: updateHasProfile ? updateRoleHasProfile(roleId) : false,
   };
 
-  // generated/index.ts を更新（フォルダ削除後）
-  if (results.generatedFolder) {
-    updateGeneratedIndex();
-  }
+  // 一覧は生成フォルダのあるプロフィールだけを並べる
+  writeProfileLists();
 
   if (!silent) {
-    if (results.profilesIndex) log("  ✓ profiles/index.ts を更新");
-    if (results.profileSchemaRegistry) log("  ✓ profileSchemaRegistry.ts を更新");
-    if (results.generatedFolder) log("  ✓ generated/ フォルダを削除");
+    if (results.generatedFolder) log("  ✓ entities/profiles/ のフォルダを削除");
     if (results.roleHasProfile) log("  ✓ ロール設定の hasProfile を false に更新");
 
     const anyModified = Object.values(results).some(Boolean);

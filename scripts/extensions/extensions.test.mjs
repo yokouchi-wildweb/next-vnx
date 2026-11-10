@@ -238,6 +238,8 @@ test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空�
     "src/app/api/cron/other/override.ts": "// 親の上書きを外す\n",
     "src/features/core/user/services/server/domainEntry.override.ts": "export const domainEntryOverrides = {};\n",
     "src/features/core/x/thing.override.tsx": "export const x = 1;\n",
+    "src/features/core/user/roles/_user.role.override.ts": "export const override = {};\n",
+    "src/features/core/userProfile/profiles/user.profile.override.ts": "export const override = {};\n",
     "src/features/core/x/override.ts": "export const notAnOverride = 1;\n",
   });
   const fork = checkOverrides(root, { isTier1: false });
@@ -247,12 +249,14 @@ test("override: 上流(Tier1)は 1 本も出荷しない(空も)。fork は空�
     [
       "src/app/api/cron/other/override.ts:true",
       "src/app/api/cron/wallet-expire/override.ts:false",
+      "src/features/core/user/roles/_user.role.override.ts:false",
       "src/features/core/user/services/server/domainEntry.override.ts:false",
+      "src/features/core/userProfile/profiles/user.profile.override.ts:false",
       "src/features/core/x/thing.override.tsx:false",
     ],
   );
   const tier1 = checkOverrides(root, { isTier1: true });
-  assert.equal(tier1.problems.length, 4, tier1.problems.join("\n"));
+  assert.equal(tier1.problems.length, 6, tier1.problems.join("\n"));
   assert.ok(tier1.problems.every((p) => p.includes("上流(Tier1)は override を出荷しない")));
 });
 
@@ -376,4 +380,11 @@ test("setting の点: override は許す属性だけ、上流の項目だけ、�
   const sec = settingPlan({ "src/features/core/setting/sections/general.override.ts": 'export const override = { label: "y" };\n' });
   assert.deepEqual(sec.problems, []);
   assert.match(sec.outputs["src/features/core/setting/extensions/sections.ts"], /\{ \.\.\.general, \.\.\.general_override \},/);
+});
+
+test("writer の点: 別の生成器が書く一覧。持てるのは side だけ、ほかのキー・未知の writer は失敗", () => {
+  const read = (body) => readDeclaration("x/extensionPoints.ts", `export const extensionPoints = { roles: ${body} };`);
+  assert.deepEqual(read('{ writer: "role:generate", side: "shared" }').problems, []);
+  assert.equal(read('{ writer: "other", side: "shared" }').problems.length, 1);
+  assert.equal(read('{ writer: "role:generate", side: "shared", dir: "roles" }').problems.length, 1);
 });
